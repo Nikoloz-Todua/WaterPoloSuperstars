@@ -102,14 +102,11 @@ public static class MovementSandboxVerification
             passed.Add("Fixed waterline");
 
             Camera camera = Camera.main;
-            foreach (float x in new[] { -bounds.Width * 0.5f, bounds.Width * 0.5f })
-            foreach (float z in new[] { -bounds.Length * 0.5f, bounds.Length * 0.5f })
-            {
-                Vector3 viewport = camera.WorldToViewportPoint(bounds.transform.position + new Vector3(x, 0f, z));
-                Require(viewport.z > 0f && viewport.x > 0f && viewport.x < 1f && viewport.y > 0f && viewport.y < 1f,
-                    "Camera contains every pool corner at the current aspect ratio.");
-            }
-            passed.Add("Camera framing at current Game view aspect");
+            await Advance(0.7f);
+            Vector3 viewport = camera.WorldToViewportPoint(body.position);
+            Require(viewport.z > 0f && viewport.x > 0f && viewport.x < 1f && viewport.y > 0f && viewport.y < 1f,
+                "Camera contains the swimmer at the current aspect ratio.");
+            passed.Add("Swimmer framing at current Game view aspect (Milestone 2 follow camera)");
             return new { passed, straightSpeed, diagonalSpeed, frameCount = Time.frameCount };
         }
         finally
