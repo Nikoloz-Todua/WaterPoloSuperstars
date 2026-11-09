@@ -16,6 +16,11 @@ public static class MovementSandboxVerification
 {
     public static async Task<object> Run()
     {
+        // Original field-player fixture: keeper behavior is exercised by the dedicated keeper suites.
+        var isolatedKeepers = UnityEngine.Object.FindObjectsByType<PrototypeGoalkeeper>().Where(k => k.enabled).ToArray();
+        foreach (var keeper in isolatedKeepers) keeper.enabled = false;
+        var runningMatch = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+        while (runningMatch != null && runningMatch.IsRestarting) await Advance(0.05f);
         Require(Application.isPlaying && SceneManager.sceneCount == 1 &&
             SceneManager.GetActiveScene().name == "PrototypePool", "Open PrototypePool alone in Play Mode.");
         PlayerSelection selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
@@ -42,7 +47,7 @@ public static class MovementSandboxVerification
             roster.ResetPositions();
             var ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
             ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f));
-            selection.Select(roster.Members[0]); await Advance(0.12f);
+            selection.Select(roster.FieldPlayers[0]); await Advance(0.12f);
             originalPosition = body.position; originalRotation = body.rotation;
             int frame = Time.frameCount;
             await Advance(0.1f);
@@ -51,7 +56,7 @@ public static class MovementSandboxVerification
             Press(keyboard, Key.W);
             await Advance(0.08f);
             Require(motor.Velocity.magnitude > 0f && motor.Velocity.magnitude < motor.MaxSpeed,
-                "Movement accelerates rather than snapping to full speed.");
+                $"Movement accelerates rather than snapping to full speed. Velocity={motor.Velocity}, max={motor.MaxSpeed}, input={input.enabled}, selected={selection.ActivePlayer.PlayerId}, locked={selection.InputLocked}");
             await Advance(0.8f);
             straightSpeed = motor.Velocity.magnitude;
             Require(Mathf.Abs(straightSpeed - motor.MaxSpeed) < 0.03f && body.position.z > originalPosition.z,
@@ -124,6 +129,7 @@ public static class MovementSandboxVerification
         }
         finally
         {
+            foreach (var keeper in isolatedKeepers) if (keeper != null) keeper.enabled = true;
             InputSystem.RemoveDevice(keyboard);
             InputSystem.RemoveDevice(gamepad);
             input.enabled = false;

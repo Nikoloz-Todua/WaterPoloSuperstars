@@ -20,7 +20,7 @@ namespace ToduStudios.WaterPolo
         private SwimmerInput movementInput;
         private BallInteractionInput interactionInput;
         private Vector3 previousPosition;
-        private int previousShot, lastScoredShot = -1;
+        private int previousMotion, lastScoredShot = -1;
         private bool restoreMotor, restoreMovementInput, restoreInteractionInput;
         private float restartAt;
 
@@ -48,7 +48,7 @@ namespace ToduStudios.WaterPolo
             if (ballBody == null)
                 return;
             previousPosition = ballBody.position;
-            previousShot = ball.ShotSequence;
+            previousMotion = ball.MotionRevision;
         }
 
         private void FixedUpdate()
@@ -57,9 +57,9 @@ namespace ToduStudios.WaterPolo
                 return;
             Vector3 current = ballBody.position;
             // Release spawn changes are not travel. Start the first segment at the recorded release point.
-            Vector3 from = previousShot == ball.ShotSequence ? previousPosition : ball.ShotOrigin;
+            Vector3 from = previousMotion == ball.MotionRevision ? previousPosition : ball.MotionOrigin;
             previousPosition = current;
-            previousShot = ball.ShotSequence;
+            previousMotion = ball.MotionRevision;
             if (!ball.IsScoringShot || ball.Owner != null || ball.State == BallState.Held || lastScoredShot == ball.ShotSequence)
                 return;
             foreach (GoalMouth goal in goals)
@@ -112,7 +112,7 @@ namespace ToduStudios.WaterPolo
             else swimmer.ResetPose(swimmerStart.position, swimmerStart.rotation);
             ball.ResetForRestart(ballStart.position);
             previousPosition = ballBody.position;
-            previousShot = ball.ShotSequence;
+            previousMotion = ball.MotionRevision;
             if (roster != null && playerSelection != null)
             {
                 roster.SetSimulationPaused(false);

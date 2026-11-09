@@ -10,7 +10,22 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private SwimmerIdentity[] members = new SwimmerIdentity[0];
         private bool[] restoreMotors;
         private bool paused;
+        private SwimmerIdentity[] fieldPlayers;
         public IReadOnlyList<SwimmerIdentity> Members => members;
+        public IReadOnlyList<SwimmerIdentity> FieldPlayers
+        {
+            get
+            {
+                if (fieldPlayers == null)
+                {
+                    var fields = new List<SwimmerIdentity>();
+                    foreach (var member in members) if (member != null && member.IsFieldPlayer) fields.Add(member);
+                    fieldPlayers = fields.ToArray();
+                }
+                return fieldPlayers;
+            }
+        }
+        private void OnValidate() => fieldPlayers = null;
 
         private void Awake()
         {

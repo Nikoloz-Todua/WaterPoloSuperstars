@@ -35,7 +35,7 @@ namespace ToduStudios.WaterPolo.Editor
             if (opponent != null && (opponent.PlayerId != "prototype-white-1" || opponent.Team != PrototypeTeam.White))
                 throw new InvalidOperationException("Unexpected opponent identity; refusing to replace it.");
             if (actors.GetComponentsInChildren<SwimmerMotor>(true).Any(m => m != first && m.name != "Swimmer2" &&
-                (m.GetComponent<SwimmerIdentity>() == null || m.GetComponent<SwimmerIdentity>().Team != PrototypeTeam.White)))
+                (m.GetComponent<SwimmerIdentity>() == null || (m.GetComponent<SwimmerIdentity>().IsFieldPlayer && m.GetComponent<SwimmerIdentity>().Team != PrototypeTeam.White))))
                 throw new InvalidOperationException("Unexpected extra swimmers; refusing to duplicate them.");
 
             Transform secondTransform = actors.Find("Swimmer2");
@@ -64,8 +64,8 @@ namespace ToduStudios.WaterPolo.Editor
             SwimmerIdentity secondIdentity = Identity(second, "prototype-blue-2", 2, secondStart, selected, createdSecond);
             PrototypeRoster roster = GetOrAdd<PrototypeRoster>(Child(gameplay, "PrototypeRoster").gameObject);
             SwimmerIdentity[] participants = new[] { firstIdentity, secondIdentity }.Concat(
-                actors.GetComponentsInChildren<SwimmerIdentity>(true).Where(p => p != firstIdentity && p != secondIdentity)).ToArray();
-            AssignArray(roster, "members", participants);
+                actors.GetComponentsInChildren<SwimmerIdentity>(true).Where(p => p.IsFieldPlayer && p != firstIdentity && p != secondIdentity)).ToArray();
+            AssignArray(roster, "members", participants.Concat(actors.GetComponentsInChildren<SwimmerIdentity>(true).Where(p => !p.IsFieldPlayer)).ToArray());
             Transform controlRoot = gameplay.Find("PlayerSelection");
             bool firstUpgrade = controlRoot == null || controlRoot.GetComponent<PlayerSelection>() == null;
             if (controlRoot == null) controlRoot = Child(gameplay, "PlayerSelection");

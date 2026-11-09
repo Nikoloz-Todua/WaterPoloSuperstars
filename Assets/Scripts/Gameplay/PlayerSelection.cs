@@ -45,7 +45,7 @@ namespace ToduStudios.WaterPolo
         }
 
         public bool IsEligible(SwimmerIdentity player) => player != null && player.enabled && player.gameObject.activeInHierarchy &&
-            player.Team == humanTeam && roster != null && roster.Contains(player);
+            player.IsFieldPlayer && player.Team == humanTeam && roster != null && roster.Contains(player);
 
         private void OnPossessionChanged(SwimmerBallInteraction previous, SwimmerBallInteraction next)
         {

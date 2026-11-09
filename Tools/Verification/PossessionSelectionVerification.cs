@@ -13,12 +13,17 @@ public static class PossessionSelectionVerification
 {
     public static async Task<object> Run()
     {
+        // Original field-player fixture: keeper behavior is exercised by the dedicated keeper suites.
+        var isolatedKeepers = UnityEngine.Object.FindObjectsByType<PrototypeGoalkeeper>().Where(k => k.enabled).ToArray();
+        foreach (var keeper in isolatedKeepers) keeper.enabled = false;
+        var runningMatch = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+        while (runningMatch != null && runningMatch.IsRestarting) await Advance(0.05f);
         var roster = UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>();
         var selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
         var ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
         var camera = Camera.main.GetComponent<GameplayCamera>();
-        var first = roster.Members[0];
-        var second = roster.Members[1];
+        var first = roster.FieldPlayers[0];
+        var second = roster.FieldPlayers[1];
         var keyboard = InputSystem.AddDevice<Keyboard>();
         int changes = 0;
         void Changed(SwimmerBallInteraction oldOwner, SwimmerBallInteraction newOwner) => changes++;
@@ -29,7 +34,7 @@ public static class PossessionSelectionVerification
         void Controls(SwimmerIdentity active)
         {
             Require(selection.ActivePlayer == active && camera.Target == active.Motor, "Control and camera follow the actual carrier.");
-            foreach (var player in roster.Members)
+            foreach (var player in roster.FieldPlayers)
             {
                 bool selected = player == active;
                 Require(player.GetComponent<SwimmerInput>().enabled == selected && player.GetComponent<BallInteractionInput>().enabled == selected,
@@ -103,6 +108,7 @@ public static class PossessionSelectionVerification
         }
         finally
         {
+            foreach (var keeper in isolatedKeepers) if (keeper != null) keeper.enabled = true;
             ball.PossessionChanged -= Changed;
             InputSystem.RemoveDevice(keyboard);
             selection.SetInputLocked(false);

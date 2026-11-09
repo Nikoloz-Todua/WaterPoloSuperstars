@@ -10,17 +10,17 @@ Water Polo Superstars is a 3D mobile water polo game developed by **ToduStudios*
 - Shared tactical reasoning for both teams, one authoritative ball-possession system, and independent human selection.
 - Useful concepts from the previous Water Polo Manager game are references; its 2D physics implementation is not imported.
 
-## Current stage — Milestone 6
+## Current stage — Milestone 7
 
-`Assets/Scenes/PrototypePool.unity` contains a playable 2v2 prototype: two Blue field players and two White AI field players. It includes swimming/bounds, pickup/carry/shooting, physical directional passing and reception, manual/automatic friendly switching, tactical support/defense, AI attacks, human/AI stealing, goals, scoreboard and automatic restarts.
+`Assets/Scenes/PrototypePool.unity` contains two Blue field players, two White AI field players, and one AI goalkeeper per team. The existing swimming/bounds, pickup/carry/shooting, physical passing/reception, friendly switching, tactical AI, stealing, goals, scoreboard and restarts remain. Goalkeepers add bounded goal-mouth movement, reaction-limited swept-contact catches/deflections, secure possession and timed physical distribution to field players.
 
-The developer manually confirmed movement, camera following, passing, shooting, F stealing, friendly support, opponent activity, scoring by both teams and scoreboard updates. This does not establish manual verification of every edge case. The recorded Milestone 6 automated results cover ten Play Mode and two Edit Mode verification suites; see the canonical handoff for their scope and limitations. Mobile builds and device performance remain unverified.
+The developer manually confirmed Milestone 6 movement, camera following, passing, shooting, F stealing, friendly support, opponent activity, scoring by both teams and scoreboard updates. This does not establish manual verification of every edge case or the new goalkeeper behavior. See the canonical handoff for fresh automated verification results and limitations. Goalkeeper game feel, mobile builds and device performance remain unverified.
 
-Milestone 7 is planned next: two AI goalkeepers, positioning, shot interception, saves/deflections, goalkeeper possession and distribution. **None of these goalkeeper systems is implemented yet.** Development starts only after the developer completes the backup and explicitly authorizes it.
+Goalkeepers share the existing ball ownership and passing APIs. Saves require actual swept contact within a limited hand sphere, and missed/out-of-reach shots can score. The keepers remain AI-controlled: catches do not select them; receiving Blue field players use the normal automatic selection rule. Their upright orange bodies and team-colored caps are placeholders.
 
 ## Open and play
 
-Open the project in the pinned Unity Editor. In the Project panel, double-click **Assets > Scenes > PrototypePool**, press Play, then click the Game view. The saved scene is already wired; optional setup is **Tools > Water Polo > Set Up 2v2 Prototype**, outside Play Mode after saving intended scene edits.
+Open the project in the pinned Unity Editor. In the Project panel, double-click **Assets > Scenes > PrototypePool**, press Play, then click the Game view. The saved scene is already wired; optional setup is **Tools > Water Polo > Set Up Goalkeeper Prototype**, outside Play Mode after saving intended scene edits. Repeated setup preserves the existing pool/goals/camera/HUD and tuning.
 
 | Control | Action |
 | --- | --- |
@@ -31,7 +31,7 @@ Open the project in the pinned Unity Editor. In the Project panel, double-click 
 | C | Switch Blue player |
 | F | Attempt a close-range steal |
 
-Blue attacks +Z and White attacks -Z. Selection switches when a friendly actually gains possession. Touch controls are not implemented. Goals reset all four field players while retaining the score; this is free play without official clocks, match end, goalkeepers or full rules.
+Blue attacks +Z and White attacks -Z. Selection switches when a friendly field player actually gains possession; C cycles Blue field players only. Touch controls and manual keeper control are not implemented. Goals reset all six athletes while retaining the score; this remains free play without official clocks, match end or full rules. Diving animations, shot-height/arcing mechanics and realistic water are future work.
 
 ## Documentation and source control
 

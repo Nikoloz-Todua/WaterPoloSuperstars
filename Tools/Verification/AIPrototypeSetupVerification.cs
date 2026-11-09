@@ -30,10 +30,10 @@ public static class AIPrototypeSetupVerification
             data.Update();
             Require(Mathf.Approximately(data.FindProperty("distance").floatValue, distance + 0.2f), "Repeat setup preserves camera tuning.");
             Require(Objects() == count, "Repeat setup cannot duplicate objects.");
-            Require(roster.Members.Count == 4 && roster.Members.Select(p => p.PlayerId).Distinct().Count() == 4, "Exactly four unique roster identities.");
-            Require(UnityEngine.Object.FindObjectsByType<SwimmerMotor>().Length == 4 && UnityEngine.Object.FindObjectsByType<PrototypeSwimmerAI>().Length == 4, "One motor and one shared AI adapter per swimmer.");
+            Require(roster.FieldPlayers.Count == 4 && roster.FieldPlayers.Select(p => p.PlayerId).Distinct().Count() == 4, "Exactly four unique roster identities.");
+            Require(UnityEngine.Object.FindObjectsByType<SwimmerMotor>().Length == roster.Members.Count && UnityEngine.Object.FindObjectsByType<PrototypeSwimmerAI>().Length == 4, "One motor and one shared AI adapter per swimmer.");
             Require(UnityEngine.Object.FindObjectsByType<BallController>().Length == 1 && UnityEngine.Object.FindObjectsByType<PlayerSelection>().Length == 1 && UnityEngine.Object.FindObjectsByType<PrototypeMatch>().Length == 1 && UnityEngine.Object.FindObjectsByType<GoalMouth>().Length == 2, "No duplicate ball/control/score/goal authority.");
-            foreach (var player in roster.Members)
+            foreach (var player in roster.FieldPlayers)
             {
                 Require(player.StartPosition != null && player.Interaction.Ball != null && player.transform.Find("SelectionRing") != null, "Actor start, ball and marker references.");
                 var ai = new SerializedObject(player.GetComponent<PrototypeSwimmerAI>());
@@ -41,7 +41,7 @@ public static class AIPrototypeSetupVerification
                     Require(ai.FindProperty(field).objectReferenceValue != null, "AI reference: " + field);
                 Require(player.GetComponents<PrototypeSwimmerAI>().Length == 1 && player.GetComponents<SwimmerPassing>().Length == 1, "No duplicate AI or passing components.");
             }
-            return new { objectsBefore = count, objectsAfter = Objects(), players = roster.Members.Count, preservedCameraTuning = true, allReferencesAssigned = true };
+            return new { objectsBefore = count, objectsAfter = Objects(), players = roster.FieldPlayers.Count, preservedCameraTuning = true, allReferencesAssigned = true };
         }
         finally
         {

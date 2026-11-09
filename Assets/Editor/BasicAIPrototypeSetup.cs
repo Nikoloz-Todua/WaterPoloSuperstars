@@ -54,7 +54,8 @@ namespace ToduStudios.WaterPolo.Editor
             data = new SerializedObject(roster);
             SerializedProperty members = data.FindProperty("members");
             SwimmerIdentity[] participants = new[] { actors.Find("Swimmer").GetComponent<SwimmerIdentity>(), actors.Find("Swimmer2").GetComponent<SwimmerIdentity>(), identity }
-                .Concat(actors.GetComponentsInChildren<SwimmerIdentity>(true).Where(p => p.Team == PrototypeTeam.White && p != identity)).ToArray();
+                .Concat(actors.GetComponentsInChildren<SwimmerIdentity>(true).Where(p => p.IsFieldPlayer && p.Team == PrototypeTeam.White && p != identity))
+                .Concat(actors.GetComponentsInChildren<SwimmerIdentity>(true).Where(p => !p.IsFieldPlayer)).ToArray();
             members.arraySize = participants.Length;
             for (int i = 0; i < participants.Length; i++) members.GetArrayElementAtIndex(i).objectReferenceValue = participants[i];
             data.ApplyModifiedPropertiesWithoutUndo();
@@ -88,7 +89,7 @@ namespace ToduStudios.WaterPolo.Editor
             PoolBounds pool = UnityEngine.Object.FindAnyObjectByType<PoolBounds>();
             PrototypeMatch match = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
             Assign(selection, "ball", ball);
-            foreach (SwimmerIdentity player in roster.Members) ConfigureAI(player, roster, selection, ball, pool, match);
+            foreach (SwimmerIdentity player in roster.Members) if (player.IsFieldPlayer) ConfigureAI(player, roster, selection, ball, pool, match);
             Save(scene);
             Debug.Log("Friendly support and legitimate loose-ball pursuit configured; possession changes select the actual friendly carrier.");
         }

@@ -12,13 +12,18 @@ public static class TwoVTwoMatchVerification
 {
     public static async Task<object> Run()
     {
+        // Original field-player fixture: keeper behavior is exercised by the dedicated keeper suites.
+        var isolatedKeepers = UnityEngine.Object.FindObjectsByType<PrototypeGoalkeeper>().Where(k => k.enabled).ToArray();
+        foreach (var keeper in isolatedKeepers) keeper.enabled = false;
+        var runningMatch = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+        while (runningMatch != null && runningMatch.IsRestarting) await Advance(0.05f);
         var roster = UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>();
         var selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
         var ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
         var match = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
-        var blue = roster.Members.Where(p => p.Team == PrototypeTeam.Blue).ToArray();
-        var white = roster.Members.Where(p => p.Team == PrototypeTeam.White).ToArray();
-        var controllers = roster.Members.Select(p => p.GetComponent<PrototypeSwimmerAI>()).ToArray();
+        var blue = roster.FieldPlayers.Where(p => p.Team == PrototypeTeam.Blue).ToArray();
+        var white = roster.FieldPlayers.Where(p => p.Team == PrototypeTeam.White).ToArray();
+        var controllers = roster.FieldPlayers.Select(p => p.GetComponent<PrototypeSwimmerAI>()).ToArray();
         var originallyEnabled = controllers.Where(a => a.enabled).ToArray();
         var keyboard = InputSystem.AddDevice<Keyboard>(); var passed = new List<string>();
         int blueBefore = match.BlueScore, whiteBefore = match.WhiteScore, validRestarts = 0;
@@ -28,7 +33,7 @@ public static class TwoVTwoMatchVerification
             if (match.IsRestarting) return;
             bool valid = ball.Owner == null && ball.IntendedReceiver == null && !ball.IsScoringShot && ball.CanCollect &&
                 !selection.InputLocked && selection.ActivePlayer.Team == PrototypeTeam.Blue &&
-                roster.Members.All(p => p.Motor.enabled && Vector3.Distance(p.Motor.Position, p.StartPosition.position) < 0.01f);
+                roster.FieldPlayers.All(p => p.Motor.enabled && Vector3.Distance(p.Motor.Position, p.StartPosition.position) < 0.01f);
             if (valid) validRestarts++; else invalidRestart = true;
         }
         match.Changed += Restarted;
@@ -45,7 +50,7 @@ public static class TwoVTwoMatchVerification
         {
             int expectedBlue = match.BlueScore + (whiteGoal ? 0 : 1), expectedWhite = match.WhiteScore + (whiteGoal ? 1 : 0);
             await Until(() => match.IsRestarting, 7f);
-            Require(match.BlueScore == expectedBlue && match.WhiteScore == expectedWhite && selection.InputLocked && roster.Members.All(p => !p.Motor.enabled), "Correct exact-once goal freezes all four actors.");
+            Require(match.BlueScore == expectedBlue && match.WhiteScore == expectedWhite && selection.InputLocked && roster.FieldPlayers.All(p => !p.Motor.enabled), "Correct exact-once goal freezes all four actors.");
             await Advance(0.2f);
             Require(match.BlueScore == expectedBlue && match.WhiteScore == expectedWhite, "No repeated score during restart.");
             await Until(() => !match.IsRestarting, 4f);
@@ -93,8 +98,8 @@ public static class TwoVTwoMatchVerification
             while (Time.fixedTime - start < 20f)
             {
                 await Advance(0.1f);
-                Require(roster.Members.Count(p => p.Interaction.HasBall) <= 1 && selection.ActivePlayer.Team == PrototypeTeam.Blue, "Live play preserves ownership and valid human team.");
-                foreach (var p in roster.Members)
+                Require(roster.FieldPlayers.Count(p => p.Interaction.HasBall) <= 1 && selection.ActivePlayer.Team == PrototypeTeam.Blue, "Live play preserves ownership and valid human team.");
+                foreach (var p in roster.FieldPlayers)
                     Require(Mathf.Abs(p.Motor.Position.x) <= 8.91f && Mathf.Abs(p.Motor.Position.z) <= 13.91f && Mathf.Abs(p.Motor.Position.y) < 0.001f, "All actors remain bounded at waterline.");
                 foreach (var p in white)
                     Require(!p.GetComponent<SwimmerInput>().enabled && !p.GetComponent<BallInteractionInput>().enabled, "White never receives human input.");
@@ -107,6 +112,7 @@ public static class TwoVTwoMatchVerification
         }
         finally
         {
+            foreach (var keeper in isolatedKeepers) if (keeper != null) keeper.enabled = true;
             match.Changed -= Restarted; InputSystem.RemoveDevice(keyboard); EnableAI(false);
             if (!match.IsRestarting) { roster.ResetPositions(); ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f)); selection.Select(blue[0]); }
             foreach (var ai in originallyEnabled) ai.enabled = true;

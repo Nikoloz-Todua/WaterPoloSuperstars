@@ -16,6 +16,11 @@ public static class GoalScoringPrototypeVerification
 {
     public static async Task<object> Run()
     {
+        // Original field-player fixture: keeper behavior is exercised by the dedicated keeper suites.
+        var isolatedKeepers = UnityEngine.Object.FindObjectsByType<PrototypeGoalkeeper>().Where(k => k.enabled).ToArray();
+        foreach (var keeper in isolatedKeepers) keeper.enabled = false;
+        var runningMatch = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+        while (runningMatch != null && runningMatch.IsRestarting) await Advance(0.05f);
         Require(Application.isPlaying && SceneManager.sceneCount == 1 && SceneManager.GetActiveScene().name == "PrototypePool", "Open PrototypePool alone in Play Mode.");
         GoalMouth[] goals = UnityEngine.Object.FindObjectsByType<GoalMouth>();
         Require(goals.Length == 2 && UnityEngine.Object.FindObjectsByType<PrototypeMatch>().Length == 1 && UnityEngine.Object.FindObjectsByType<PrototypeScoreboard>().Length == 1,
@@ -43,7 +48,7 @@ public static class GoalScoringPrototypeVerification
             while (match.IsRestarting) await Advance(0.05f);
             var roster = UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>();
             roster.ResetPositions(); ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f));
-            selection.Select(roster.Members[0]);
+            selection.Select(roster.FieldPlayers[0]);
             foreach (GoalMouth goal in goals)
             {
                 Vector3 Point(float x, float z, float y = 0.15f) => goal.transform.TransformPoint(new Vector3(x, y, z));
@@ -138,6 +143,7 @@ public static class GoalScoringPrototypeVerification
         }
         finally
         {
+            foreach (var keeper in isolatedKeepers) if (keeper != null) keeper.enabled = true;
             InputSystem.RemoveDevice(keyboard);
             interaction.CarryAnchor.localPosition = anchorLocal;
             if (!match.enabled) match.enabled = true;

@@ -18,6 +18,7 @@ namespace ToduStudios.WaterPolo
         public SwimmerIdentity Identity => identity != null ? identity : identity = GetComponent<SwimmerIdentity>();
         public SwimmerBallInteraction Interaction => Identity.Interaction;
         public float ReceivingDistance => receivingDistance;
+        public float MaximumTargetDistance => maximumTargetDistance;
 
         public bool CanReceiveFrom(SwimmerBallInteraction passer)
         {
@@ -34,7 +35,7 @@ namespace ToduStudios.WaterPolo
             float best = float.NegativeInfinity;
             foreach (SwimmerIdentity teammate in roster.Members)
             {
-                if (!roster.AreTeammates(Identity, teammate)) continue;
+                if (!teammate.IsFieldPlayer || !roster.AreTeammates(Identity, teammate)) continue;
                 Vector3 delta = teammate.Motor.Position - origin;
                 delta.y = 0f;
                 float distance = delta.magnitude;
@@ -47,6 +48,23 @@ namespace ToduStudios.WaterPolo
                 if (score > best) { best = score; receiver = candidate; }
             }
 
+            return Launch(forward, receiver);
+        }
+
+        public bool TryPassTo(SwimmerIdentity teammate)
+        {
+            if (!Interaction.HasBall || roster == null || teammate == null || !teammate.IsFieldPlayer || !roster.AreTeammates(Identity, teammate)) return false;
+            Vector3 delta = Vector3.ProjectOnPlane(teammate.Motor.Position - Identity.Motor.Position, Vector3.up);
+            float distance = delta.magnitude;
+            var receiver = teammate.GetComponent<SwimmerPassing>();
+            Vector3 forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+            if (distance < 2.5f || distance > maximumTargetDistance || Vector3.Dot(forward, delta / distance) < Mathf.Cos(assistCone * Mathf.Deg2Rad) || receiver == null || !receiver.CanReceiveFrom(Interaction)) return false;
+            return Launch(forward, receiver);
+        }
+
+        private bool Launch(Vector3 forward, SwimmerPassing receiver)
+        {
+            Vector3 origin = Identity.Motor.Position;
             Vector3 direction = forward;
             if (receiver != null)
             {

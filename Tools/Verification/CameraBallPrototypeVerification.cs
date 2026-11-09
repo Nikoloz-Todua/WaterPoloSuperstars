@@ -16,12 +16,17 @@ public static class CameraBallPrototypeVerification
 {
     public static async Task<object> Run()
     {
+        // Original field-player fixture: keeper behavior is exercised by the dedicated keeper suites.
+        var isolatedKeepers = UnityEngine.Object.FindObjectsByType<PrototypeGoalkeeper>().Where(k => k.enabled).ToArray();
+        foreach (var keeper in isolatedKeepers) keeper.enabled = false;
+        var runningMatch = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+        while (runningMatch != null && runningMatch.IsRestarting) await Advance(0.05f);
         Require(Application.isPlaying && SceneManager.sceneCount == 1 && SceneManager.GetActiveScene().name == "PrototypePool", "Open PrototypePool alone in Play Mode.");
         Require(UnityEngine.Object.FindObjectsByType<BallController>().Length == 1, "Exactly one ball.");
         PlayerSelection selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
         PrototypeRoster roster = UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>();
         Require(UnityEngine.Object.FindObjectsByType<SwimmerMotor>().Length == (roster != null ? roster.Members.Count : 1), "Expected roster-sized swimmer count.");
-        if (selection != null) selection.Select(roster.Members[0]);
+        if (selection != null) selection.Select(roster.FieldPlayers[0]);
         SwimmerMotor motor = selection != null ? selection.ActivePlayer.Motor : UnityEngine.Object.FindAnyObjectByType<SwimmerMotor>();
         SwimmerBallInteraction interaction = motor.GetComponent<SwimmerBallInteraction>();
         BallController ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
@@ -43,7 +48,7 @@ public static class CameraBallPrototypeVerification
             var match = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
             while (match != null && match.IsRestarting) await Advance(0.05f);
             roster.ResetPositions(); ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f));
-            selection.Select(roster.Members[0]); await Advance(0.12f); camera.SnapToTarget();
+            selection.Select(roster.FieldPlayers[0]); await Advance(0.12f); camera.SnapToTarget();
             start = swimmerBody.position; rotation = swimmerBody.rotation; ballStart = ballBody.position;
             ResetBall(ball, ballBody, motor.transform.position + Vector3.forward * 5f);
             await Advance(0.1f);
@@ -147,6 +152,7 @@ public static class CameraBallPrototypeVerification
         }
         finally
         {
+            foreach (var keeper in isolatedKeepers) if (keeper != null) keeper.enabled = true;
             InputSystem.RemoveDevice(keyboard);
             if (competitor != null)
                 UnityEngine.Object.DestroyImmediate(competitor);

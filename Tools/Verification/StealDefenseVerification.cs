@@ -12,12 +12,17 @@ public static class StealDefenseVerification
 {
     public static async Task<object> Run()
     {
+        // Original field-player fixture: keeper behavior is exercised by the dedicated keeper suites.
+        var isolatedKeepers = UnityEngine.Object.FindObjectsByType<PrototypeGoalkeeper>().Where(k => k.enabled).ToArray();
+        foreach (var keeper in isolatedKeepers) keeper.enabled = false;
+        var runningMatch = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+        while (runningMatch != null && runningMatch.IsRestarting) await Advance(0.05f);
         var roster = UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>();
         var selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
         var ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
-        var blue = roster.Members.Where(p => p.Team == PrototypeTeam.Blue).ToArray();
-        var white = roster.Members.Where(p => p.Team == PrototypeTeam.White).ToArray();
-        var allAI = roster.Members.Select(p => p.GetComponent<PrototypeSwimmerAI>()).ToArray();
+        var blue = roster.FieldPlayers.Where(p => p.Team == PrototypeTeam.Blue).ToArray();
+        var white = roster.FieldPlayers.Where(p => p.Team == PrototypeTeam.White).ToArray();
+        var allAI = roster.FieldPlayers.Select(p => p.GetComponent<PrototypeSwimmerAI>()).ToArray();
         var originallyEnabled = allAI.Where(a => a.enabled).ToArray();
         foreach (var ai in allAI) ai.enabled = false;
         var steal = blue[0].GetComponent<SwimmerSteal>();
@@ -49,7 +54,7 @@ public static class StealDefenseVerification
             selection.Select(blue[1]);
             Require(steal.TrySteal() == StealResult.Success, "Close exposed facing attempt succeeds through shared ball authority.");
             Require(ball.Owner == blue[0].Interaction && selection.ActivePlayer == blue[0] && Camera.main.GetComponent<GameplayCamera>().Target == blue[0].Motor, "Friendly steal auto-selects actual new carrier and camera.");
-            Require(roster.Members.Count(p => p.Interaction.HasBall) == 1, "Exactly one owner after steal.");
+            Require(roster.FieldPlayers.Count(p => p.Interaction.HasBall) == 1, "Exactly one owner after steal.");
             passed.Add("F input, protection, distance, facing, shielding, failed-attempt cooldown and friendly steal/selection");
 
             var teammateSteal = blue[1].GetComponent<SwimmerSteal>();
@@ -80,6 +85,7 @@ public static class StealDefenseVerification
         }
         finally
         {
+            foreach (var keeper in isolatedKeepers) if (keeper != null) keeper.enabled = true;
             InputSystem.RemoveDevice(keyboard); foreach (var ai in allAI) ai.enabled = false;
             selection.SetInputLocked(false); roster.ResetPositions(); ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f)); selection.Select(blue[0]);
             foreach (var ai in originallyEnabled) ai.enabled = true;

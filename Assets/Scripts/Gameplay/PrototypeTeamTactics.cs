@@ -46,7 +46,7 @@ namespace ToduStudios.WaterPolo
         private void OnEnable() { if (match != null) match.Changed += ResetDecisions; }
         private void OnDisable() { if (match != null) match.Changed -= ResetDecisions; }
         public static Vector3 Planar(Vector3 delta) { delta.y = 0f; return delta; }
-        public static bool Eligible(SwimmerIdentity player) => player != null && player.enabled && player.gameObject.activeInHierarchy && player.Motor.enabled && player.Interaction.isActiveAndEnabled;
+        public static bool Eligible(SwimmerIdentity player) => player != null && player.IsFieldPlayer && player.enabled && player.gameObject.activeInHierarchy && player.Motor.enabled && player.Interaction.isActiveAndEnabled;
         public Vector3 Clamp(Vector3 position) => pool.ClampPosition(position, 1.1f);
 
         public int Slot(SwimmerIdentity player)
@@ -55,7 +55,7 @@ namespace ToduStudios.WaterPolo
             for (int i = 0; i < roster.Members.Count; i++)
             {
                 var member = roster.Members[i]; if (member == player) return rank;
-                if (member != null && member.Team == team) rank++;
+                if (Eligible(member) && member.Team == team) rank++;
             }
             return rank;
         }
@@ -71,13 +71,13 @@ namespace ToduStudios.WaterPolo
             for (int i = 0; i < roster.Members.Count; i++)
             {
                 var p = roster.Members[i]; if (p == player) break;
-                if (p != null && p.Team == team && p != carrier) rank++;
+                if (Eligible(p) && p.Team == team && p != carrier) rank++;
             }
-            return Clamp(SwimmerTactics.Support(carrier.Motor.Position, AttackDirection, rank, supportForward, supportWidth));
+            return Clamp(SwimmerTactics.Support(carrier.Motor.Position, AttackDirection, rank, carrier.IsFieldPlayer ? supportForward : 6f, supportWidth));
         }
         public Vector3 Defense(SwimmerIdentity player, SwimmerIdentity carrier)
         {
-            if (Presser == player) return Clamp(SwimmerTactics.Defend(carrier.Motor.Position, defendedGoal.transform.position, pressureDistance));
+            if (carrier.IsFieldPlayer && Presser == player) return Clamp(SwimmerTactics.Defend(carrier.Motor.Position, defendedGoal.transform.position, pressureDistance));
             SwimmerIdentity mark = null;
             int count = 0;
             for (int i = 0; i < roster.Members.Count; i++)

@@ -12,17 +12,22 @@ public static class OpponentAIVerification
 {
     public static async Task<object> Run()
     {
+        // Original field-player fixture: keeper behavior is exercised by the dedicated keeper suites.
+        var isolatedKeepers = UnityEngine.Object.FindObjectsByType<PrototypeGoalkeeper>().Where(k => k.enabled).ToArray();
+        foreach (var keeper in isolatedKeepers) keeper.enabled = false;
+        var runningMatch = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+        while (runningMatch != null && runningMatch.IsRestarting) await Advance(0.05f);
         var roster = UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>();
         var selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
         var ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
         var match = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
-        var first = roster.Members[0]; var second = roster.Members[1]; var opponent = roster.Members[2];
+        var first = roster.FieldPlayers[0]; var second = roster.FieldPlayers[1]; var opponent = roster.FieldPlayers[2];
         var ai = opponent.GetComponent<PrototypeSwimmerAI>();
         var keyboard = InputSystem.AddDevice<Keyboard>(); var passed = new List<string>();
         try
         {
             while (match.IsRestarting) await Advance(0.05f);
-            Require(roster.Members.Count == 4 && opponent.Team != selection.HumanTeam, "Four separately identified actors across both teams.");
+            Require(roster.FieldPlayers.Count == 4 && opponent.Team != selection.HumanTeam, "Four separately identified actors across both teams.");
             roster.ResetPositions(); selection.Select(first);
             ball.ResetForRestart(first.Motor.Position + Vector3.forward * 1.65f);
             Require(first.Interaction.TryCollect(), "Existing pickup.");
@@ -61,11 +66,11 @@ public static class OpponentAIVerification
             Require(first.Interaction.TryCollect() && first.Interaction.TryShoot(), "Shoot after opponent ownership reset.");
             int blue = match.BlueScore;
             await Until(() => match.IsRestarting, 4f);
-            Require(match.BlueScore == blue + 1 && selection.InputLocked && roster.Members.All(p => !p.Motor.enabled), "Goal freezes all three and scores once.");
+            Require(match.BlueScore == blue + 1 && selection.InputLocked && roster.FieldPlayers.All(p => !p.Motor.enabled), "Goal freezes all three and scores once.");
             await Advance(0.2f);
             Require(match.BlueScore == blue + 1, "Restart cannot score twice.");
             await Until(() => !match.IsRestarting, 4f);
-            foreach (var player in roster.Members)
+            foreach (var player in roster.FieldPlayers)
                 Require(Vector3.Distance(player.Motor.Position, player.StartPosition.position) < 0.1f && player.Motor.enabled, "All swimmers reset and resume.");
             Require(ball.Owner == null && ball.IntendedReceiver == null && ball.CanCollect && selection.ActivePlayer.Team == selection.HumanTeam, "Restart clears ownership/pass intent and restores friendly control.");
             await Advance(0.12f); // Let interpolated actor transforms catch up to their reset physics poses.
@@ -87,13 +92,14 @@ public static class OpponentAIVerification
             Require(first.Interaction.TryCollect(), "Boundary fixture pickup.");
             first.Motor.ResetPose(new Vector3(8.9f, 0f, 13.9f), Quaternion.identity);
             await Advance(1.5f);
-            foreach (var player in roster.Members)
+            foreach (var player in roster.FieldPlayers)
                 Require(Mathf.Abs(player.Motor.Position.x) <= 8.91f && Mathf.Abs(player.Motor.Position.z) <= 13.91f && Mathf.Abs(player.Motor.Position.y) < 0.001f, "AI respects pool bounds and waterline.");
             passed.Add("AI targets and motors remain inside pool bounds at edge pressure");
-            return new { passed, players = roster.Members.Count };
+            return new { passed, players = roster.FieldPlayers.Count };
         }
         finally
         {
+            foreach (var keeper in isolatedKeepers) if (keeper != null) keeper.enabled = true;
             InputSystem.RemoveDevice(keyboard);
             if (!match.IsRestarting) { roster.ResetPositions(); ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f)); selection.Select(first); }
         }

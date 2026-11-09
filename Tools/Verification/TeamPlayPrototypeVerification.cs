@@ -15,6 +15,11 @@ public static class TeamPlayPrototypeVerification
 {
     public static async Task<object> Run()
     {
+        // Original field-player fixture: keeper behavior is exercised by the dedicated keeper suites.
+        var isolatedKeepers = UnityEngine.Object.FindObjectsByType<PrototypeGoalkeeper>().Where(k => k.enabled).ToArray();
+        foreach (var keeper in isolatedKeepers) keeper.enabled = false;
+        var runningMatch = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+        while (runningMatch != null && runningMatch.IsRestarting) await Advance(0.05f);
         Require(Application.isPlaying && SceneManager.sceneCount == 1 && SceneManager.GetActiveScene().name == "PrototypePool", "Open PrototypePool alone in Play Mode.");
         PrototypeRoster roster = UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>();
         PlayerSelection selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
@@ -22,9 +27,9 @@ public static class TeamPlayPrototypeVerification
         PrototypeMatch match = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
         BallController ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
         Rigidbody ballBody = ball.GetComponent<Rigidbody>();
-        Require(roster.Members.Count >= 2 && UnityEngine.Object.FindObjectsByType<SwimmerMotor>().Length == roster.Members.Count &&
+        Require(roster.FieldPlayers.Count >= 2 && UnityEngine.Object.FindObjectsByType<SwimmerMotor>().Length == roster.Members.Count &&
             UnityEngine.Object.FindObjectsByType<PlayerSelection>().Length == 1 && UnityEngine.Object.FindObjectsByType<BallController>().Length == 1, "Two swimmers, one selector and one ball.");
-        SwimmerIdentity first = roster.Members[0], second = roster.Members[1];
+        SwimmerIdentity first = roster.FieldPlayers[0], second = roster.FieldPlayers[1];
         Require(first.PlayerId != second.PlayerId && first.Team == second.Team, "Distinct same-team identities.");
         Keyboard keyboard = InputSystem.AddDevice<Keyboard>();
         var passed = new List<string>();
@@ -36,9 +41,9 @@ public static class TeamPlayPrototypeVerification
         void SingleControl(SwimmerIdentity expected)
         {
             Require(selection.ActivePlayer == expected && camera.Target == expected.Motor, "Selection and camera agree.");
-            Require(roster.Members.Count(p => p.GetComponent<SwimmerInput>().enabled) == 1 &&
-                roster.Members.Count(p => p.GetComponent<BallInteractionInput>().enabled) == 1, "Only one pair of human input adapters is enabled.");
-            Require(roster.Members.Count(p => p.transform.Find("SelectionRing").gameObject.activeSelf) == 1 &&
+            Require(roster.FieldPlayers.Count(p => p.GetComponent<SwimmerInput>().enabled) == 1 &&
+                roster.FieldPlayers.Count(p => p.GetComponent<BallInteractionInput>().enabled) == 1, "Only one pair of human input adapters is enabled.");
+            Require(roster.FieldPlayers.Count(p => p.transform.Find("SelectionRing").gameObject.activeSelf) == 1 &&
                 expected.transform.Find("SelectionRing").gameObject.activeSelf, "Exactly the selected swimmer is marked.");
         }
         async Task ResetFixture()
@@ -77,7 +82,7 @@ public static class TeamPlayPrototypeVerification
             passed.Add("WASD isolation, C switching, one selection ring and smooth camera target change");
 
             await ResetFixture();
-            foreach (SwimmerIdentity player in roster.Members)
+            foreach (SwimmerIdentity player in roster.FieldPlayers)
             {
                 Vector3 view = Camera.main.WorldToViewportPoint(player.Motor.Position);
                 Require(view.z > 0f && view.x > 0f && view.x < 1f && view.y > 0f && view.y < 1f, "Wider initial camera includes both swimmers.");
@@ -140,11 +145,11 @@ public static class TeamPlayPrototypeVerification
             Press(keyboard, Key.W);
             await Advance(0.1f);
             Press(keyboard);
-            Require(selection.InputLocked && selection.ActivePlayer == second && roster.Members.All(p => !p.Motor.enabled), "Restart locks both swimmers and ignores C.");
+            Require(selection.InputLocked && selection.ActivePlayer == second && roster.FieldPlayers.All(p => !p.Motor.enabled), "Restart locks both swimmers and ignores C.");
             await Until(() => !match.IsRestarting, match.RestartDelay + 2f);
             await Advance(0.08f);
             SingleControl(second);
-            foreach (SwimmerIdentity player in roster.Members)
+            foreach (SwimmerIdentity player in roster.FieldPlayers)
                 Require(Vector3.Distance(player.Motor.Position, player.StartPosition.position) < 0.02f, "Both swimmers reset to their own starts.");
             Require(ball.State == BallState.Free && ball.Owner == null && ball.IntendedReceiver == null && ball.CanCollect, "Restart clears possession and receiving intent.");
             passed.Add("Second swimmer shooting, exact-once goal, control lock and two-swimmer restart");
@@ -161,10 +166,11 @@ public static class TeamPlayPrototypeVerification
             Require(match.BlueScore == blueStart + 2 && match.WhiteScore == whiteStart, "Pickup, pass and shot still work after restart.");
             SingleControl(second);
             passed.Add("Post-restart pickup/pass/shot and repeated restart");
-            return new { passed, blueAdded = match.BlueScore - blueStart, whiteAdded = match.WhiteScore - whiteStart, players = roster.Members.Count, frameCount = Time.frameCount };
+            return new { passed, blueAdded = match.BlueScore - blueStart, whiteAdded = match.WhiteScore - whiteStart, players = roster.FieldPlayers.Count, frameCount = Time.frameCount };
         }
         finally
         {
+            foreach (var keeper in isolatedKeepers) if (keeper != null) keeper.enabled = true;
             InputSystem.RemoveDevice(keyboard);
             if (!match.IsRestarting)
             {

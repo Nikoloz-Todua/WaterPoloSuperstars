@@ -35,7 +35,7 @@ namespace ToduStudios.WaterPolo
             if (carrier != null)
             {
                 if (carrier.Team == player.Team) return new SwimmerDecision(SwimmerAIBehaviour.Support, team.Support(player, carrier));
-                return new SwimmerDecision(team.Presser == player ? SwimmerAIBehaviour.Press : SwimmerAIBehaviour.Defend, team.Defense(player, carrier));
+                return new SwimmerDecision(carrier.IsFieldPlayer && team.Presser == player ? SwimmerAIBehaviour.Press : SwimmerAIBehaviour.Defend, team.Defense(player, carrier));
             }
             if (ball.IntendedReceiver != null) return new SwimmerDecision(SwimmerAIBehaviour.AwaitPass, player.Motor.Position);
             if (ball.CanCollect && team.LoosePursuer == player) return new SwimmerDecision(SwimmerAIBehaviour.PursueLooseBall, team.Clamp(ball.PhysicsPosition));

@@ -11,14 +11,19 @@ public static class TacticalOffenseVerification
 {
     public static async Task<object> Run()
     {
+        // Original field-player fixture: keeper behavior is exercised by the dedicated keeper suites.
+        var isolatedKeepers = UnityEngine.Object.FindObjectsByType<PrototypeGoalkeeper>().Where(k => k.enabled).ToArray();
+        foreach (var keeper in isolatedKeepers) keeper.enabled = false;
+        var runningMatch = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+        while (runningMatch != null && runningMatch.IsRestarting) await Advance(0.05f);
         var roster = UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>();
         var selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
         var ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
         var match = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
-        var blue = roster.Members.Where(p => p.Team == PrototypeTeam.Blue).ToArray();
-        var white = roster.Members.Where(p => p.Team == PrototypeTeam.White).ToArray();
+        var blue = roster.FieldPlayers.Where(p => p.Team == PrototypeTeam.Blue).ToArray();
+        var white = roster.FieldPlayers.Where(p => p.Team == PrototypeTeam.White).ToArray();
         var ai = white[0].GetComponent<PrototypeSwimmerAI>(); var team = ai.TacticalTeam;
-        var enabledAI = roster.Members.Select(p => p.GetComponent<PrototypeSwimmerAI>()).Where(a => a.enabled).ToArray();
+        var enabledAI = roster.FieldPlayers.Select(p => p.GetComponent<PrototypeSwimmerAI>()).Where(a => a.enabled).ToArray();
         foreach (var controller in enabledAI) controller.enabled = false;
         var passed = new List<string>();
         void Pose(SwimmerIdentity p, float x, float z, float yaw = 0f) => p.Motor.ResetPose(new Vector3(x, 0f, z), Quaternion.Euler(0f, yaw, 0f));
@@ -78,6 +83,7 @@ public static class TacticalOffenseVerification
         }
         finally
         {
+            foreach (var keeper in isolatedKeepers) if (keeper != null) keeper.enabled = true;
             foreach (var controller in enabledAI) controller.enabled = false;
             if (!match.IsRestarting) { roster.ResetPositions(); ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f)); selection.Select(blue[0]); }
             foreach (var controller in enabledAI) controller.enabled = true;

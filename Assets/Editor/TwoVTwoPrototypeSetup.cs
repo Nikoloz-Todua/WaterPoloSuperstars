@@ -41,12 +41,13 @@ namespace ToduStudios.WaterPolo.Editor
                 Assign(identity, "startPosition", start);
             }
             SwimmerIdentity[] players = actors.GetComponentsInChildren<SwimmerIdentity>(true)
-                .OrderBy(p => p.Team).ThenBy(p => p.PlayerId, StringComparer.Ordinal).ToArray();
+                .Where(p => p.IsFieldPlayer).OrderBy(p => p.Team).ThenBy(p => p.PlayerId, StringComparer.Ordinal).ToArray();
             if (players.Length != 4 || players.Count(p => p.Team == PrototypeTeam.Blue) != 2 || players.Count(p => p.Team == PrototypeTeam.White) != 2 || players.Select(p => p.PlayerId).Distinct().Count() != players.Length)
                 throw new InvalidOperationException("2v2 setup requires two distinct Blue and two distinct White identities; existing unexpected actors were preserved.");
             var rosterData = new SerializedObject(roster);
-            var members = rosterData.FindProperty("members"); members.arraySize = players.Length;
-            for (int i = 0; i < players.Length; i++) members.GetArrayElementAtIndex(i).objectReferenceValue = players[i];
+            var allAthletes = players.Concat(actors.GetComponentsInChildren<SwimmerIdentity>(true).Where(p => !p.IsFieldPlayer)).ToArray();
+            var members = rosterData.FindProperty("members"); members.arraySize = allAthletes.Length;
+            for (int i = 0; i < allAthletes.Length; i++) members.GetArrayElementAtIndex(i).objectReferenceValue = allAthletes[i];
             rosterData.ApplyModifiedPropertiesWithoutUndo();
             foreach (PrototypeTeam side in Enum.GetValues(typeof(PrototypeTeam)))
             {

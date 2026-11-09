@@ -2,6 +2,7 @@ using UnityEngine;
 
 namespace ToduStudios.WaterPolo
 {
+    public interface ISwimmerMovementBounds { Vector3 ClampMovement(Vector3 position); }
     /// <summary>Physics movement only. Human input and future AI supply the same direction.</summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Rigidbody), typeof(CapsuleCollider))]
@@ -19,6 +20,9 @@ namespace ToduStudios.WaterPolo
         private Vector2 moveInput;
         private Vector3 velocity;
         private Vector3 aimDirection;
+        private ISwimmerMovementBounds movementBounds;
+        public void SetMovementBounds(ISwimmerMovementBounds bounds) => movementBounds = bounds;
+        private Vector3 ClampMovement(Vector3 position) => poolBounds.ClampPosition(movementBounds != null ? movementBounds.ClampMovement(position) : position, boundaryClearance);
 
         public Vector3 Velocity => velocity;
         public float MaxSpeed => maxSpeed;
@@ -37,7 +41,7 @@ namespace ToduStudios.WaterPolo
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
             aimDirection = Vector3.zero;
-            body.position = poolBounds.ClampPosition(position, boundaryClearance);
+            body.position = ClampMovement(position);
             body.rotation = rotation;
         }
 
@@ -67,7 +71,7 @@ namespace ToduStudios.WaterPolo
                 return;
             }
 
-            body.position = poolBounds.ClampPosition(body.position, boundaryClearance);
+            body.position = ClampMovement(body.position);
         }
 
         private void FixedUpdate()
@@ -78,7 +82,7 @@ namespace ToduStudios.WaterPolo
             velocity = Vector3.MoveTowards(velocity, targetVelocity, changeRate * step);
 
             Vector3 previous = body.position;
-            Vector3 next = poolBounds.ClampPosition(previous + velocity * step, boundaryClearance);
+            Vector3 next = ClampMovement(previous + velocity * step);
             // Report actual movement, removing blocked velocity so releasing at a wall cannot drift.
             velocity = new Vector3((next.x - previous.x) / step, 0f, (next.z - previous.z) / step);
             body.MovePosition(next);

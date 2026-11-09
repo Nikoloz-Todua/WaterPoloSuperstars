@@ -12,14 +12,19 @@ public static class FriendlyAIVerification
 {
     public static async Task<object> Run()
     {
+        // Original field-player fixture: keeper behavior is exercised by the dedicated keeper suites.
+        var isolatedKeepers = UnityEngine.Object.FindObjectsByType<PrototypeGoalkeeper>().Where(k => k.enabled).ToArray();
+        foreach (var keeper in isolatedKeepers) keeper.enabled = false;
+        var runningMatch = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+        while (runningMatch != null && runningMatch.IsRestarting) await Advance(0.05f);
         var roster = UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>();
         var selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
         var ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
-        var first = roster.Members[0]; var second = roster.Members[1];
+        var first = roster.FieldPlayers[0]; var second = roster.FieldPlayers[1];
         var ai = second.GetComponent<PrototypeSwimmerAI>();
         var keyboard = InputSystem.AddDevice<Keyboard>();
         var passed = new List<string>();
-        var opponents = roster.Members.Where(p => p.Team != selection.HumanTeam).Select(p => p.GetComponent<PrototypeSwimmerAI>()).Where(ai => ai != null && ai.enabled).ToArray();
+        var opponents = roster.FieldPlayers.Where(p => p.Team != selection.HumanTeam).Select(p => p.GetComponent<PrototypeSwimmerAI>()).Where(ai => ai != null && ai.enabled).ToArray();
         foreach (var opponent in opponents) opponent.enabled = false;
         try
         {
@@ -61,6 +66,7 @@ public static class FriendlyAIVerification
         }
         finally
         {
+            foreach (var keeper in isolatedKeepers) if (keeper != null) keeper.enabled = true;
             InputSystem.RemoveDevice(keyboard); roster.ResetPositions();
             ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f)); selection.Select(first);
             foreach (var opponent in opponents) if (opponent != null) opponent.enabled = true;
