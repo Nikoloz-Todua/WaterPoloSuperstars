@@ -22,6 +22,15 @@ namespace ToduStudios.WaterPolo
         public Vector3 Velocity => velocity;
         public float MaxSpeed => maxSpeed;
 
+        public void ResetPose(Vector3 position, Quaternion rotation)
+        {
+            if (body == null) body = GetComponent<Rigidbody>();
+            moveInput = Vector2.zero;
+            velocity = Vector3.zero;
+            body.position = poolBounds.ClampPosition(position, boundaryClearance);
+            body.rotation = rotation;
+        }
+
         public void SetMoveInput(Vector2 direction)
         {
             // Preserve analogue stick strength while limiting keyboard diagonals to unit length.

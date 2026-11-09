@@ -71,7 +71,7 @@ Codex was authenticated with the developer's ChatGPT account. `unity setup codex
 
 ## Current implementation and verification
 
-Milestones 1 and 2 are implemented in `Assets/Scenes/PrototypePool.unity` and manually verified by the developer. The separate SampleScene remains unchanged. No old gameplay source was imported.
+Milestones 1, 2 and 3 are implemented in `Assets/Scenes/PrototypePool.unity` and manually verified by the developer. The separate SampleScene remains unchanged. No old gameplay source was imported.
 
 ### Milestone 1 files
 
@@ -156,9 +156,62 @@ Developer manual Milestone 2 results: WASD/turning, smooth camera follow, E pick
 
 To test: open `Assets/Scenes/PrototypePool.unity`, press Play, click the Game view, use WASD/arrows, press E near the initial ball, swim/turn while carrying, press Space to shoot, then approach the loose ball and press E again after the short cooldown. Camera tuning is on `CameraRig/Main Camera > Gameplay Camera`; pickup/shot tuning is on `Actors/Swimmer > Swimmer Ball Interaction`; drag/cooldown tuning is on `Actors/Ball > Ball Controller`.
 
-Known scope limits: flat shots only; conservative release distance and capsule clearance are tuned to this placeholder swimmer; changing collider/model size requires retuning. One ball/controlled swimmer, no goals, scoring, goalkeeper, teams, shot clock, shot charge, lob/skip shots, touch UI or replays. Pool visuals do not auto-resize when playable dimensions change. No new gameplay blocker was found by the automated checks.
+Milestone 2 scope limits: flat shots only; conservative release distance and capsule clearance are tuned to this placeholder swimmer; changing collider/model size requires retuning. One ball/controlled swimmer, no goalkeeper, teams of actors, shot clock, shot charge, lob/skip shots, touch UI or replays. Milestone 3 adds goals/scoring below. Pool visuals do not auto-resize when playable dimensions change.
 
-Milestone 2 passed manual review. Milestone 3 is authorized: two goals, reliable directional scoring, basic scoreboard and repeatable restart. Create a local Milestone 2 checkpoint first, excluding legacy references and generated files. Do not push and do not commit the new Milestone 3 work.
+Milestone 2 passed manual review and is recorded in local checkpoint `2ca3909` (`Checkpoint manually verified Milestone 2 camera and ball interaction`). It includes its scene, scripts, material, verification and manual-results documentation. It excludes legacy references and generated files. No push was made.
+
+### Milestone 3 — Goals, scoring and repeatable restart
+
+Implemented in the same PrototypePool scene. The camera script/settings and movement/input behavior are preserved. The user's request for a wider FIFA/Dream League Soccer-style broadcast camera remains a future task; this milestone does not redesign the camera.
+
+New code:
+
+- `Assets/Scripts/Gameplay/GoalMouth.cs`: independent goal geometry and `PrototypeTeam` (Blue/White). Unit-scale root uses local +Z into the net; configurable clear width (3m), height (0.9m), depth (1m) and post thickness (0.1m). The scoring plane is local Z=0, with a named ScoringPlane child and selected-object gizmo. Swept sphere tests count only outward crossings where the whole sphere passes the plane and clears posts/crossbar; reverse crossings and tangent post contact are rejected.
+- `Assets/Scripts/Gameplay/PrototypeGoalView.cs`: separate replaceable placeholder view. Updates the frame, back/side net colliders, lattice net strands, pocket water and split end-boundary sections when dimensions change. Goal dimensions are on GoalMouth, independent of a future detailed goal model. Goal roots must retain unit scale and the documented axis convention.
+- `Assets/Scripts/Gameplay/PrototypeMatch.cs`: one score authority with two score values, per-shot deduplication, physics-path observation and restart coordination. Samples actual Rigidbody positions before ball containment; a new shot starts its path at the recorded release point, so pickup/release/reset position changes cannot fabricate a crossing. Positive-Z net credits Blue; negative-Z net credits White, including an own-goal-equivalent shot into that net. No shooter/team roster attribution is implemented.
+- `Assets/Scripts/Gameplay/PrototypeScoreboard.cs`: event-driven TextMeshPro scoreboard and GOAL notification; no per-frame text rebuilding.
+- `Assets/Editor/GoalScoringPrototypeSetup.cs`: `Tools > Water Polo > Set Up Goals and Scoring Prototype`. Adds/reuses goals, references, restart markers, score authority, HUD and materials; preserves existing swimmer/pool/camera objects. Refuses Play Mode or unsaved scenes; saves only PrototypePool. No duplicate objects on repeat invocation.
+- `Tools/Verification/GoalScoringPrototypeVerification.cs`: repeatable Play Mode scoring/restart checks outside Assets/player builds.
+
+Modified code/assets:
+
+- `Assets/Scripts/Gameplay/BallController.cs`: retains ownership/state authority; adds configured goal pockets, release-shot eligibility/sequence/origin, restart pause and reset API. The Released cooldown may transition to Free while a long shot remains scoring-eligible; a pickup, drop or reset clears eligibility. Release spawning stays clamped to the playing side, so only actual travel into the goal scores. Goal pockets permit valid paths beyond the pool end; all other containment remains. Fast valid shots reach the bounded pocket rather than reflecting prematurely before the line.
+- `Assets/Scripts/Gameplay/SwimmerMotor.cs`: adds `ResetPose` to clear movement intent/velocity and reset a clamped pose. Ordinary movement/turning is unchanged.
+- `Assets/Scenes/PrototypePool.unity`: new goals, split end geometry, restart markers, score authority and HUD. Original NearEdge/FarEdge objects are retained with their uninterrupted slab renderers disabled; split solid sections close the rest of each end. Existing side bounds remain.
+- `Tools/Verification/CameraBallPrototypeVerification.cs`: closed-end containment checks now target X=4m, outside the intentional goal opening.
+- `Assets/Materials/Prototype/GoalFrame.mat`, `GoalNet.mat`, and new asset `.meta` files. White solid frames, back/side colliders and simple lattice nets; no external goal models.
+- `Assets/TextMesh Pro/` and its `.meta`: standard TMP Essential Resources (fonts, materials, shaders/settings and accompanying resources) imported through the installed package's non-interactive importer. No TMP examples, new packages or external model/art imports.
+
+Scene locations:
+
+- `Environment/Goals/BlueScoringGoal`: goal plane at world Z=+15m, root Y=-0.08m; local +Z points outward. WhiteScoringGoal is at Z=-15m with Y rotation 180 degrees. Both are centred at X=0.
+- `Gameplay/PrototypeMatch`: authoritative scores and configurable 1.5-second restart delay.
+- `Gameplay/RestartPositions/{SwimmerStart,BallStart}`: saved centre swimmer pose and initial nearby collection position.
+- `PrototypeHUD`: screen-space overlay Canvas with responsive scaler, dark score panel (`BLUE 0 - 0 WHITE`) and temporary GOAL text. It is passive UI; no EventSystem is required for these non-interactive labels.
+
+Restart locks further scoring, pauses ball simulation, and temporarily disables swimmer movement/input and ball input. After the unscaled configurable delay it clears possession, shot eligibility, velocities and input intent, resets both actors to the start markers, restores previously enabled controls, hides GOAL and preserves the score. Scores reset only when a new Play Mode session begins. No match clock/quarters were added.
+
+### Milestone 3 verification and handoff
+
+Verified in Unity 6000.6.7f1:
+
+- Runtime/editor compilation completed with no errors. All three verification scripts compiled without diagnostics and ran in actual Play Mode with advancing physics.
+- Movement regression passed (WASD/arrows, analogue input, normalized diagonal speed, turning, stopping, fixed height and swimmer containment).
+- Milestone 2 camera/pickup/carry/shoot/cooldown regression passed. Camera configuration was not redesigned.
+- Directional sphere geometry tested at both goal planes: high-speed swept crossing, whole-radius threshold, wrong direction, post tangency and crossbar miss.
+- Held ball moved across the line did not score. Real outside-post and post-centred shots did not score or escape through the closed end wall. A released ball travelling from net toward pool did not score.
+- Integration test scored three Blue goals and one White goal: high-speed 80m/s shot, repeat pickup/Space shot after restart, opposite goal, and a long shot after the cooldown changed Released to Free. Every event scored exactly once.
+- Scoreboard/GOAL updates, restart scoring lock, restored controls, cleared ownership/shot state, correct start positions and retained scores all passed after repeated restarts.
+- Repeated Editor setup retained 90 scene objects, two goals, one score authority and one scoreboard. An Inspector-width change moved the placeholder post correctly; original width was restored and saved.
+- Near-goal and GOAL-notification screenshots were captured and visually inspected under ignored `Logs/Milestone3GoalsNear.png` and `Logs/Milestone3GoalNotification.png`. Scoreboard and net/frame are visible. The preview shot added one further temporary Blue score; runtime scores are not saved into the scene.
+- Final Console ground truth after Play Mode exit: zero errors, zero warnings, no compilation failure. SampleScene retains blob hash `1c63aa8ded8c325623e162675b13bfcd0b50aa5a`.
+- Play Mode stopped; temporary auto-tick/background overrides disabled. Temporary capture/config files are kept outside Assets/ProjectSettings in ignored Logs/Library paths. No persistent project settings, package versions or build scene list changed.
+
+Manual test: open PrototypePool, Play, click Game, E to collect, W toward the positive-Z goal, release movement while facing the goal and Space to shoot. Confirm Blue increments once, GOAL appears, then the centre restart permits E/Space again. After restart, swim/face toward negative Z with S and shoot to test White. Miss outside the posts to confirm the score stays unchanged.
+
+Developer manual Milestone 3 verification: movement/turning, pickup/carry/shoot, both goals, rejection of missed shots, scoreboard, GOAL notification and restart all work; no problems were observed. Other aspect ratios and Android/iOS builds/device performance remain pending. Milestone 3 scope: flat waterline shots, single swimmer/ball, geometric whole-ball crossing, simple rigid nets and pocket containment. Pool dimension changes do not reposition goal roots automatically.
+
+Milestone 3 passed manual review. Milestone 4 is authorized: two same-team swimmers, independent selection with C, directional assisted waterline passing with B, automatic receiving and wider camera framing. Create a local checkpoint of Milestone 3 first, excluding legacy references and temporary/generated files. No push is authorized.
 
 ## Optional old-game references
 
@@ -212,9 +265,10 @@ For new-project decisions, inspect relevant existing scripts/scenes, `Packages/m
 1. Foundation inspection: completed; saved configuration examined, with live/device verification limits stated above.
 2. Milestone 1 movement sandbox: implemented, exercised in automated Editor Play Mode checks, and manually verified by the developer; camera needs closer framing.
 3. Milestone 2: following gameplay camera, possession, carrying and shooting one ball. Implemented, automatically verified and manually confirmed by the developer.
-4. Proposed follow-ups: goal detection/reset, landscape touch controls and Android device validation, then small AI/rules increments.
-5. Improve animation, water, lighting, feedback and performance through measured iterations.
-6. Request old card/pack/roster examples when useful and choose the new data/UI architecture.
-7. Expand competitions, progression, backend and monetization after the playable foundation is validated.
+4. Milestone 3 goals/scoring/restart: implemented, automatically verified and manually confirmed by the developer.
+5. Proposed follow-ups after approval: wider broadcast camera, landscape touch controls and Android device validation, then small AI/rules increments.
+6. Improve animation, water, lighting, feedback and performance through measured iterations.
+7. Request old card/pack/roster examples when useful and choose the new data/UI architecture.
+8. Expand competitions, progression, backend and monetization after the playable foundation is validated.
 
-Milestone 3 is the current authorized scope. A local Milestone 2 checkpoint is authorized; new Milestone 3 changes must remain uncommitted. Local Milestone 1 checkpoint: `a8312f6`. No push is authorized. `old-plan.md` is an untracked legacy reference to preserve and exclude from commits; it is not the governing plan for this game.
+Milestone 4 is the current authorized scope. A local Milestone 3 checkpoint is authorized. Local checkpoints: Milestone 1 `a8312f6`, Milestone 2 `2ca3909`. No push is authorized. `old-plan.md` is an untracked legacy reference to preserve and exclude from commits; it is not the governing plan for this game.

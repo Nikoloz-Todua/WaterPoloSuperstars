@@ -95,6 +95,7 @@ public static class CameraBallPrototypeVerification
             foreach (Vector3 outward in new[] { Vector3.left, Vector3.right, Vector3.back, Vector3.forward })
             {
                 Vector3 edge = bounds.ClampPosition(bounds.transform.position + outward * 10000f, ball.Radius);
+                if (outward.z != 0f) edge.x = 4f; // Exercise the closed end wall outside the Milestone 3 goal mouth.
                 ResetBall(ball, ballBody, edge - outward * 0.1f);
                 ballBody.linearVelocity = outward * 80f;
                 await Advance(0.2f);

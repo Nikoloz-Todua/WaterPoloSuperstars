@@ -10,6 +10,7 @@ namespace ToduStudios.WaterPolo
     public sealed class BallController : MonoBehaviour
     {
         [SerializeField] private PoolBounds poolBounds;
+        [SerializeField] private GoalMouth[] goalMouths = new GoalMouth[0];
         [Tooltip("Ball centre above the swimmer-root waterline; radius is 0.14m in the prototype.")]
         [SerializeField] private float surfaceOffset = 0.07f;
         [SerializeField, Min(0f)] private float releaseProtection = 0.6f;
@@ -21,10 +22,15 @@ namespace ToduStudios.WaterPolo
         private SphereCollider ballCollider;
         private Collider ignoredOwnerCollider;
         private float collectAfter;
+        private bool simulationPaused;
 
         public BallState State { get; private set; } = BallState.Free;
         public SwimmerBallInteraction Owner { get; private set; }
-        public bool CanCollect => isActiveAndEnabled && State == BallState.Free && Owner == null;
+        public bool CanCollect => isActiveAndEnabled && !simulationPaused && State == BallState.Free && Owner == null;
+        public int ShotSequence { get; private set; }
+        public Vector3 ShotOrigin { get; private set; }
+        // Eligibility outlives the short Released cooldown state, allowing long shots to score.
+        public bool IsScoringShot { get; private set; }
         public float SurfaceHeight => poolBounds.Waterline + surfaceOffset;
         public float Radius => ballCollider.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.z);
 
@@ -66,12 +72,13 @@ namespace ToduStudios.WaterPolo
             ballCollider.enabled = false;
             Owner = claimant;
             State = BallState.Held;
+            IsScoringShot = false;
             return true;
         }
 
         public bool TryShoot(SwimmerBallInteraction claimant, float speed)
         {
-            if (State != BallState.Held || Owner != claimant || claimant == null)
+            if (simulationPaused || State != BallState.Held || Owner != claimant || claimant == null)
                 return false;
             Release(claimant, Mathf.Max(0f, speed));
             return true;
@@ -91,7 +98,13 @@ namespace ToduStudios.WaterPolo
             Vector3 releasePoint = speed > 0f
                 ? claimant.transform.position + direction * claimant.ReleaseDistance
                 : transform.position;
-            body.position = SurfacePosition(releasePoint);
+            // Keep release spawning on the playing side; a teleport into a net is not a goal.
+            Vector3 spawn = poolBounds.ClampPosition(releasePoint, Radius);
+            spawn.y = SurfaceHeight;
+            body.position = spawn;
+            ShotOrigin = spawn;
+            IsScoringShot = speed > 0f;
+            if (IsScoringShot) ShotSequence++;
             Owner = null;
             State = BallState.Released;
             collectAfter = Time.time + releaseProtection;
@@ -108,12 +121,45 @@ namespace ToduStudios.WaterPolo
         private Vector3 SurfacePosition(Vector3 position)
         {
             Vector3 clamped = poolBounds.ClampPosition(position, Radius);
+            GoalMouth pocket = FindPocket(position);
+            if (pocket != null) clamped = pocket.ClampPocket(position, Radius);
             clamped.y = SurfaceHeight;
             return clamped;
         }
 
+        private GoalMouth FindPocket(Vector3 position)
+        {
+            if (goalMouths == null) return null;
+            foreach (GoalMouth mouth in goalMouths)
+                if (mouth != null && mouth.isActiveAndEnabled && mouth.AllowsPocket(position, Radius)) return mouth;
+            return null;
+        }
+
+        public void SetSimulationPaused(bool paused)
+        {
+            simulationPaused = paused;
+            if (paused)
+            {
+                if (!body.isKinematic) body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+                body.isKinematic = true;
+            }
+        }
+
+        public void ResetForRestart(Vector3 position)
+        {
+            ResetFree();
+            collectAfter = 0f;
+            body.angularVelocity = Vector3.zero;
+            Vector3 spawn = poolBounds.ClampPosition(position, Radius);
+            spawn.y = SurfaceHeight;
+            body.position = spawn;
+            ShotOrigin = spawn;
+        }
+
         private void FixedUpdate()
         {
+            if (simulationPaused) return;
             if (State == BallState.Held)
             {
                 if (Owner == null || !Owner.isActiveAndEnabled)
@@ -132,10 +178,15 @@ namespace ToduStudios.WaterPolo
             velocity.y = 0f;
             Vector3 next = body.position + velocity * Time.fixedDeltaTime;
             Vector3 constrained = SurfacePosition(next);
+            bool inGoalLane = FindPocket(next) != null;
             if (Mathf.Abs(next.x - constrained.x) > 0.0001f)
                 velocity.x *= -edgeRestitution;
             if (Mathf.Abs(next.z - constrained.z) > 0.0001f)
-                velocity.z *= -edgeRestitution;
+            {
+                // Reach the back-net limit rather than reflecting a fast valid shot before the line.
+                if (inGoalLane) velocity.z = (constrained.z - body.position.z) / Time.fixedDeltaTime;
+                else velocity.z *= -edgeRestitution;
+            }
             body.linearVelocity = velocity;
         }
 
@@ -157,6 +208,8 @@ namespace ToduStudios.WaterPolo
 
         private void ResetFree()
         {
+            simulationPaused = false;
+            IsScoringShot = false;
             Owner = null;
             State = BallState.Free;
             if (body == null || ballCollider == null)
