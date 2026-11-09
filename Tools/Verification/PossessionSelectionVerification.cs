@@ -39,6 +39,8 @@ public static class PossessionSelectionVerification
         }
         try
         {
+            var match = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+            while (match.IsRestarting) await Advance(0.05f);
             roster.ResetPositions();
             ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f));
             selection.Select(first);

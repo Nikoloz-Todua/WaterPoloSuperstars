@@ -36,6 +36,14 @@ public static class MovementSandboxVerification
 
         try
         {
+            var match = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+            while (match != null && match.IsRestarting) await Advance(0.05f);
+            var roster = UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>();
+            roster.ResetPositions();
+            var ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
+            ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f));
+            selection.Select(roster.Members[0]); await Advance(0.12f);
+            originalPosition = body.position; originalRotation = body.rotation;
             int frame = Time.frameCount;
             await Advance(0.1f);
             Require(Time.frameCount > frame, "Player loop advances.");

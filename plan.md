@@ -14,7 +14,7 @@ This document describes the NEW 3D project. Distinguish confirmed implementation
 - Presentation target: attractive normal gameplay inspired by Dream League Soccer, within realistic solo-development scope and mobile performance limits.
 - Long-term goals: believable athletes, swimming/passing/shooting/blocking/goalkeeper animations, water and splashes, arena, responsive controls, tactical AI, cameras, cinematic goals/replays, career, championships, World Cup, transfers, cards, progression, and monetization. These are ambitions, not completed systems.
 
-Build the new game around its own requirements. The old game is an optional reference, not the foundation or a mandatory migration target. Pool-plane tactical calculations with 3D presentation are an option to evaluate, not a binding architecture decision.
+Build the new game around its own requirements. The old game is an optional reference, not the foundation or a mandatory migration target. The implemented prototype uses XZ pool-plane tactical calculations with separate 3D movement/presentation; useful legacy tactical concepts inform this separation without importing Rigidbody2D/Collider2D code.
 
 ## Project location and creation
 
@@ -62,8 +62,9 @@ The foundation inspection confirmed the saved identity, Android API/backend/arch
 - Remote: `https://github.com/Nikoloz-Todua/WaterPoloSuperstars.git`, verified locally during this update.
 - Default branch reported: `main`.
 - Initial pushed commits reported: `9c3204b` (Unity setup), `0eab526` (documentation/instructions). Always check current status; a previously clean tree is not a current guarantee.
-- Do not initialize another repository inside this one. Preserve Unity `.meta` files, avoid unrelated edits, and create Git checkpoints before large/risky work.
-- Normal workflow: inspect status/diff, stage intended changes, commit stable work, push when authorized. Never upload generated caches.
+- Do not initialize another repository inside this one. Preserve Unity `.meta` files and avoid unrelated edits. Existing checkpoint entries below are historical records, not authorization for an AI to create another checkpoint.
+- **Only the human developer may perform Git write operations.** AI may inspect read-only status/diffs/history/remote state and edit authorized project files. It must NEVER stage, commit, push, fetch, reset, rebase, merge, stash, alter branches/refs/index/configuration, or use equivalent APIs/Unity integrations to change Git state. Previous command approvals do not supersede this rule. Give the human exact commands for backups/checkpoints; never execute them.
+- Human workflow: inspect status/diff, stage only reviewed files, inspect the staged contents, commit using the existing identity, push to the reviewed remote/branch, then compare local and remote commit IDs. Never upload caches, secrets or local legacy references. Do not automatically change `.gitignore`.
 
 Setup-time versions reported: Git `2.56.0.windows.4`, Node.js `v26.13.0`, npm `11.20.0`, Codex CLI `0.166.0`, Unity CLI `1.0.0-beta.15`. These are historical values, not guaranteed current installations.
 
@@ -71,7 +72,13 @@ Codex was authenticated with the developer's ChatGPT account. `unity setup codex
 
 ## Current implementation and verification
 
-Milestones 1-4 are implemented in `Assets/Scenes/PrototypePool.unity` and manually verified by the developer. Milestone 5 is implemented and automatically verified in Unity; developer manual testing is pending. The separate SampleScene remains unchanged. No old gameplay source was imported.
+Milestones 1-6 are implemented in `Assets/Scenes/PrototypePool.unity`. Milestones 1-4 have their earlier manual confirmations below. Milestone 5's isolated historical checkpoint was automated-tested, with manual verification pending at that time; the developer has now tested the combined Milestone 6 2v2 build. Manual confirmation is limited to the specific results recorded below, not every historical assertion or edge case. The separate SampleScene remains unchanged. No old gameplay source was imported.
+
+Current build: two Blue human-eligible field players and two White AI field players, exclusive ball possession, physical passes/shots, friendly acquisition-based selection, support/defense/pressure, stealing, two goals, score HUD and four-player restarts. X is pool width, Z is pool length, Y is height; Blue attacks +Z and White -Z. BallController owns possession, PlayerSelection owns human selection, PrototypeTeamTactics/WaterPoloDecision choose tactics, SwimmerMotor executes movement, and PrototypeMatch/GoalMouth own scoring/restarts. Important script details and tunables are preserved in the milestone sections below.
+
+**Current manual confirmation (developer-reported):** swimming, camera follow, passing, shooting, F stealing, friendly attacking support, active opposing swimmers, scoring by both teams and scoreboard updates. The developer reports a gameplay screenshot showing `BLUE 1 - 2 WHITE`; this is their reported playtest evidence, distinct from the earlier automated preview capture. Do not infer manual validation of every selection, cooldown, missed-shot, restart, duplication or other edge case from this list.
+
+**Automated evidence:** the prior Milestone 6 session recorded 12 passing verification suites and zero final Console errors/warnings. The documentation/backup review re-read all 12 stored result files (`success=true`, zero compilation diagnostics), inspected current source/configuration, and did not rerun Unity or claim a fresh compilation/Console test. Milestone 7 goalkeeper systems are planned, not implemented; see the roadmap and backup handoff below.
 
 ### Milestone 1 files
 
@@ -322,13 +329,103 @@ Verified in the running Unity 6000.6.7f1 Editor through Unity CLI/Pipeline, with
 - A 1280x720 camera capture at ignored `Logs/Milestone5Broadcast.png` was visually inspected: three swimmers, selected ring and ball are readable. This camera-render capture excludes screen-space overlay UI; the HUD was verified by the scoring suite.
 - Console ground truth at final Play verification: zero errors, zero warnings, compilation not failed. SampleScene remains unchanged. All new Unity assets have companion `.meta` files. No packages, build-scene list or persistent project settings were intentionally changed. Play Mode and temporary auto-tick/background overrides are stopped/disabled at handoff.
 
-Developer manual Milestone 5 playtesting is pending. Camera feel, AI positioning quality, keyboard/gamepad feel, different aspect ratios, mobile touch UI and Android/iOS builds/device performance are not verified by these automated checks. Simple spacing is not a full collision/avoidance system; kinematic swimmers can overlap. No tactical brain/formations, full teams, keeper, clock, steals, fouls, advanced animations/water or economy were added.
+At the Milestone 5 checkpoint, isolated manual playtesting was pending. The later developer Milestone 6 manual results are recorded in the current snapshot and Milestone 6 section; do not reinterpret them as exhaustive testing of this earlier checkpoint. Different aspect ratios, gamepad feel, mobile touch UI and Android/iOS builds/device performance are not verified by the automated checks. Simple spacing is not full collision/avoidance; kinematic swimmers can overlap. Tactical formations and stealing were not part of Milestone 5; Milestone 6 adds them below. Full teams, keeper, clock, fouls, advanced animations/water and economy remain unimplemented.
 
 Manual test: open `Assets/Scenes/PrototypePool.unity`, Play and click the Game view. E collects with the yellow cap; face the white-cap teammate and B to pass. Selection/ring/camera must remain with the passer during travel, then transfer on reception; WASD must move the receiver. Face/pass back and verify automatic return selection. Try C while carrying: ownership must stay with the previous carrier. Watch the inactive friendly support the carrier and the red-cap opponent defend. Shoot/miss and let an eligible inactive friendly approach a loose ball; acquisition should select that friendly. The red cap may collect but must never become selected. Score at either goal and verify all three reset and another pickup/pass/shot works. Check `Window > General > Console` for errors/warnings.
 
 No manual Inspector wiring is required. The final setup menu is optional because the scene is already saved. To run it, exit Play Mode, save any intended scene edits, then choose `Tools > Water Polo > Set Up Automatic Switching and AI Prototype`. Inspector tuning: each actor's Prototype Swimmer AI for support/pressure/range/speed; `Gameplay/PlayerSelection` for Human Team; `CameraRig/Main Camera > Gameplay Camera` for framing and `Camera` for FOV. Keep Human Team Blue for this two-friendly prototype.
 
-Milestone 5 remains uncommitted for developer review. Recommended next task: manually validate automatic switching, support/pressure and camera framing; record feedback and tune this milestone before authorizing more gameplay. Android input/device validation remains an important later milestone.
+Milestone 5 is recorded in local checkpoint `d647882` (`Checkpoint Milestone 5 automated-tested; manual verification pending`). Before extending it, all seven existing Play Mode suites and its Edit Mode repeated-setup check were rerun successfully with zero current Console errors/warnings. This checkpoint includes only Milestone 5 assets, scripts, verification and documentation; legacy/generated files were excluded. It is NOT a manual-playtest approval. No push was made.
+
+### Milestone 6 — First playable 2v2, tactical offense/defense and stealing
+
+The current PrototypePool contains two Blue and two White field swimmers. Blue attacks +Z, White attacks -Z. Blue is human-selectable; inactive Blue swimmers and all White swimmers use the same shared reasoning/physical action architecture. All four are registered in the existing PrototypeRoster for pause/reset. Gameplay remains a score-based free-play prototype: no keeper, official clock, quarters, match end or competition rules.
+
+Foundation review included actual current gameplay/editor/verification scripts, saved scene, AGENTS.md, README and this plan. No `docs/ARCHITECTURE.md`, `docs/MIGRATION_AUDIT.md` or docs directory was present. The available old-plan architectural summaries of WaterPoloBrain/IAgentBody, TeamSide, TeamManager, MatchContext, TeammateAI and BotMovement were reviewed as concepts. No legacy C# source archive/local reference clone was available or imported; no 2D physics code was copied.
+
+New implementation files (with companion Unity `.meta` files):
+
+| File | Responsibility |
+| --- | --- |
+| `Assets/Scripts/Gameplay/PrototypeTeamTactics.cs` | One component per team. Explicit team/roster/ball/pool/match/attacking-goal/defended-goal context; formation/support targets, presser/loose-pursuer coordination, lane/pressure/shot/pass evaluation and team pass cooldown. No ownership assignment or physical movement. |
+| `Assets/Scripts/Gameplay/WaterPoloDecision.cs` | Shared deterministic decision model returning a small value-type SwimmerDecision: formation, support, pressure/defense, loose pursuit, carry, pass, shoot or pass wait. No scene searches, keyboard simulation or body/ownership mutation. |
+| `Assets/Scripts/Gameplay/SwimmerSteal.cs` | Reusable human/touch/AI steal command, configurable cooldown/range/facing/protection/exposure; calls the authoritative ball resolver and reports a StealResult. Match stoppages block attempts and reset attempt timers. |
+| `Assets/Editor/TwoVTwoPrototypeSetup.cs` | Explicit repeat-safe `Tools > Water Polo > Set Up 2v2 Prototype`; creates only missing White Player 2/start marker and team context objects, wires every AI/steal/team/goal reference and saves PrototypePool. |
+| `Assets/Materials/Prototype/BlueTeamBody.mat` | Blue team body color; White retains its pale body and red cap. Yellow/white Blue caps distinguish the two friendly prototypes. Colors are presentation only; explicit identity drives rules. |
+
+Modified implementation files:
+
+- `Assets/Scripts/Gameplay/PrototypeSwimmerAI.cs`: the existing shared adapter now consumes WaterPoloDecision and PrototypeTeamTactics instead of embedding the old support/hold logic. Retains movement speed/arrival/spacing/decision Inspector tuning. Executes commands through SwimmerMotor, SwimmerPassing, SwimmerBallInteraction and SwimmerSteal; never assigns Owner. Default decision interval is 0.15s. AI actions are canceled/recomputed on match changes, control handoff and owner changes. Selected human input is never overwritten. Pass/shot execution counters are read-only runtime diagnostics, not progression stats.
+- `Assets/Scripts/Gameplay/BallController.cs`: adds read-only OwnershipStartedAt and atomic TrySteal validation/assignment using its existing AssignOwner/PossessionChanged path. Pickup compares both Rigidbody positions so interpolation cannot reject a valid post-reset/moving claim; non-swimmer diagnostic claimants retain the transform fallback. Avoids setting velocities on an already kinematic held body during transfers. Existing physical pass/reception, flat shots, release protection, bounds and scoring eligibility remain authoritative.
+- `Assets/Scripts/Gameplay/SwimmerMotor.cs`: adds optional independent facing direction for stationary AI aiming/pressure, using the same limited Rigidbody rotation in FixedUpdate. Stop/reset/disable clears aim and velocity. Existing movement integration is retained.
+- `Assets/Scripts/Gameplay/SwimmerInput.cs`: clears AI aim before applying human movement so handoff cannot leave stale aim control.
+- `Assets/Scripts/Gameplay/BallInteractionInput.cs`: F issues the shared steal command through the new Input System; no conflicting existing F binding was found. Existing E/B/Space remain, with action priority shoot, pass, steal, collect. C remains in PlayerSwitchInput. No touch controls were added.
+- `Assets/Editor/TeamPlayPrototypeSetup.cs`, `BasicAIPrototypeSetup.cs`: lower-level setup preserves registered extra White swimmers instead of truncating/rejecting the four-member roster. Basic AI setup retains existing matching tactical-team references. Use the final 2v2 menu to ensure all Milestone 6 references are configured.
+- `Assets/Scenes/PrototypePool.unity`: fourth swimmer, fourth start, Blue/White team contexts, four steal components, matching AI team references and Blue team materials. Existing goal geometry, HUD, original swimmers, ball and camera remain. No SampleScene changes.
+- `plan.md` and the eight existing verification scripts listed below. No PlayerSelection, PrototypeRoster, PrototypeMatch, GoalMouth or scoreboard rewrite was needed.
+
+Scene details:
+
+- Blue: `Actors/Swimmer` (`prototype-blue-1`, initially selected) and `Actors/Swimmer2` (`prototype-blue-2`), preserving their existing starts/anchors/motors and cap colors.
+- White: `Actors/Opponent` (`prototype-white-1`, existing start (4,0,8)) and `Actors/Opponent2` (`prototype-white-2`, new start (-4,0,8), yaw 180). New `Gameplay/RestartPositions/Opponent2Start` is independent of every other saved start.
+- `Gameplay/BlueTeam`, `Gameplay/WhiteTeam`: PrototypeTeamTactics with opposite goal references. Goal.ScoringTeam identifies the attacking team credited at that net; Blue defends the -Z net, White the +Z net.
+- Runtime decisions iterate roster membership/team/slot data, independent of GameObject names or a fixed team count. The explicit Editor setup verifies a 2+2 scene; it does not create full teams. There are 125 scene objects after repeated setup.
+
+Tactical behavior and tunables:
+
+- Each team coordinates one nearest loose-ball pursuer and one defensive presser, including the human in nearest-member selection. Assignments update every 0.5s and on owner change, with a 1m retention advantage to avoid rapid swaps. Other swimmers hold formation or protect a goal-side passing lane/mark. Loose-ball pursuit covers the pool; the earlier 6/9m initial-AI search limits no longer govern play.
+- Support uses the team's explicit attacking direction, default 4m forward/3m lateral, and stable roster slots. Formation and all targets are pool-clamped. The adapter uses soft spacing and arrival slowdown; pressure can enter the 1.8m steal radius without being repelled by ordinary carrier-spacing rules. This is lightweight steering, not physical swimmer overlap resolution or full pathfinding.
+- AI carriers advance toward a central attacking position. After a minimum 0.8s hold they assess a 9m shot range, lateral angle, clear lane, defender pressure and default quality threshold 0.55. They stop, turn using the motor, and shoot through the same API as the human. The actual ball must cross the existing goal geometry to score.
+- If a shot is unattractive, an unobstructed teammate 2.5-11m away with better progress/pressure can be selected for a directional physical pass. The adapter aims and calls the existing passing API; no homing/instant ownership transfer. Team pass cooldown is 3s, limiting repeated exchanges. Aiming and ordinary motor deceleration occur before release.
+- A carrier exceeding the configurable 8s maximum hold selects a physical fallback shot when no better pass is chosen. Rotation/settling adds a short aim allowance; this prevents indefinite holding without altering the score directly. AI may miss long/pressured attempts.
+- During an intended pass, inactive AI waits, preserving the existing receiving contract. Misses expire to normal loose-ball play. No new interception system, lobs or charged shots were added.
+
+Prototype stealing:
+
+- F and AI pressure call exactly the same SwimmerSteal.TrySteal path. Valid attempts consume a default 1.6s cooldown, including range/facing/protection failures. The core ball authority verifies an opposing held carrier, range <=1.8m, attacker facing within 65 degrees, >=1s since the carrier acquired possession, and carrier-forward dot toward attacker >=-0.25 (rear approaches are shielded). Exact overlapping centres are rejected because they have no meaningful facing direction.
+- This is a deterministic prototype rule: every valid exposed-front/side attempt succeeds; there is no hidden random roll. Missed conditions preserve the existing owner. Same-team attempts, free-ball attempts and stoppages cannot transfer possession. The ball has one Owner before and after the atomic transfer and emits the existing genuine ownership-change event.
+- Friendly pickup/reception/steal therefore automatically selects the actual new Blue carrier, updates the ring/input/camera once, and never selects White. C still changes only control and does not transfer possession; the previous human becomes eligible for tactical AI immediately. Future touch controls can call the same movement/pass/shoot/steal/selection APIs.
+- No foul probability, referee, exclusion or penalty is implemented. The protection/cooldown and shielding rules are prototype fairness constraints, not official water polo rules.
+
+Goals, presentation and restart:
+
+- Existing goal detection/scoreboard/GOAL/deduplication remains unchanged. Both teams release real balls and can score at their correct attacking net; own-goal-equivalent crossings still credit that net's configured team.
+- Existing roster pause/reset includes all four. Team assignment/pass timers, per-actor pending decisions/aim and steal cooldowns reset from match Changed events; ball reset clears possession, shot and receiving intent. Scores and a valid Blue selection survive restart. No deferred action/event queue exists to fire a stale pass after reset.
+- The Milestone 5 elevated camera is retained (distance 11m, height 13m, pitch 50, FOV 55, smoothing 0.3s and bounded nearby-ball bias). It already frames all four initial swimmers and follows selection smoothly; no camera rewrite or additional HUD was needed. A distant ball can leave the selected-player view. Screen-space HUD remains score/GOAL only.
+
+### Milestone 6 automated verification
+
+Verification tools remain outside Assets/player builds. New files:
+
+- `Tools/Verification/TwoVTwoSetupVerification.cs`: Edit Mode scene repeatability, 2+2 identities, unique starts, shared authorities, correct goal/team references and preserved camera tuning.
+- `Tools/Verification/TacticalOffenseVerification.cs`: real White pickup/advance/turn/shot/goal, physical pass and valid White reception, and configured anti-stall release. Isolates other AI for deterministic decision fixtures.
+- `Tools/Verification/StealDefenseVerification.cs`: injected F input, protection/range/facing/shielding failures, cooldown, same-team/lock rejection, successful atomic steal/auto-selection, coordinated targets/hysteresis and an actual AI pressure/steal sequence.
+- `Tools/Verification/TwoVTwoMatchVerification.cs`: all AI enabled; human E/B/return/C interactions, camera retargeting, two White AI and two Blue human goals, exact-once locks and reset snapshots for every actor, followed by 20 simulated seconds of ordinary autonomous play with bounds/ownership/no-stall assertions.
+
+Existing fixtures updated: `MovementSandboxVerification.cs`, `CameraBallPrototypeVerification.cs`, `GoalScoringPrototypeVerification.cs`, `TeamPlayPrototypeVerification.cs`, `PossessionSelectionVerification.cs`, `FriendlyAIVerification.cs`, `OpponentAIVerification.cs`, `AIPrototypeSetupVerification.cs`. Changes isolate deterministic starting poses from ongoing live AI, preserve original gameplay assertions and update intentionally superseded expectations (four actors, passive holding replaced by offense, idle replaced by formation, tactical-team references). The follow-only camera settling measurement parks the ball outside its framing influence after containment checks, so legitimate moving-ball bias does not alter that measurement.
+
+Stage checks completed: pre-change Milestone 5 regression (eight suites); four-actor scene/configuration plus passing regression; White offense; defense/stealing; full-AI integrated match. No developer manual test or mobile performance claim is implied.
+
+Recorded final verification from the Milestone 6 implementation session in Unity 6000.6.7f1 (not rerun during this documentation review):
+
+- Runtime/editor compilation completed successfully. All 12 verification scripts compiled with zero diagnostics and passed: ten Play Mode suites (`MovementSandboxVerification`, `CameraBallPrototypeVerification`, `GoalScoringPrototypeVerification`, `TeamPlayPrototypeVerification`, `PossessionSelectionVerification`, `FriendlyAIVerification`, `OpponentAIVerification`, `TacticalOffenseVerification`, `StealDefenseVerification`, `TwoVTwoMatchVerification`) and two Edit Mode suites (`AIPrototypeSetupVerification`, `TwoVTwoSetupVerification`).
+- The final integrated match run added two Blue and four White goals: the four explicitly arranged scoring/restart cycles passed, and additional White attacks scored during the 20-second uninterrupted observation. Five completed restart snapshots had been verified when observation ended; the final goal was still in its restart delay. The preview capture then waited for that restart to finish. No false duplicate or incorrect-team score was observed.
+- Both repeated-setup suites retained 125 objects, four unique players/start references, exactly two members per team, one ball/selection/score authority, correctly assigned tactical/steal references and preserved custom camera tuning. Original SampleScene retains Git blob hash `1c63aa8ded8c325623e162675b13bfcd0b50aa5a`.
+- At that session's final Console check: zero errors, zero warnings and `compilationFailed=false`. Historical Pipeline journal counts are not the current Console status. No Console clearing was used to mask errors. This review did not query the live Editor Console.
+- `Logs/Milestone6Final-*.json` contains the actual final suite results, and `Logs/Milestone6Baseline-*.json` contains the pre-change checks. These are ignored local artifacts. `Logs/Milestone6Gameplay.png` is an actual Game-view capture with score HUD, four swimmers, ball and selected ring; it was visually inspected for prototype readability. Preview scores were transient and reset on the next Play session.
+- The implementation session ended with Play Mode stopped and temporary auto-tick/background overrides disabled. Automation-generated configuration/captures/helpers remain in ignored Logs/Library paths. Player/URP settings were restored; no packages, Android configuration or build scene list changed. New Unity assets have `.meta` files. The later read-only backup inspection confirms Milestone 6 is still uncommitted, the index is empty, and old-plan.md remains untracked/excluded; no claim is made about the developer's current live Play Mode state.
+
+### Milestone 6 developer manual verification
+
+The developer personally tested the current 2v2 build and confirmed swimming movement, camera following, passing, shooting, stealing with F, friendly attacking support, opposing swimmers moving/playing, both teams scoring and scoreboard updates. Their reported gameplay screenshot showed `BLUE 1 - 2 WHITE`. The screenshot was described by the developer in the documentation request; it was not separately inspected during this review.
+
+These confirmations establish playable core 2v2 behavior, not exhaustive edge-case coverage. Automated-only assertions, including detailed directional/duplicate scoring checks, cooldown/shielding boundaries, full restart snapshots and repeat-setup invariants, retain their separate recorded evidence. Gamepad, Android/iOS builds, touch input, device performance and broader aspect-ratio coverage remain unverified.
+
+Current limitations: deterministic close-contact stealing needs gameplay balancing; soft steering can still allow kinematic bodies to overlap; formations/pass-risk/shot quality are simple heuristics without player attributes. All shots/passes stay at the waterline. Goal restarts return to the same prototype start positions and centre ball rather than official possession/kickoff rules. No keeper, fouls, exclusions, clocks, match end, full teams, touch UI, network/backend, economy, advanced water/athletes/animation or audio polish was added. Core 2v2 manual results are confirmed above; exhaustive manual edge cases, device builds, mobile performance, touch controls, aspect-ratio coverage and final camera/AI tuning remain pending.
+
+Manual handoff: open `Assets > Scenes > PrototypePool` in the Project panel, Play, and click the Game view. WASD/arrows swim; E picks up; B passes; Space shoots; C selects the other Blue swimmer; F attempts a steal. Face the nearby white-cap Blue teammate to pass and observe automatic selection on receipt. Leave a loose ball for White to collect and attack; defend from the carrier's front/side, face the carrier and use F within reach after acquisition protection expires. White must never become selected. Score at +Z for Blue; allow White to attack -Z. Confirm scoreboard/GOAL, all four resets and repeated pickup/pass/shot sequences. Open `Window > General > Console` to inspect errors/warnings. No Inspector wiring is required.
+
+Optional setup: exit Play Mode, save intended scene edits, then use `Tools > Water Polo > Set Up 2v2 Prototype`. Tune team attack/support/shot/hold settings at `Gameplay/BlueTeam` or `WhiteTeam > Prototype Team Tactics`; per-actor speed/decision/spacing at Prototype Swimmer AI, steal conditions at Swimmer Steal; camera remains at `CameraRig/Main Camera`. Current task is documentation synchronization and preparation of human-executed backup commands. Only the developer may stage/commit/push. Milestone 7 begins only after the developer completes the backup and explicitly authorizes implementation.
 
 ## Optional old-game references
 
@@ -374,7 +471,7 @@ For new-project decisions, inspect relevant existing scripts/scenes, `Packages/m
 - Prefer simple, maintainable C# and account for mobile CPU/GPU/memory limits.
 - Give clear Unity instructions with exact menu/panel paths. During interactive setup, provide a few steps and wait for requested screenshots/output.
 - Do not call file edits tested without evidence. Report compilation, runtime and device checks separately.
-- After meaningful work, document behavior/files changed, confirmed decisions, actual tests, incomplete work, bugs, and the next step before committing.
+- After meaningful work, document behavior/files changed, confirmed decisions, actual tests, incomplete work, bugs, and the next step. The human alone reviews/stages/commits/pushes; AI must not perform Git write operations or automatic checkpoints.
 - Documentation instructions do not guarantee updates after a session ends; include updates explicitly in task completion.
 
 ## Roadmap
@@ -384,10 +481,23 @@ For new-project decisions, inspect relevant existing scripts/scenes, `Packages/m
 3. Milestone 2: following gameplay camera, possession, carrying and shooting one ball. Implemented, automatically verified and manually confirmed by the developer.
 4. Milestone 3 goals/scoring/restart: implemented, automatically verified and manually confirmed by the developer.
 5. Milestone 4 two swimmers/selection/passing/wider framing: implemented, automatically verified and manually confirmed by the developer.
-6. Milestone 5 possession switching, basic friendly/opponent AI and wider camera: implemented and automatically verified; awaiting manual testing and feedback.
-7. Proposed follow-ups after approval: tune controls/camera/AI from feedback, landscape touch controls and Android device validation, then small AI/rules increments.
-8. Improve animation, water, lighting, feedback and performance through measured iterations.
-9. Request old card/pack/roster examples when useful and choose the new data/UI architecture.
-10. Expand competitions, progression, backend and monetization after the playable foundation is validated.
+6. Milestone 5 possession switching, basic friendly/opponent AI and wider camera: implemented and automatically verified at its historical checkpoint; later core gameplay confirmation belongs to the combined Milestone 6 build.
+7. Milestone 6 first playable 2v2: shared tactical offense/defense, stealing, four-player scene and scoring/restarts; 12 recorded automated suites passed, and the developer confirmed the specific core gameplay listed above.
+8. Immediate next step: human developer reviews documentation and explicitly selected files, creates the Milestone 6 backup commit, pushes `main` to the verified `origin`, and checks local/remote synchronization. AI performs no Git writes.
+9. **Milestone 7 — planned, NOT implemented:** two AI goalkeepers, goal-side positioning, shot interception, saves/deflections, goalkeeper possession and distribution to field players. Inspect the existing ball authority, team membership, field-player selection rules and scoring/restart integration before implementation; preserve working 2v2 gameplay. This documentation task does not authorize that implementation.
+10. Later, separately approved follow-ups: gameplay tuning, landscape touch controls and Android device validation, then small AI/rules increments.
+11. Improve animation, water, lighting, feedback and performance through measured iterations.
+12. Request old card/pack/roster examples when useful and choose the new data/UI architecture.
+13. Expand competitions, progression, backend and monetization after the playable foundation is validated.
 
-Milestone 5 is implemented and must remain uncommitted pending developer review. Local checkpoints: Milestone 1 `a8312f6`, Milestone 2 `2ca3909`, Milestone 3 `0e43094`, Milestone 4 `4babe88`. No push is authorized. `old-plan.md` is an untracked legacy reference preserved and excluded from commits; it is not the governing plan for this game.
+Local checkpoint history: Milestone 1 `a8312f6`, Milestone 2 `2ca3909`, Milestone 3 `0e43094`, Milestone 4 `4babe88`, Milestone 5 `d647882` (its original label records automated testing with manual verification pending at that time). These commits predate the current absolute human-only Git rule; their existence must not be interpreted as permission for future AI Git writes. Milestone 6 and the documentation update await the developer's manual commit/push. `old-plan.md` remains an untracked local reference to preserve and explicitly exclude.
+
+## Documentation and manual backup review
+
+Documentation updated: AGENTS.md, README.md and this canonical plan only. Current source, saved Unity configuration and all 12 stored Milestone 6 result files were inspected; no gameplay code, assets, scenes or settings were changed, and no new Unity tests were run for this documentation-only task. There is no docs/ directory to synchronize; do not create duplicate architecture/roadmap sources unnecessarily.
+
+Read-only Git inspection found branch `main`, local HEAD `d647882`, an empty staging index and five commits ahead / zero behind the stored `origin/main`. A read-only remote query confirmed GitHub `refs/heads/main` at `0eab526e611ef15ac811f0f9d1830651f9780d3b` at review time. The configured fetch/push remote is `https://github.com/Nikoloz-Todua/WaterPoloSuperstars.git`. These are pre-backup observations; recheck before and after the human's operations. A normal push will also publish the existing five local milestone commits; no history rewrite or force push is needed.
+
+Proposed backup comprises the Milestone 6 implementation/scene/material, associated `.meta` files, verification scripts and the three updated root Markdown files. Stage only the explicit reviewed paths supplied to the developer, then inspect staged names/diffs before committing. Preserve `old-plan.md` locally and leave it untracked: it is not covered by the current .gitignore. Existing ignore rules cover Library, Temp, Logs and UserSettings. No .gitignore change is necessary for this explicit-path backup.
+
+The repository-content review found no credential-signature matches or suspicious credential/archive paths in the proposed files, no missing asset/meta pairs and no tracked generated cache folders. A read-only scan of each of the five unpushed commit snapshots also found no credential-signature matches or generated/legacy path matches. The largest proposed file is the existing TMP LiberationSans SDF asset (2,256,862 bytes); no oversized generated content was found. The manual staging list contains 33 reviewed paths: 19 modified files (including these three Markdown files) and 14 new implementation/meta/verification files. old-plan.md is the only additional untracked file and stays excluded. The existing Git name/email are configured; use them without replacing the identity. This is a targeted review, not a guarantee that arbitrary future changes contain no secrets. Canonical handoff details such as the requested local project path and hardware are intentionally retained in plan.md; README omits personal setup details. Do not publish local tokens, private keys, service-account credentials or raw legacy archives. No staging, commit, push, fetch or other Git write operation was performed during this review.

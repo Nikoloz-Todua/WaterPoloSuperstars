@@ -53,18 +53,12 @@ namespace ToduStudios.WaterPolo.Editor
             identity.SetSelected(false);
             data = new SerializedObject(roster);
             SerializedProperty members = data.FindProperty("members");
-            members.arraySize = 3;
-            members.GetArrayElementAtIndex(0).objectReferenceValue = actors.Find("Swimmer").GetComponent<SwimmerIdentity>();
-            members.GetArrayElementAtIndex(1).objectReferenceValue = actors.Find("Swimmer2").GetComponent<SwimmerIdentity>();
-            members.GetArrayElementAtIndex(2).objectReferenceValue = identity;
+            SwimmerIdentity[] participants = new[] { actors.Find("Swimmer").GetComponent<SwimmerIdentity>(), actors.Find("Swimmer2").GetComponent<SwimmerIdentity>(), identity }
+                .Concat(actors.GetComponentsInChildren<SwimmerIdentity>(true).Where(p => p.Team == PrototypeTeam.White && p != identity)).ToArray();
+            members.arraySize = participants.Length;
+            for (int i = 0; i < participants.Length; i++) members.GetArrayElementAtIndex(i).objectReferenceValue = participants[i];
             data.ApplyModifiedPropertiesWithoutUndo();
             ConfigureAI(identity, roster, selection, ball, pool, match);
-            if (created)
-            {
-                data = new SerializedObject(identity.GetComponent<PrototypeSwimmerAI>());
-                data.FindProperty("looseBallRange").floatValue = 6f;
-                data.ApplyModifiedPropertiesWithoutUndo();
-            }
             GameplayCamera camera = UnityEngine.Object.FindAnyObjectByType<GameplayCamera>();
             data = new SerializedObject(camera);
             bool firstCameraUpgrade = data.FindProperty("ball").objectReferenceValue == null;
@@ -79,7 +73,7 @@ namespace ToduStudios.WaterPolo.Editor
             data.ApplyModifiedPropertiesWithoutUndo();
             camera.SnapToTarget();
             Save(scene);
-            Debug.Log("Automatic switching and AI prototype ready: two Blue friendlies and one White opponent with a red cap. No automatic opponent shots or steals.");
+            Debug.Log("Automatic switching and AI references configured. Existing additional roster members and tactical-team references were preserved; use Set Up 2v2 Prototype for the complete current setup.");
         }
 
         [MenuItem("Tools/Water Polo/Set Up Friendly AI Prototype")]
@@ -130,8 +124,8 @@ namespace ToduStudios.WaterPolo.Editor
             if (ai == null) ai = player.gameObject.AddComponent<PrototypeSwimmerAI>();
             Assign(ai, "roster", roster); Assign(ai, "selection", selection); Assign(ai, "ball", ball);
             Assign(ai, "pool", pool); Assign(ai, "match", match);
-            GoalMouth defended = UnityEngine.Object.FindObjectsByType<GoalMouth>().Single(g => g.ScoringTeam != player.Team);
-            Assign(ai, "defendedGoal", defended.transform);
+            PrototypeTeamTactics context = UnityEngine.Object.FindObjectsByType<PrototypeTeamTactics>().FirstOrDefault(t => t.Team == player.Team);
+            if (context != null) Assign(ai, "tacticalTeam", context);
         }
 
         private static void Assign(UnityEngine.Object target, string name, UnityEngine.Object value)

@@ -18,6 +18,7 @@ namespace ToduStudios.WaterPolo
         private Rigidbody body;
         private Vector2 moveInput;
         private Vector3 velocity;
+        private Vector3 aimDirection;
 
         public Vector3 Velocity => velocity;
         public float MaxSpeed => maxSpeed;
@@ -27,6 +28,7 @@ namespace ToduStudios.WaterPolo
         {
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
+            aimDirection = Vector3.zero;
         }
 
         public void ResetPose(Vector3 position, Quaternion rotation)
@@ -34,6 +36,7 @@ namespace ToduStudios.WaterPolo
             if (body == null) body = GetComponent<Rigidbody>();
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
+            aimDirection = Vector3.zero;
             body.position = poolBounds.ClampPosition(position, boundaryClearance);
             body.rotation = rotation;
         }
@@ -43,6 +46,13 @@ namespace ToduStudios.WaterPolo
             // Preserve analogue stick strength while limiting keyboard diagonals to unit length.
             moveInput = Vector2.ClampMagnitude(direction, 1f);
         }
+
+        public void SetFacingDirection(Vector3 direction)
+        {
+            direction.y = 0f;
+            aimDirection = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.zero;
+        }
+        public void ClearFacingDirection() => aimDirection = Vector3.zero;
 
         private void Awake()
         {
@@ -73,9 +83,10 @@ namespace ToduStudios.WaterPolo
             velocity = new Vector3((next.x - previous.x) / step, 0f, (next.z - previous.z) / step);
             body.MovePosition(next);
 
-            if (velocity.sqrMagnitude > 0.0001f)
+            Vector3 turnDirection = aimDirection.sqrMagnitude > 0f ? aimDirection : velocity;
+            if (turnDirection.sqrMagnitude > 0.0001f)
             {
-                Quaternion facing = Quaternion.LookRotation(velocity, Vector3.up);
+                Quaternion facing = Quaternion.LookRotation(turnDirection, Vector3.up);
                 body.MoveRotation(Quaternion.RotateTowards(body.rotation, facing, turnSpeed * step));
             }
         }
@@ -84,6 +95,7 @@ namespace ToduStudios.WaterPolo
         {
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
+            aimDirection = Vector3.zero;
         }
     }
 }

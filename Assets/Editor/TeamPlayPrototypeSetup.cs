@@ -34,7 +34,8 @@ namespace ToduStudios.WaterPolo.Editor
             SwimmerIdentity opponent = actors.Find("Opponent")?.GetComponent<SwimmerIdentity>();
             if (opponent != null && (opponent.PlayerId != "prototype-white-1" || opponent.Team != PrototypeTeam.White))
                 throw new InvalidOperationException("Unexpected opponent identity; refusing to replace it.");
-            if (scene.GetRootGameObjects().Sum(go => go.GetComponentsInChildren<SwimmerMotor>(true).Length) > (opponent != null ? 3 : 2))
+            if (actors.GetComponentsInChildren<SwimmerMotor>(true).Any(m => m != first && m.name != "Swimmer2" &&
+                (m.GetComponent<SwimmerIdentity>() == null || m.GetComponent<SwimmerIdentity>().Team != PrototypeTeam.White)))
                 throw new InvalidOperationException("Unexpected extra swimmers; refusing to duplicate them.");
 
             Transform secondTransform = actors.Find("Swimmer2");
@@ -62,7 +63,8 @@ namespace ToduStudios.WaterPolo.Editor
             SwimmerIdentity firstIdentity = Identity(first, "prototype-blue-1", 1, starts.Find("SwimmerStart"), selected);
             SwimmerIdentity secondIdentity = Identity(second, "prototype-blue-2", 2, secondStart, selected, createdSecond);
             PrototypeRoster roster = GetOrAdd<PrototypeRoster>(Child(gameplay, "PrototypeRoster").gameObject);
-            SwimmerIdentity[] participants = opponent != null ? new[] { firstIdentity, secondIdentity, opponent } : new[] { firstIdentity, secondIdentity };
+            SwimmerIdentity[] participants = new[] { firstIdentity, secondIdentity }.Concat(
+                actors.GetComponentsInChildren<SwimmerIdentity>(true).Where(p => p != firstIdentity && p != secondIdentity)).ToArray();
             AssignArray(roster, "members", participants);
             Transform controlRoot = gameplay.Find("PlayerSelection");
             bool firstUpgrade = controlRoot == null || controlRoot.GetComponent<PlayerSelection>() == null;

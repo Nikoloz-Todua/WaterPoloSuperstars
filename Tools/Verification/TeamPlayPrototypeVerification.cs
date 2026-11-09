@@ -44,6 +44,7 @@ public static class TeamPlayPrototypeVerification
         async Task ResetFixture()
         {
             Press(keyboard);
+            ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f));
             await Advance(0.04f);
             roster.ResetPositions();
             ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f));
@@ -54,6 +55,7 @@ public static class TeamPlayPrototypeVerification
 
         try
         {
+            while (match.IsRestarting) await Advance(0.05f);
             await ResetFixture();
             SingleControl(first);
             Vector3 secondBefore = second.Motor.Position;

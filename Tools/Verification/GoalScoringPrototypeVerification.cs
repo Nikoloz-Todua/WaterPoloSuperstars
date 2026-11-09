@@ -40,6 +40,10 @@ public static class GoalScoringPrototypeVerification
         foreach (var ai in enabledAI) ai.enabled = false;
         try
         {
+            while (match.IsRestarting) await Advance(0.05f);
+            var roster = UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>();
+            roster.ResetPositions(); ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f));
+            selection.Select(roster.Members[0]);
             foreach (GoalMouth goal in goals)
             {
                 Vector3 Point(float x, float z, float y = 0.15f) => goal.transform.TransformPoint(new Vector3(x, y, z));

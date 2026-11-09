@@ -21,13 +21,14 @@ public static class OpponentAIVerification
         var keyboard = InputSystem.AddDevice<Keyboard>(); var passed = new List<string>();
         try
         {
-            Require(roster.Members.Count == 3 && opponent.Team != selection.HumanTeam, "One separately identified opponent.");
+            while (match.IsRestarting) await Advance(0.05f);
+            Require(roster.Members.Count == 4 && opponent.Team != selection.HumanTeam, "Four separately identified actors across both teams.");
             roster.ResetPositions(); selection.Select(first);
             ball.ResetForRestart(first.Motor.Position + Vector3.forward * 1.65f);
             Require(first.Interaction.TryCollect(), "Existing pickup.");
             Vector3 before = opponent.Motor.Position;
             await Advance(0.7f);
-            Require(ai.Behaviour == SwimmerAIBehaviour.Defend && Vector3.Distance(before, opponent.Motor.Position) > 0.3f, "Opponent approaches defensive goal-side position.");
+            Require(ai.Behaviour == SwimmerAIBehaviour.Press && Vector3.Distance(before, opponent.Motor.Position) > 0.3f, "Nearest opponent approaches defensive goal-side position.");
             Require(ai.Target.z > first.Motor.Position.z && ai.Target.z < 15f, "Opponent positions between carrier and its defended goal.");
             for (int i = 0; i < 5; i++)
             {
@@ -46,11 +47,10 @@ public static class OpponentAIVerification
             Require(ball.Owner == null && ai.Behaviour == SwimmerAIBehaviour.PursueLooseBall, "Opponent must approach before legitimate collection.");
             await Until(() => ball.Owner == opponent.Interaction, 5f);
             Require(selection.ActivePlayer == first && !first.Interaction.HasBall && !second.Interaction.HasBall, "Enemy possession is exclusive and never takes human selection.");
-            await Advance(0.4f); // Allow the existing motor's normal deceleration after the pickup.
-            Vector3 heldAt = opponent.Motor.Position;
+            // Milestone 6 intentionally replaces passive holding with autonomous carrying/passing/shooting.
             InputSystem.QueueStateEvent(keyboard, new KeyboardState(Key.D)); await Advance(0.4f);
-            InputSystem.QueueStateEvent(keyboard, new KeyboardState()); await Advance(0.3f);
-            Require(ai.Behaviour == SwimmerAIBehaviour.HoldBall && Vector3.Distance(heldAt, opponent.Motor.Position) < 0.1f, "Human keys cannot move opponent.");
+            InputSystem.QueueStateEvent(keyboard, new KeyboardState()); await Advance(0.04f);
+            Require(!opponent.GetComponent<SwimmerInput>().enabled && ai.Behaviour != SwimmerAIBehaviour.Human, "Opponent continues autonomous offense and never receives human keys.");
             passed.Add("Opponent loose-ball pursuit uses existing collection rules; enemy ownership never selects enemy");
 
             ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 12.65f));

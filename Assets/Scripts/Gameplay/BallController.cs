@@ -30,6 +30,7 @@ namespace ToduStudios.WaterPolo
 
         public BallState State { get; private set; } = BallState.Free;
         public SwimmerBallInteraction Owner { get; private set; }
+        public float OwnershipStartedAt { get; private set; }
         public event Action<SwimmerBallInteraction, SwimmerBallInteraction> PossessionChanged;
         public bool CanCollect => isActiveAndEnabled && !simulationPaused && State == BallState.Free && Owner == null;
         public int ShotSequence { get; private set; }
@@ -64,8 +65,9 @@ namespace ToduStudios.WaterPolo
         {
             if (!CanCollect || claimant == null || !claimant.isActiveAndEnabled || claimant.CarryAnchor == null)
                 return false;
-            // The render Transform can lag one physics step because of interpolation.
-            Vector3 separation = body.position - claimant.transform.position;
+            // Compare both physics poses; an interpolated render Transform can lag after movement/reset.
+            claimant.TryGetComponent<SwimmerMotor>(out var motor);
+            Vector3 separation = body.position - (motor != null ? motor.Position : claimant.transform.position);
             separation.y = 0f;
             if (separation.sqrMagnitude > claimant.PickupDistance * claimant.PickupDistance)
                 return false;
@@ -79,12 +81,16 @@ namespace ToduStudios.WaterPolo
             // The ball is the only ownership authority: a second claim sees Held immediately.
             intendedReceiver = null;
             RestoreOwnerCollision();
-            body.linearVelocity = Vector3.zero;
-            body.angularVelocity = Vector3.zero;
+            if (!body.isKinematic)
+            {
+                body.linearVelocity = Vector3.zero;
+                body.angularVelocity = Vector3.zero;
+            }
             body.isKinematic = true;
             body.interpolation = RigidbodyInterpolation.None;
             ballCollider.enabled = false;
             Owner = claimant;
+            OwnershipStartedAt = Time.time;
             State = BallState.Held;
             IsScoringShot = false;
             NotifyPossessionChanged(previousOwner);
@@ -96,6 +102,23 @@ namespace ToduStudios.WaterPolo
                 return false;
             Release(claimant, Mathf.Max(0f, speed), claimant.transform.forward);
             return true;
+        }
+
+        public StealResult TrySteal(SwimmerBallInteraction claimant, float reach, float facingDot, float protection, float minimumExposure)
+        {
+            if (!isActiveAndEnabled || simulationPaused || State != BallState.Held || Owner == null || claimant == null || !claimant.isActiveAndEnabled || claimant.CarryAnchor == null)
+                return StealResult.Unavailable;
+            var attacker = claimant.GetComponent<SwimmerIdentity>();
+            var carrier = Owner.GetComponent<SwimmerIdentity>();
+            if (attacker == null || carrier == null || attacker.Team == carrier.Team) return StealResult.NoOpponent;
+            Vector3 delta = carrier.Motor.Position - attacker.Motor.Position;
+            delta.y = 0f;
+            if (delta.sqrMagnitude > reach * reach) return StealResult.OutOfRange;
+            if (delta.sqrMagnitude < 0.01f || Vector3.Dot(claimant.transform.forward, delta.normalized) < facingDot) return StealResult.WrongFacing;
+            if (Time.time - OwnershipStartedAt < protection) return StealResult.Protected;
+            if (Vector3.Dot(Owner.transform.forward, -delta.normalized) < minimumExposure) return StealResult.Shielded;
+            AssignOwner(claimant);
+            return StealResult.Success;
         }
 
         public bool TryPass(SwimmerBallInteraction claimant, Vector3 direction, float speed,

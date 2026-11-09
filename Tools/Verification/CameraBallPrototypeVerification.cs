@@ -40,6 +40,11 @@ public static class CameraBallPrototypeVerification
         foreach (var ai in enabledAI) ai.enabled = false;
         try
         {
+            var match = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+            while (match != null && match.IsRestarting) await Advance(0.05f);
+            roster.ResetPositions(); ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f));
+            selection.Select(roster.Members[0]); await Advance(0.12f); camera.SnapToTarget();
+            start = swimmerBody.position; rotation = swimmerBody.rotation; ballStart = ballBody.position;
             ResetBall(ball, ballBody, motor.transform.position + Vector3.forward * 5f);
             await Advance(0.1f);
             await Tap(keyboard, Key.Space);
@@ -112,6 +117,9 @@ public static class CameraBallPrototypeVerification
             }
             passed.Add("High-speed ball containment and floating");
 
+            // Follow-only settling is measured with the ball parked outside its framing influence.
+            // The earlier containment checks leave it moving, which legitimately biases the camera.
+            ResetBall(ball, ballBody, new Vector3(-8f, ball.SurfaceHeight, -12f));
             Press(keyboard);
             motor.enabled = false;
             swimmerBody.position = Vector3.zero;

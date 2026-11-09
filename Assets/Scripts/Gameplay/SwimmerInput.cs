@@ -39,6 +39,7 @@ namespace ToduStudios.WaterPolo
 
         private void Update()
         {
+            motor.ClearFacingDirection();
             motor.SetMoveInput(moveAction.ReadValue<Vector2>());
         }
 

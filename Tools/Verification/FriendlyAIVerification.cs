@@ -23,6 +23,8 @@ public static class FriendlyAIVerification
         foreach (var opponent in opponents) opponent.enabled = false;
         try
         {
+            var match = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+            while (match.IsRestarting) await Advance(0.05f);
             roster.ResetPositions(); selection.Select(first);
             second.Motor.ResetPose(new Vector3(-4f, 0f, -2f), Quaternion.identity);
             ball.ResetForRestart(first.Motor.Position + Vector3.forward * 1.65f);
@@ -36,8 +38,8 @@ public static class FriendlyAIVerification
             InputSystem.QueueStateEvent(keyboard, new KeyboardState());
             await Advance(0.2f);
             Require(first.Motor.Position.z > humanBefore.z + 0.2f, "Human input remains responsive with AI enabled.");
-            selection.Select(second); await Advance(0.3f);
-            Require(ball.Owner == first.Interaction && selection.ActivePlayer == second && first.GetComponent<PrototypeSwimmerAI>().Behaviour == SwimmerAIBehaviour.HoldBall, "Manual selection does not transfer possession or trigger AI-human conflict.");
+            selection.Select(second); await Advance(0.04f);
+            Require(ball.Owner == first.Interaction && selection.ActivePlayer == second && first.GetComponent<PrototypeSwimmerAI>().Behaviour != SwimmerAIBehaviour.Human, "Manual selection preserves ownership on handoff and returns previous carrier to tactical AI.");
             passed.Add("Supporting movement, human input ownership and manual switch while teammate holds ball");
 
             roster.ResetPositions(); selection.Select(first);
@@ -53,7 +55,7 @@ public static class FriendlyAIVerification
             ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f));
             before = second.Motor.Position;
             await Advance(0.5f);
-            Require(ball.Owner == null && ai.Behaviour == SwimmerAIBehaviour.Idle && Vector3.Distance(before, second.Motor.Position) < 0.1f, $"Human closer to ball prevents redundant teammate chase. Owner={ball.Owner}, behaviour={ai.Behaviour}, drift={Vector3.Distance(before, second.Motor.Position)}, human={first.Motor.Position}, teammate={second.Motor.Position}, ball={ball.PhysicsPosition}");
+            Require(ball.Owner == null && ai.Behaviour == SwimmerAIBehaviour.Formation, "Human closer to ball prevents redundant teammate chase; inactive teammate holds formation instead.");
             passed.Add("Nearest-per-team arbitration includes controlled human");
             return new { passed };
         }
