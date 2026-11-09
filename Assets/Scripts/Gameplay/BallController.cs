@@ -23,6 +23,9 @@ namespace ToduStudios.WaterPolo
         private Collider ignoredOwnerCollider;
         private float collectAfter;
         private bool simulationPaused;
+        private SwimmerPassing intendedReceiver;
+        private float receiveAfter, receiveUntil;
+        private Vector3 previousPassPosition;
 
         public BallState State { get; private set; } = BallState.Free;
         public SwimmerBallInteraction Owner { get; private set; }
@@ -31,6 +34,7 @@ namespace ToduStudios.WaterPolo
         public Vector3 ShotOrigin { get; private set; }
         // Eligibility outlives the short Released cooldown state, allowing long shots to score.
         public bool IsScoringShot { get; private set; }
+        public SwimmerBallInteraction IntendedReceiver => intendedReceiver != null ? intendedReceiver.Interaction : null;
         public float SurfaceHeight => poolBounds.Waterline + surfaceOffset;
         public float Radius => ballCollider.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.z);
 
@@ -62,8 +66,14 @@ namespace ToduStudios.WaterPolo
             separation.y = 0f;
             if (separation.sqrMagnitude > claimant.PickupDistance * claimant.PickupDistance)
                 return false;
+            AssignOwner(claimant);
+            return true;
+        }
 
+        private void AssignOwner(SwimmerBallInteraction claimant)
+        {
             // The ball is the only ownership authority: a second claim sees Held immediately.
+            intendedReceiver = null;
             RestoreOwnerCollision();
             body.linearVelocity = Vector3.zero;
             body.angularVelocity = Vector3.zero;
@@ -73,26 +83,42 @@ namespace ToduStudios.WaterPolo
             Owner = claimant;
             State = BallState.Held;
             IsScoringShot = false;
-            return true;
         }
 
         public bool TryShoot(SwimmerBallInteraction claimant, float speed)
         {
             if (simulationPaused || State != BallState.Held || Owner != claimant || claimant == null)
                 return false;
-            Release(claimant, Mathf.Max(0f, speed));
+            Release(claimant, Mathf.Max(0f, speed), claimant.transform.forward);
+            return true;
+        }
+
+        public bool TryPass(SwimmerBallInteraction claimant, Vector3 direction, float speed,
+            SwimmerPassing receiver, float minimumFlightTime, float receivingWindow)
+        {
+            if (simulationPaused || State != BallState.Held || Owner != claimant || claimant == null)
+                return false;
+            direction = Vector3.ProjectOnPlane(direction, Vector3.up);
+            if (direction.sqrMagnitude < 0.0001f || speed <= 0f ||
+                (receiver != null && !receiver.CanReceiveFrom(claimant))) return false;
+            Release(claimant, speed, direction.normalized);
+            intendedReceiver = receiver;
+            receiveAfter = Time.time + Mathf.Max(0.02f, minimumFlightTime);
+            receiveUntil = Time.time + Mathf.Max(minimumFlightTime + 0.1f, receivingWindow);
+            previousPassPosition = body.position;
             return true;
         }
 
         public void Drop(SwimmerBallInteraction claimant)
         {
             if (State == BallState.Held && Owner == claimant && claimant != null)
-                Release(claimant, 0f);
+                Release(claimant, 0f, claimant.transform.forward);
         }
 
-        private void Release(SwimmerBallInteraction claimant, float speed)
+        private void Release(SwimmerBallInteraction claimant, float speed, Vector3 launchDirection)
         {
-            Vector3 direction = Vector3.ProjectOnPlane(claimant.transform.forward, Vector3.up).normalized;
+            intendedReceiver = null;
+            Vector3 direction = Vector3.ProjectOnPlane(launchDirection, Vector3.up).normalized;
             // Start beyond the capsule; at pool edges the position is clamped and collision stays
             // ignored until separation, so the shot cannot bounce off its own swimmer.
             Vector3 releasePoint = speed > 0f
@@ -167,6 +193,8 @@ namespace ToduStudios.WaterPolo
                 return;
             }
 
+            if (TryReceivePass()) return;
+
             if (State == BallState.Released && Time.time >= collectAfter)
                 State = BallState.Free;
             if (Time.time >= collectAfter && ignoredOwnerCollider != null &&
@@ -190,6 +218,37 @@ namespace ToduStudios.WaterPolo
             body.linearVelocity = velocity;
         }
 
+        private bool TryReceivePass()
+        {
+            if (intendedReceiver == null) return false;
+            if (!intendedReceiver.isActiveAndEnabled || !intendedReceiver.Interaction.isActiveAndEnabled || Time.time > receiveUntil)
+            {
+                intendedReceiver = null;
+                return false;
+            }
+            Vector3 from = previousPassPosition;
+            Vector3 current = body.position;
+            previousPassPosition = current;
+            if (Time.time < receiveAfter || Owner != null) return false;
+            Vector3 target = intendedReceiver.Identity.Motor.Position;
+            Vector3 travel = current - from;
+            travel.y = 0f;
+            Vector3 offset = target - from;
+            offset.y = 0f;
+            float fraction = travel.sqrMagnitude > 0.0001f
+                ? Mathf.Clamp01(Vector3.Dot(offset, travel) / travel.sqrMagnitude) : 0f;
+            Vector3 contact = from + travel * fraction;
+            Vector3 separation = target - contact;
+            separation.y = 0f;
+            float range = intendedReceiver.ReceivingDistance;
+            if (separation.sqrMagnitude > range * range) return false;
+            SwimmerBallInteraction receiver = intendedReceiver.Interaction;
+            // Receive at a point on the actual travelled segment, never at the teammate's position.
+            body.position = contact;
+            AssignOwner(receiver);
+            return true;
+        }
+
         private void LateUpdate()
         {
             if (State != BallState.Held || Owner == null)
@@ -208,6 +267,7 @@ namespace ToduStudios.WaterPolo
 
         private void ResetFree()
         {
+            intendedReceiver = null;
             simulationPaused = false;
             IsScoringShot = false;
             Owner = null;

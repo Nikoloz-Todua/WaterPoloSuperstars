@@ -17,6 +17,7 @@ namespace ToduStudios.WaterPolo
         public float PickupDistance => pickupDistance;
         public float ReleaseDistance => releaseDistance;
         public bool HasBall => ball != null && ball.Owner == this;
+        public BallController Ball => ball;
 
         public bool TryCollect() => ball != null && ball.TryCollect(this);
         public bool TryShoot() => ball != null && ball.TryShoot(this, shotSpeed);

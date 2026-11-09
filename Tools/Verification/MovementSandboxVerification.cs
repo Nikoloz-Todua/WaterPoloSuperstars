@@ -17,7 +17,9 @@ public static class MovementSandboxVerification
     {
         Require(Application.isPlaying && SceneManager.sceneCount == 1 &&
             SceneManager.GetActiveScene().name == "PrototypePool", "Open PrototypePool alone in Play Mode.");
-        SwimmerMotor motor = UnityEngine.Object.FindAnyObjectByType<SwimmerMotor>();
+        PlayerSelection selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
+        if (selection != null) selection.Select(UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>().Members[0]);
+        SwimmerMotor motor = selection != null ? selection.ActivePlayer.Motor : UnityEngine.Object.FindAnyObjectByType<SwimmerMotor>();
         SwimmerInput input = motor.GetComponent<SwimmerInput>();
         Rigidbody body = motor.GetComponent<Rigidbody>();
         PoolBounds bounds = UnityEngine.Object.FindAnyObjectByType<PoolBounds>();

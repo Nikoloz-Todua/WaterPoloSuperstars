@@ -21,6 +21,13 @@ namespace ToduStudios.WaterPolo
 
         public Vector3 Velocity => velocity;
         public float MaxSpeed => maxSpeed;
+        public Vector3 Position => body != null ? body.position : transform.position;
+
+        public void StopMotion()
+        {
+            moveInput = Vector2.zero;
+            velocity = Vector3.zero;
+        }
 
         public void ResetPose(Vector3 position, Quaternion rotation)
         {

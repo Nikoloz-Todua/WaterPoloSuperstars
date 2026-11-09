@@ -71,7 +71,7 @@ Codex was authenticated with the developer's ChatGPT account. `unity setup codex
 
 ## Current implementation and verification
 
-Milestones 1, 2 and 3 are implemented in `Assets/Scenes/PrototypePool.unity` and manually verified by the developer. The separate SampleScene remains unchanged. No old gameplay source was imported.
+Milestones 1-4 are implemented in `Assets/Scenes/PrototypePool.unity` and manually verified by the developer. The separate SampleScene remains unchanged. No old gameplay source was imported.
 
 ### Milestone 1 files
 
@@ -211,7 +211,68 @@ Manual test: open PrototypePool, Play, click Game, E to collect, W toward the po
 
 Developer manual Milestone 3 verification: movement/turning, pickup/carry/shoot, both goals, rejection of missed shots, scoreboard, GOAL notification and restart all work; no problems were observed. Other aspect ratios and Android/iOS builds/device performance remain pending. Milestone 3 scope: flat waterline shots, single swimmer/ball, geometric whole-ball crossing, simple rigid nets and pocket containment. Pool dimension changes do not reposition goal roots automatically.
 
-Milestone 3 passed manual review. Milestone 4 is authorized: two same-team swimmers, independent selection with C, directional assisted waterline passing with B, automatic receiving and wider camera framing. Create a local checkpoint of Milestone 3 first, excluding legacy references and temporary/generated files. No push is authorized.
+Milestone 3 passed manual review and is recorded in local checkpoint `0e43094` (`Checkpoint manually verified Milestone 3 goals scoring and restart`). This includes the verified implementation, necessary TMP resources and manual-results documentation; legacy references and generated files are excluded. No push was made.
+
+### Milestone 4 — Two swimmers, selection, passing and wider camera
+
+Implemented in the existing PrototypePool. Both swimmers belong to the prototype Blue team and use the existing kinematic SwimmerMotor. No tactical AI or opposing team was added. Legacy architecture notes were reviewed for the separation of TeamManager selection, PlayerMovement/body execution, TeammateAI adapters and MatchContext ownership; those are conceptual references only. No legacy source implementation was inspected or copied for this milestone, and no 2D physics dependency was introduced.
+
+New runtime files under `Assets/Scripts/Gameplay/`:
+
+- `SwimmerIdentity.cs`: stable prototype player ID, team, cap number, start marker and selection visual; cached access to its own motor/interaction. No possession state is stored here.
+- `PrototypeRoster.cs`: one shared member list, unique-ID/start validation, per-swimmer simulation pause and restart positions. Human selection and passing consult the same roster; membership is separate from movement or tactical decisions.
+- `PlayerSelection.cs`: one authoritative active human-controlled swimmer. Enables only that swimmer's SwimmerInput and BallInteractionInput, stops the previous swimmer's movement intent/velocity, updates the selection ring and camera target. It never transfers/drops the ball or disables SwimmerBallInteraction. Inactive motors remain available to future AI but currently hold their positions.
+- `PlayerSwitchInput.cs`: C (optional gamepad right shoulder) calls SelectNext. Processes before actor input; restart input lock rejects switching. Future touch controls can call the same selection API.
+- `SwimmerPassing.cs`: movement/input-independent pass command, same-team target choice, modest launch assistance and configurable receiving parameters. Defaults: speed 8m/s, 35-degree candidate cone, 45% aim blend capped at 12 degrees, targets 2.5-12m away, receiving radius 1.35m, minimum flight 0.08s and receiving window 2.5s. An unaligned pass remains unassisted. No homing, interception logic or tactical movement.
+
+Other new files/assets:
+
+- `Assets/Editor/TeamPlayPrototypeSetup.cs`: `Tools > Water Polo > Set Up Two Swimmer Passing Prototype`. Extends the previous setup without rebuilding the environment/goals. Clones only the swimmer body when Swimmer2 is missing, assigns distinct identity/child references, roster, selection/input, passing, markers and restart wiring. Existing actor tuning and subsequent camera tuning are preserved; newly cloned actors get their own ID. Refuses Play Mode/unsaved scenes and saves only PrototypePool.
+- `Assets/Materials/Prototype/TeammateCap.mat` (white), `SelectionRing.mat` (green unlit), with new asset `.meta` files. Selection rings use a 48-point LineRenderer each; no per-frame mesh creation.
+- `Tools/Verification/TeamPlayPrototypeVerification.cs`: injected-input Play Mode checks outside Assets/player builds.
+
+Modified files:
+
+- `BallController.cs`: remains the sole ownership/state authority. Adds directional TryPass and one expiring intended receiver; manual pickup and automatic reception share the same private ownership assignment. Receiving checks the actual travelled segment against the intended teammate's current position. It begins after minimum flight time, may accept the intended teammate during Released cooldown, and never grants the passer automatic re-collection. Manual loose pickup retains the existing cooldown. Missing/disabled receivers or expiry leave ordinary free-ball physics. Reception clears goal eligibility; positive-speed pass releases otherwise use the existing release sequence/goal path.
+- `BallInteractionInput.cs`: adds B (optional gamepad North) to call the actor's passing component. Only the selected actor's input adapter is enabled. Priority is shoot, pass, then collect for simultaneous actions.
+- `SwimmerBallInteraction.cs`: exposes the assigned authoritative Ball reference; HasBall still derives from Ball.Owner.
+- `SwimmerMotor.cs`: adds Position and StopMotion for physics-position queries and clean handoff; movement integration, acceleration, turning and bounds are unchanged.
+- `GameplayCamera.cs`: adds Target/SetTarget without resetting focus or smoothing velocity. Existing camera system is retained. The scene's first Milestone 4 upgrade sets distance 9.5m, height 11.5m, smoothing 0.3s and FOV 55; pitch stays 50 degrees. Further setup runs preserve Inspector tuning. This is wider active-player framing, not a ball-aware broadcast rig.
+- `PrototypeMatch.cs`: leaves goal detection/deduplication/scoreboard intact; delegates multi-swimmer freeze/reset to roster and selection when assigned, with a single-swimmer fallback for older scenes. Both start poses reset, ball ownership/pass intent clears, C is locked during GOAL, and the previously selected swimmer remains selected after restart.
+- `Assets/Scenes/PrototypePool.unity`, `plan.md`, and the three older verification scripts. Their swimmer fixture now explicitly selects the first roster member; expected actor count follows the roster. Existing goal/ball/movement assertions remain.
+
+Scene/identity details:
+
+- `Actors/Swimmer`: `prototype-blue-1`, cap 1 (yellow), start at (0,0,0), faces +Z; initially controlled.
+- `Actors/Swimmer2`: `prototype-blue-2`, cap 2 (white), start at (2,0,5), faces -Z. Separate Rigidbody, visuals, carry anchor, motor and interaction, referencing the same ball.
+- `Gameplay/PrototypeRoster` and `Gameplay/PlayerSelection` hold roster and control; `Gameplay/RestartPositions/Swimmer2Start` adds the second saved pose.
+- Exactly one green selection ring marks human control; it is not a ball-ownership indicator. Receiving does not auto-select the receiver. Switching away from a carrier leaves that swimmer carrying the ball.
+
+### Milestone 4 verification and handoff
+
+Verified in Unity 6000.6.7f1 through the existing CLI/Pipeline integration:
+
+- Runtime/editor compilation completed without errors. All four Play Mode verification scripts compiled without diagnostics and passed with advancing physics.
+- Team checks: unique same-team IDs, one enabled pair of human input adapters, one selection ring, independent W/D movement, inactive position holding, C switching and smooth camera retargeting. Initial wider framing includes both swimmers.
+- Switching preserved possession; selected non-owners could not pass or shoot the other swimmer's ball.
+- B created a visible moving, assisted pass with no instantaneous ownership transfer. Passer re-collection was blocked, an inactive teammate received, ownership stayed exclusive, and the second swimmer passed back successfully without automatic selection changes.
+- Moving the intended receiver away caused a miss: trajectory did not home, receiving intent expired, and the free ball remained collectible.
+- The second swimmer picked up and shot a valid goal. Restart locked both motors/input and C, reset both saved positions, cleared ball ownership/receiving intent and restored one active controller. A new pickup/pass/shot and second restart succeeded. The team test added two Blue scores.
+- All movement, camera/pickup/carry/shoot and scoring/restart regressions passed. The goal test added three Blue and one White score, including miss/held/reverse rejection and a long shot; original both-goal behavior is preserved.
+- Repeated Editor setup retained 103 scene objects, two distinct swimmers, one ball, one selector, two goals and one score authority; camera tuning was preserved.
+- Screenshots under ignored `Logs/Milestone4Team.png`, `Milestone4Pass.png` and `Milestone4Receiver.png` capture wider framing, travelling pass and selected receiver. Initial and receiver views were visually inspected. Preview scores are temporary runtime values; a new Play session starts at 0-0.
+- Final Console ground truth: zero errors, zero warnings, no compilation failure. SampleScene retains blob hash `1c63aa8ded8c325623e162675b13bfcd0b50aa5a`. New Assets have companion `.meta` files.
+- Play Mode stopped, auto-tick/background overrides disabled, temporary generated settings kept in ignored Logs. No package versions, persistent project settings or build scene list changed.
+
+Manual test: open PrototypePool and Play, click Game, E to collect with the selected yellow-cap swimmer, B to pass toward the white-cap teammate, C to select that receiver, B to pass back, and C to return control to the yellow cap. WASD/arrows move only the ring-selected swimmer; Space shoots only if that swimmer owns the ball. Aim/facing matters. Test switching while carrying separately: the ball must stay with its existing owner. After a goal both swimmers reset; selection is retained, so C back to the swimmer near the starting ball if needed.
+
+Inspector tuning: per-actor SwimmerPassing controls speed/assistance/receiving; CameraRig/Main Camera controls wider framing; identity Start Position and roster members define reset membership. Existing shot speed, pickup distance and goal/restart tuning remain available.
+
+Remaining limits: manual keyboard/gamepad feel, other screen aspects, Android touch controls/builds and device performance await testing. Only the intended teammate auto-receives a pass, with a coarse placeholder receiving radius; missed/unaligned loose balls require E. Assistance does not guarantee a catch. No interceptions, AI positioning, swimmer overlap resolution, lob/charged passes, opposing teams, 6v6 match, goalkeeper, clock, fouls, economy, advanced animation or realistic water were added. Camera follows selection, so a distant unselected carrier/ball can leave view; ball-aware broadcast framing is deferred.
+
+Developer manual Milestone 4 verification: two visible swimmers, C switching, single-player input isolation, B passing/receiving, pickup/carry/shoot, goals and restarts all work. The missing automatic selection of a receiving teammate is the highest-priority Milestone 5 task. Gamepad/device testing remains pending.
+
+Milestone 5 is authorized in order: event-based friendly possession switching, simple friendly support/loose-ball AI, one opponent with positioning/legitimate pickup, then moderately wider camera framing. Checkpoint Milestone 4 locally first; exclude legacy/generated files. Do not push or automatically commit Milestone 5.
 
 ## Optional old-game references
 
@@ -266,9 +327,10 @@ For new-project decisions, inspect relevant existing scripts/scenes, `Packages/m
 2. Milestone 1 movement sandbox: implemented, exercised in automated Editor Play Mode checks, and manually verified by the developer; camera needs closer framing.
 3. Milestone 2: following gameplay camera, possession, carrying and shooting one ball. Implemented, automatically verified and manually confirmed by the developer.
 4. Milestone 3 goals/scoring/restart: implemented, automatically verified and manually confirmed by the developer.
-5. Proposed follow-ups after approval: wider broadcast camera, landscape touch controls and Android device validation, then small AI/rules increments.
-6. Improve animation, water, lighting, feedback and performance through measured iterations.
-7. Request old card/pack/roster examples when useful and choose the new data/UI architecture.
-8. Expand competitions, progression, backend and monetization after the playable foundation is validated.
+5. Milestone 4 two swimmers/selection/passing/wider framing: implemented, automatically verified and manually confirmed by the developer.
+6. Proposed follow-ups after approval: tune controls/camera from feedback, landscape touch controls and Android device validation, then small AI/rules increments.
+7. Improve animation, water, lighting, feedback and performance through measured iterations.
+8. Request old card/pack/roster examples when useful and choose the new data/UI architecture.
+9. Expand competitions, progression, backend and monetization after the playable foundation is validated.
 
-Milestone 4 is the current authorized scope. A local Milestone 3 checkpoint is authorized. Local checkpoints: Milestone 1 `a8312f6`, Milestone 2 `2ca3909`. No push is authorized. `old-plan.md` is an untracked legacy reference to preserve and exclude from commits; it is not the governing plan for this game.
+Milestone 5 is the current authorized scope; a local Milestone 4 checkpoint is authorized and Milestone 5 must remain uncommitted. Local checkpoints: Milestone 1 `a8312f6`, Milestone 2 `2ca3909`, Milestone 3 `0e43094`. No push is authorized. `old-plan.md` is an untracked legacy reference to preserve and exclude from commits; it is not the governing plan for this game.

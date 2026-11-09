@@ -21,7 +21,9 @@ public static class GoalScoringPrototypeVerification
         Require(goals.Length == 2 && UnityEngine.Object.FindObjectsByType<PrototypeMatch>().Length == 1 && UnityEngine.Object.FindObjectsByType<PrototypeScoreboard>().Length == 1,
             "Exactly two goals, one score authority and one HUD.");
         PrototypeMatch match = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
-        SwimmerMotor motor = UnityEngine.Object.FindAnyObjectByType<SwimmerMotor>();
+        PlayerSelection selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
+        if (selection != null) selection.Select(UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>().Members[0]);
+        SwimmerMotor motor = selection != null ? selection.ActivePlayer.Motor : UnityEngine.Object.FindAnyObjectByType<SwimmerMotor>();
         SwimmerBallInteraction interaction = motor.GetComponent<SwimmerBallInteraction>();
         BallController ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
         Rigidbody body = ball.GetComponent<Rigidbody>();

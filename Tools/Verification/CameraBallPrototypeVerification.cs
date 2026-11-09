@@ -17,8 +17,11 @@ public static class CameraBallPrototypeVerification
     {
         Require(Application.isPlaying && SceneManager.sceneCount == 1 && SceneManager.GetActiveScene().name == "PrototypePool", "Open PrototypePool alone in Play Mode.");
         Require(UnityEngine.Object.FindObjectsByType<BallController>().Length == 1, "Exactly one ball.");
-        Require(UnityEngine.Object.FindObjectsByType<SwimmerMotor>().Length == 1, "Exactly one swimmer.");
-        SwimmerMotor motor = UnityEngine.Object.FindAnyObjectByType<SwimmerMotor>();
+        PlayerSelection selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
+        PrototypeRoster roster = UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>();
+        Require(UnityEngine.Object.FindObjectsByType<SwimmerMotor>().Length == (roster != null ? roster.Members.Count : 1), "Expected roster-sized swimmer count.");
+        if (selection != null) selection.Select(roster.Members[0]);
+        SwimmerMotor motor = selection != null ? selection.ActivePlayer.Motor : UnityEngine.Object.FindAnyObjectByType<SwimmerMotor>();
         SwimmerBallInteraction interaction = motor.GetComponent<SwimmerBallInteraction>();
         BallController ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
         PoolBounds bounds = UnityEngine.Object.FindAnyObjectByType<PoolBounds>();

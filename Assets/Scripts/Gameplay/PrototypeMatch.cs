@@ -12,6 +12,8 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private SwimmerMotor swimmer;
         [SerializeField] private Transform swimmerStart, ballStart;
         [SerializeField] private GameplayCamera gameplayCamera;
+        [SerializeField] private PrototypeRoster roster;
+        [SerializeField] private PlayerSelection playerSelection;
         [SerializeField, Min(0.1f)] private float restartDelay = 1.5f;
 
         private Rigidbody ballBody;
@@ -79,12 +81,21 @@ namespace ToduStudios.WaterPolo
                 WhiteScore++;
             IsRestarting = true;
             restartAt = Time.unscaledTime + restartDelay;
-            restoreMotor = swimmer.enabled;
-            restoreMovementInput = movementInput != null && movementInput.enabled;
-            restoreInteractionInput = interactionInput != null && interactionInput.enabled;
-            if (movementInput != null) movementInput.enabled = false;
-            if (interactionInput != null) interactionInput.enabled = false;
-            swimmer.enabled = false;
+            if (roster != null && playerSelection != null)
+            {
+                playerSelection.SetInputLocked(true);
+                roster.SetSimulationPaused(true);
+            }
+            else
+            {
+                // Keep single-swimmer scenes usable until the explicit team setup is run.
+                restoreMotor = swimmer.enabled;
+                restoreMovementInput = movementInput != null && movementInput.enabled;
+                restoreInteractionInput = interactionInput != null && interactionInput.enabled;
+                if (movementInput != null) movementInput.enabled = false;
+                if (interactionInput != null) interactionInput.enabled = false;
+                swimmer.enabled = false;
+            }
             ball.SetSimulationPaused(true);
             Changed?.Invoke();
         }
@@ -97,13 +108,22 @@ namespace ToduStudios.WaterPolo
 
         private void CompleteRestart()
         {
-            swimmer.ResetPose(swimmerStart.position, swimmerStart.rotation);
+            if (roster != null) roster.ResetPositions();
+            else swimmer.ResetPose(swimmerStart.position, swimmerStart.rotation);
             ball.ResetForRestart(ballStart.position);
             previousPosition = ballBody.position;
             previousShot = ball.ShotSequence;
-            swimmer.enabled = restoreMotor;
-            if (movementInput != null) movementInput.enabled = restoreMovementInput;
-            if (interactionInput != null) interactionInput.enabled = restoreInteractionInput;
+            if (roster != null && playerSelection != null)
+            {
+                roster.SetSimulationPaused(false);
+                playerSelection.SetInputLocked(false);
+            }
+            else
+            {
+                swimmer.enabled = restoreMotor;
+                if (movementInput != null) movementInput.enabled = restoreMovementInput;
+                if (interactionInput != null) interactionInput.enabled = restoreInteractionInput;
+            }
             IsRestarting = false;
             if (gameplayCamera != null) gameplayCamera.SnapToTarget();
             Changed?.Invoke();

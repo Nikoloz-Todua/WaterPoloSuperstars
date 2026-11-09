@@ -25,6 +25,13 @@ namespace ToduStudios.WaterPolo
         private bool initialized;
 
         public Vector3 Focus => focus;
+        public SwimmerMotor Target => target;
+
+        public void SetTarget(SwimmerMotor followTarget)
+        {
+            // Keep the current focus/velocity: selecting another swimmer must not snap the camera.
+            target = followTarget;
+        }
 
         private Vector3 DesiredFocus()
         {
