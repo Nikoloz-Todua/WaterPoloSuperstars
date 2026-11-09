@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace ToduStudios.WaterPolo
@@ -29,6 +30,7 @@ namespace ToduStudios.WaterPolo
 
         public BallState State { get; private set; } = BallState.Free;
         public SwimmerBallInteraction Owner { get; private set; }
+        public event Action<SwimmerBallInteraction, SwimmerBallInteraction> PossessionChanged;
         public bool CanCollect => isActiveAndEnabled && !simulationPaused && State == BallState.Free && Owner == null;
         public int ShotSequence { get; private set; }
         public Vector3 ShotOrigin { get; private set; }
@@ -37,6 +39,7 @@ namespace ToduStudios.WaterPolo
         public SwimmerBallInteraction IntendedReceiver => intendedReceiver != null ? intendedReceiver.Interaction : null;
         public float SurfaceHeight => poolBounds.Waterline + surfaceOffset;
         public float Radius => ballCollider.radius * Mathf.Max(transform.lossyScale.x, transform.lossyScale.z);
+        public Vector3 PhysicsPosition => body != null ? body.position : transform.position;
 
         private void Awake()
         {
@@ -72,6 +75,7 @@ namespace ToduStudios.WaterPolo
 
         private void AssignOwner(SwimmerBallInteraction claimant)
         {
+            SwimmerBallInteraction previousOwner = Owner;
             // The ball is the only ownership authority: a second claim sees Held immediately.
             intendedReceiver = null;
             RestoreOwnerCollision();
@@ -83,6 +87,7 @@ namespace ToduStudios.WaterPolo
             Owner = claimant;
             State = BallState.Held;
             IsScoringShot = false;
+            NotifyPossessionChanged(previousOwner);
         }
 
         public bool TryShoot(SwimmerBallInteraction claimant, float speed)
@@ -117,6 +122,7 @@ namespace ToduStudios.WaterPolo
 
         private void Release(SwimmerBallInteraction claimant, float speed, Vector3 launchDirection)
         {
+            SwimmerBallInteraction previousOwner = Owner;
             intendedReceiver = null;
             Vector3 direction = Vector3.ProjectOnPlane(launchDirection, Vector3.up).normalized;
             // Start beyond the capsule; at pool edges the position is clamped and collision stays
@@ -142,6 +148,7 @@ namespace ToduStudios.WaterPolo
                 Physics.IgnoreCollision(ballCollider, ignoredOwnerCollider, true);
             body.linearVelocity = direction * speed;
             body.angularVelocity = Vector3.zero;
+            NotifyPossessionChanged(previousOwner);
         }
 
         private Vector3 SurfacePosition(Vector3 position)
@@ -267,18 +274,28 @@ namespace ToduStudios.WaterPolo
 
         private void ResetFree()
         {
+            SwimmerBallInteraction previousOwner = Owner;
             intendedReceiver = null;
             simulationPaused = false;
             IsScoringShot = false;
             Owner = null;
             State = BallState.Free;
             if (body == null || ballCollider == null)
+            {
+                NotifyPossessionChanged(previousOwner);
                 return;
+            }
             body.isKinematic = false;
             body.interpolation = RigidbodyInterpolation.Interpolate;
             body.linearVelocity = Vector3.zero;
             ballCollider.enabled = true;
             RestoreOwnerCollision();
+            NotifyPossessionChanged(previousOwner);
+        }
+
+        private void NotifyPossessionChanged(SwimmerBallInteraction previousOwner)
+        {
+            if (previousOwner != Owner) PossessionChanged?.Invoke(previousOwner, Owner);
         }
 
         private void OnDisable()

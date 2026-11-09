@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using ToduStudios.WaterPolo;
 using UnityEditor;
@@ -35,6 +36,8 @@ public static class CameraBallPrototypeVerification
         Vector3 start = swimmerBody.position;
         Quaternion rotation = swimmerBody.rotation;
         Vector3 ballStart = ballBody.position;
+        var enabledAI = UnityEngine.Object.FindObjectsByType<PrototypeSwimmerAI>().Where(ai => ai.enabled).ToArray();
+        foreach (var ai in enabledAI) ai.enabled = false;
         try
         {
             ResetBall(ball, ballBody, motor.transform.position + Vector3.forward * 5f);
@@ -145,6 +148,7 @@ public static class CameraBallPrototypeVerification
             motor.enabled = true;
             ResetBall(ball, ballBody, ballStart);
             camera.SnapToTarget();
+            foreach (var ai in enabledAI) if (ai != null) ai.enabled = true;
         }
     }
 

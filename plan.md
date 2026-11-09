@@ -71,7 +71,7 @@ Codex was authenticated with the developer's ChatGPT account. `unity setup codex
 
 ## Current implementation and verification
 
-Milestones 1-4 are implemented in `Assets/Scenes/PrototypePool.unity` and manually verified by the developer. The separate SampleScene remains unchanged. No old gameplay source was imported.
+Milestones 1-4 are implemented in `Assets/Scenes/PrototypePool.unity` and manually verified by the developer. Milestone 5 is implemented and automatically verified in Unity; developer manual testing is pending. The separate SampleScene remains unchanged. No old gameplay source was imported.
 
 ### Milestone 1 files
 
@@ -272,7 +272,63 @@ Remaining limits: manual keyboard/gamepad feel, other screen aspects, Android to
 
 Developer manual Milestone 4 verification: two visible swimmers, C switching, single-player input isolation, B passing/receiving, pickup/carry/shoot, goals and restarts all work. The missing automatic selection of a receiving teammate is the highest-priority Milestone 5 task. Gamepad/device testing remains pending.
 
-Milestone 5 is authorized in order: event-based friendly possession switching, simple friendly support/loose-ball AI, one opponent with positioning/legitimate pickup, then moderately wider camera framing. Checkpoint Milestone 4 locally first; exclude legacy/generated files. Do not push or automatically commit Milestone 5.
+Milestone 4 is recorded in local checkpoint `4babe88` (`Checkpoint manually verified Milestone 4 team selection and passing`), including its manual-results documentation. Legacy references, old-plan.md and generated files were excluded. No push was made.
+
+### Milestone 5 — Possession switching, basic teammate/opponent AI and wider framing
+
+Implemented in order: possession switching verified first, friendly AI verified next, one opponent verified next, then camera framing and final regression checks. Historical Milestone 4 descriptions of stationary inactive swimmers and reception without control switching describe the earlier milestone; the behavior below is current.
+
+New runtime/editor files:
+
+- `Assets/Scripts/Gameplay/SwimmerTactics.cs`: small pure XZ target calculations for support and goal-side defense. No input, physics or ownership mutation.
+- `Assets/Scripts/Gameplay/PrototypeSwimmerAI.cs`: one shared controller for any inactive friendly or opponent. Recomputes decisions every 0.15 seconds and on owner changes; supplies direction to the existing SwimmerMotor. Support defaults to 4.5m forward / 2.5m lateral relative to the carrier, with simple spacing and arrival slowing. One nearest eligible member per team pursues a collectible loose ball within a configurable range, including the human in nearest-player arbitration. AI requests pickup through SwimmerBallInteraction.TryCollect; it cannot bypass distance, release cooldown or exclusive ownership. An opposing carrier causes goal-side defensive pressure at 2.8m. The selected human's motor input is never written by AI. Handoff and restart force a fresh decision. Indexed cached-roster loops avoid per-frame searches/collection allocations.
+- `Assets/Editor/BasicAIPrototypeSetup.cs`: final menu `Tools > Water Polo > Set Up Automatic Switching and AI Prototype`. Reuses the previous setup chain, creates only a missing opponent/start marker/materials, configures all AI references and selection's ball reference, registers all three participants, applies the first wider-camera upgrade and saves PrototypePool. Repeated setup preserves existing camera/actor tuning and does not duplicate objects. Refuses Play Mode and unsaved scenes. The intermediate `Set Up Friendly AI Prototype` command remains available; use the final command for the complete milestone.
+
+New assets:
+
+- `Assets/Materials/Prototype/OpponentCap.mat` (red), `OpponentBody.mat` (pale), and companion `.meta` files for these materials and the three new scripts.
+- `Actors/Opponent`: `prototype-white-1`, White team, cap 3, starts at (4,0,8) facing -Z, with its own visual/carry anchor/body/start marker. Its loose-ball pursuit range is 6m; friendly default is 9m. White defends the +Z goal. It never has human input or an active selection ring.
+- `Gameplay/RestartPositions/OpponentStart`: third restart pose. PrototypeRoster now contains all three participants, across both teams. Team membership and human-selection eligibility are separate from overall restart membership.
+
+Modified implementation:
+
+- `Assets/Scripts/Gameplay/BallController.cs`: still the only ball ownership authority. Publishes `PossessionChanged(previous, next)` once when ownership actually changes, after pickup/reception/release/drop/reset state is applied. A rejected claim or unchanged null owner does not publish another change. Adds read-only PhysicsPosition for loose-ball decisions. No alternate ownership model or 2D physics was introduced.
+- `Assets/Scripts/Gameplay/PlayerSelection.cs`: subscribes/unsubscribes to that event. A newly acquired eligible Blue carrier is selected immediately, updating the existing input adapters, ring and smoothly retargeted camera. Null/loose-ball events, opponents and locked selection are ignored; there is no polling or queued switch to replay after a restart. C cycles only eligible friendlies. Manual switching preserves ownership and is not undone while the same carrier continues holding the ball. Selection never grants possession.
+- `Assets/Scripts/Gameplay/GameplayCamera.cs`: preserves fixed orientation, bounded focus and smooth target changes. Adds a small nearby-ball bias (influence 0.15, range 10m, maximum offset 1.5m, smoothly faded with distance), not a separate camera mode. Scene upgrade uses distance 11m, height 13m, pitch 50 degrees, FOV 55 and smoothing 0.3 seconds; all tuning remains in the Inspector. Wider framing includes all three starting swimmers. A distant ball can still leave view.
+- `Assets/Editor/TeamPlayPrototypeSetup.cs`: recognizes the known opponent and preserves it in roster/restart membership on repeated lower-level setup. Unknown extra actors are still rejected. Opponent inputs/selection remain disabled.
+- `Assets/Scenes/PrototypePool.unity`: saved/wired three-swimmer scene, explicit possession-event reference, three AI components, opponent start/materials, and wider camera settings. Existing goals, ball mechanics, pool and scoreboard remain. The existing PrototypeMatch roster pause/reset path handles all participants without rewriting scoring.
+
+Control and AI behavior:
+
+- WASD/arrows move the ring-selected Blue swimmer; E requests pickup; Space shoots; B passes in the facing/assisted direction; C manually selects the next Blue swimmer. Future touch/AI commands can use the same movement, interaction and selection APIs.
+- Pass travel does not switch selection. Successful friendly reception or legitimate inactive-friendly loose pickup switches once. A return pass works the same way. The old carrier becomes eligible for AI; only the new selection receives human input.
+- During an intended pass, inactive AI waits in position to preserve the existing receiving contract. It does not intercept or home toward a travelling pass. A missed pass becomes ordinary loose-ball pursuit after its receiving intent expires. After shooting, the active swimmer remains selected unless a friendly genuinely acquires the loose ball.
+- Opponent pressure is positional only: no steals/contact possession. If the opponent collects a loose ball it stops and holds it; no autonomous pass/shoot/attack behavior is implemented. Blue inactive swimmers can then position defensively. Stop and restart Play Mode to begin a fresh possession if the opponent is holding the ball; do not treat missing recovery rules as a complete competitive match.
+- During GOAL, all three motors and human interaction are locked. The existing restart resets every participant and clears ball owner/pass/shot state while preserving scores and a valid friendly selection. Null ownership notifications cannot trigger stale camera changes.
+
+### Milestone 5 verification and handoff
+
+Verified in the running Unity 6000.6.7f1 Editor through Unity CLI/Pipeline, with advancing Play Mode physics:
+
+- Runtime/editor compilation completed without errors. Seven Play Mode verification suites compiled without diagnostics and passed. Existing fixture suites temporarily disable/restore AI where they require stationary actors; live AI behavior is tested separately.
+- `Tools/Verification/MovementSandboxVerification.cs`: existing movement/keyboard/arrows/analog gamepad, acceleration/stopping/turning, waterline, bounds and visibility. Straight/diagonal speed both approximately 4m/s.
+- `Tools/Verification/CameraBallPrototypeVerification.cs`: existing pickup range/exclusive ownership, carrying, facing-direction shots, cooldown/recollection, disable cleanup, 80m/s containment, smooth camera follow and visibility at all corners at the current Game view aspect.
+- `Tools/Verification/GoalScoringPrototypeVerification.cs`: both scoring planes, held/reverse/outside-post/post-hit rejection, high-speed and long shots, exactly-once scores, HUD/GOAL and repeat restarts. Added three Blue and one White score during this regression run.
+- `Tools/Verification/TeamPlayPrototypeVerification.cs`: updated intentional reception expectations for automatic switching and roster-sized actor counts; original selection isolation, physical passes/return passes, missed passes, shots and repeated restarts passed. Added two Blue scores during this regression run. This fixture isolates AI.
+- New `Tools/Verification/PossessionSelectionVerification.cs`: acquisition-time switch on pass and return, camera/ring/input synchronization, failed pass/no premature switching, manual C independence, inactive-friendly pickup and lock/no stale replay. Counted 12 genuine ownership notifications in the fixture; no per-frame repeated switching.
+- New `Tools/Verification/FriendlyAIVerification.cs`: live friendly support movement, human movement unaffected, handoff to AI while retaining ball ownership, nearest-friendly pursuit and automatic selection only after legitimate pickup. Human closer to ball suppresses redundant teammate chase. Opponent AI is isolated for this fixture.
+- New `Tools/Verification/OpponentAIVerification.cs`: all three AI adapters enabled. Defense toward the defended goal, opponent input/selection exclusion, real loose-ball approach/acquisition, exclusive enemy ownership without selection transfer, pool/waterline containment, all-three goal freeze/reset, then new pickup/pass/return-pass with automatic switching and camera retargeting all passed.
+- New `Tools/Verification/AIPrototypeSetupVerification.cs` (Edit Mode): repeated final setup retained 113 objects, three unique IDs/motors/AI adapters, one ball/selection/match authority and two goals. All required AI/start/ball/ring references were assigned; temporary custom camera distance survived repeated setup and was restored afterward. No duplicate actor components.
+- A 1280x720 camera capture at ignored `Logs/Milestone5Broadcast.png` was visually inspected: three swimmers, selected ring and ball are readable. This camera-render capture excludes screen-space overlay UI; the HUD was verified by the scoring suite.
+- Console ground truth at final Play verification: zero errors, zero warnings, compilation not failed. SampleScene remains unchanged. All new Unity assets have companion `.meta` files. No packages, build-scene list or persistent project settings were intentionally changed. Play Mode and temporary auto-tick/background overrides are stopped/disabled at handoff.
+
+Developer manual Milestone 5 playtesting is pending. Camera feel, AI positioning quality, keyboard/gamepad feel, different aspect ratios, mobile touch UI and Android/iOS builds/device performance are not verified by these automated checks. Simple spacing is not a full collision/avoidance system; kinematic swimmers can overlap. No tactical brain/formations, full teams, keeper, clock, steals, fouls, advanced animations/water or economy were added.
+
+Manual test: open `Assets/Scenes/PrototypePool.unity`, Play and click the Game view. E collects with the yellow cap; face the white-cap teammate and B to pass. Selection/ring/camera must remain with the passer during travel, then transfer on reception; WASD must move the receiver. Face/pass back and verify automatic return selection. Try C while carrying: ownership must stay with the previous carrier. Watch the inactive friendly support the carrier and the red-cap opponent defend. Shoot/miss and let an eligible inactive friendly approach a loose ball; acquisition should select that friendly. The red cap may collect but must never become selected. Score at either goal and verify all three reset and another pickup/pass/shot works. Check `Window > General > Console` for errors/warnings.
+
+No manual Inspector wiring is required. The final setup menu is optional because the scene is already saved. To run it, exit Play Mode, save any intended scene edits, then choose `Tools > Water Polo > Set Up Automatic Switching and AI Prototype`. Inspector tuning: each actor's Prototype Swimmer AI for support/pressure/range/speed; `Gameplay/PlayerSelection` for Human Team; `CameraRig/Main Camera > Gameplay Camera` for framing and `Camera` for FOV. Keep Human Team Blue for this two-friendly prototype.
+
+Milestone 5 remains uncommitted for developer review. Recommended next task: manually validate automatic switching, support/pressure and camera framing; record feedback and tune this milestone before authorizing more gameplay. Android input/device validation remains an important later milestone.
 
 ## Optional old-game references
 
@@ -328,9 +384,10 @@ For new-project decisions, inspect relevant existing scripts/scenes, `Packages/m
 3. Milestone 2: following gameplay camera, possession, carrying and shooting one ball. Implemented, automatically verified and manually confirmed by the developer.
 4. Milestone 3 goals/scoring/restart: implemented, automatically verified and manually confirmed by the developer.
 5. Milestone 4 two swimmers/selection/passing/wider framing: implemented, automatically verified and manually confirmed by the developer.
-6. Proposed follow-ups after approval: tune controls/camera from feedback, landscape touch controls and Android device validation, then small AI/rules increments.
-7. Improve animation, water, lighting, feedback and performance through measured iterations.
-8. Request old card/pack/roster examples when useful and choose the new data/UI architecture.
-9. Expand competitions, progression, backend and monetization after the playable foundation is validated.
+6. Milestone 5 possession switching, basic friendly/opponent AI and wider camera: implemented and automatically verified; awaiting manual testing and feedback.
+7. Proposed follow-ups after approval: tune controls/camera/AI from feedback, landscape touch controls and Android device validation, then small AI/rules increments.
+8. Improve animation, water, lighting, feedback and performance through measured iterations.
+9. Request old card/pack/roster examples when useful and choose the new data/UI architecture.
+10. Expand competitions, progression, backend and monetization after the playable foundation is validated.
 
-Milestone 5 is the current authorized scope; a local Milestone 4 checkpoint is authorized and Milestone 5 must remain uncommitted. Local checkpoints: Milestone 1 `a8312f6`, Milestone 2 `2ca3909`, Milestone 3 `0e43094`. No push is authorized. `old-plan.md` is an untracked legacy reference to preserve and exclude from commits; it is not the governing plan for this game.
+Milestone 5 is implemented and must remain uncommitted pending developer review. Local checkpoints: Milestone 1 `a8312f6`, Milestone 2 `2ca3909`, Milestone 3 `0e43094`, Milestone 4 `4babe88`. No push is authorized. `old-plan.md` is an untracked legacy reference preserved and excluded from commits; it is not the governing plan for this game.

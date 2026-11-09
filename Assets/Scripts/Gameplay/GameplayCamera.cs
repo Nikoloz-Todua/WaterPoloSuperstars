@@ -9,6 +9,11 @@ namespace ToduStudios.WaterPolo
     {
         [SerializeField] private SwimmerMotor target;
         [SerializeField] private PoolBounds poolBounds;
+        [SerializeField] private BallController ball;
+        [Tooltip("Small bounded framing bias toward the ball only while it is nearby.")]
+        [SerializeField, Range(0f, 0.4f)] private float ballInfluence = 0.15f;
+        [SerializeField, Min(1f)] private float ballFramingRange = 10f;
+        [SerializeField, Min(0f)] private float maxBallOffset = 1.5f;
         [SerializeField, Min(1f)] private float distance = 6.5f;
         [SerializeField, Min(1f)] private float height = 7.5f;
         [SerializeField, Range(20f, 80f)] private float pitch = 50f;
@@ -23,6 +28,7 @@ namespace ToduStudios.WaterPolo
         private Vector3 focus;
         private Vector3 focusVelocity;
         private bool initialized;
+        private Camera lens;
 
         public Vector3 Focus => focus;
         public SwimmerMotor Target => target;
@@ -37,13 +43,22 @@ namespace ToduStudios.WaterPolo
         {
             // Velocity-based lead fades away at rest and doesn't jump when facing reverses.
             Vector3 lead = target.Velocity / Mathf.Max(0.1f, target.MaxSpeed) * lookAhead;
-            return ClampFocus(target.transform.position + lead);
+            Vector3 ballOffset = Vector3.zero;
+            if (ball != null)
+            {
+                Vector3 gap = ball.transform.position - target.transform.position;
+                gap.y = 0f;
+                // Fade the influence to zero at the range limit, avoiding a focus discontinuity.
+                float weight = Mathf.Clamp01(1f - gap.magnitude / Mathf.Max(1f, ballFramingRange));
+                ballOffset = Vector3.ClampMagnitude(gap * ballInfluence * weight, maxBallOffset);
+            }
+            return ClampFocus(target.transform.position + lead + ballOffset);
         }
 
         private Vector3 ClampFocus(Vector3 desired)
         {
             desired = poolBounds.ClampPosition(desired, boundsInset);
-            Camera lens = GetComponent<Camera>();
+            if (lens == null) lens = GetComponent<Camera>();
             Quaternion rotation = Quaternion.Euler(pitch, yaw, 0f);
             Vector3 offset = Quaternion.Euler(0f, yaw, 0f) * Vector3.back * distance + Vector3.up * height;
             float spread = Mathf.Tan(lens.fieldOfView * 0.5f * Mathf.Deg2Rad) * 0.7f;

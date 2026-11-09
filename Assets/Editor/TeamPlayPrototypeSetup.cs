@@ -31,7 +31,10 @@ namespace ToduStudios.WaterPolo.Editor
             Transform starts = gameplay.Find("RestartPositions");
             Camera camera = Root("CameraRig").Find("Main Camera").GetComponent<Camera>();
             GameplayCamera follow = camera.GetComponent<GameplayCamera>();
-            if (scene.GetRootGameObjects().Sum(go => go.GetComponentsInChildren<SwimmerMotor>(true).Length) > 2)
+            SwimmerIdentity opponent = actors.Find("Opponent")?.GetComponent<SwimmerIdentity>();
+            if (opponent != null && (opponent.PlayerId != "prototype-white-1" || opponent.Team != PrototypeTeam.White))
+                throw new InvalidOperationException("Unexpected opponent identity; refusing to replace it.");
+            if (scene.GetRootGameObjects().Sum(go => go.GetComponentsInChildren<SwimmerMotor>(true).Length) > (opponent != null ? 3 : 2))
                 throw new InvalidOperationException("Unexpected extra swimmers; refusing to duplicate them.");
 
             Transform secondTransform = actors.Find("Swimmer2");
@@ -59,7 +62,8 @@ namespace ToduStudios.WaterPolo.Editor
             SwimmerIdentity firstIdentity = Identity(first, "prototype-blue-1", 1, starts.Find("SwimmerStart"), selected);
             SwimmerIdentity secondIdentity = Identity(second, "prototype-blue-2", 2, secondStart, selected, createdSecond);
             PrototypeRoster roster = GetOrAdd<PrototypeRoster>(Child(gameplay, "PrototypeRoster").gameObject);
-            AssignArray(roster, "members", new UnityEngine.Object[] { firstIdentity, secondIdentity });
+            SwimmerIdentity[] participants = opponent != null ? new[] { firstIdentity, secondIdentity, opponent } : new[] { firstIdentity, secondIdentity };
+            AssignArray(roster, "members", participants);
             Transform controlRoot = gameplay.Find("PlayerSelection");
             bool firstUpgrade = controlRoot == null || controlRoot.GetComponent<PlayerSelection>() == null;
             if (controlRoot == null) controlRoot = Child(gameplay, "PlayerSelection");
@@ -67,7 +71,7 @@ namespace ToduStudios.WaterPolo.Editor
             Assign(selection, "roster", roster);
             Assign(selection, "gameplayCamera", follow);
             GetOrAdd<PlayerSwitchInput>(controlRoot.gameObject);
-            foreach (SwimmerIdentity player in new[] { firstIdentity, secondIdentity })
+            foreach (SwimmerIdentity player in participants)
             {
                 SwimmerPassing passing = GetOrAdd<SwimmerPassing>(player.gameObject);
                 Assign(passing, "roster", roster);

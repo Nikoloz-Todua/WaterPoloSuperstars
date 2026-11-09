@@ -36,6 +36,8 @@ public static class GoalScoringPrototypeVerification
         var passed = new List<string>();
         int initialBlue = match.BlueScore, initialWhite = match.WhiteScore;
         Vector3 anchorLocal = interaction.CarryAnchor.localPosition;
+        var enabledAI = UnityEngine.Object.FindObjectsByType<PrototypeSwimmerAI>().Where(ai => ai.enabled).ToArray();
+        foreach (var ai in enabledAI) ai.enabled = false;
         try
         {
             foreach (GoalMouth goal in goals)
@@ -141,6 +143,7 @@ public static class GoalScoringPrototypeVerification
                 ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f));
                 Camera.main.GetComponent<GameplayCamera>().SnapToTarget();
             }
+            foreach (var ai in enabledAI) if (ai != null) ai.enabled = true;
         }
     }
 

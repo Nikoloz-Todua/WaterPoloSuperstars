@@ -22,13 +22,16 @@ public static class TeamPlayPrototypeVerification
         PrototypeMatch match = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
         BallController ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
         Rigidbody ballBody = ball.GetComponent<Rigidbody>();
-        Require(roster.Members.Count == 2 && UnityEngine.Object.FindObjectsByType<SwimmerMotor>().Length == 2 &&
+        Require(roster.Members.Count >= 2 && UnityEngine.Object.FindObjectsByType<SwimmerMotor>().Length == roster.Members.Count &&
             UnityEngine.Object.FindObjectsByType<PlayerSelection>().Length == 1 && UnityEngine.Object.FindObjectsByType<BallController>().Length == 1, "Two swimmers, one selector and one ball.");
         SwimmerIdentity first = roster.Members[0], second = roster.Members[1];
         Require(first.PlayerId != second.PlayerId && first.Team == second.Team, "Distinct same-team identities.");
         Keyboard keyboard = InputSystem.AddDevice<Keyboard>();
         var passed = new List<string>();
         int blueStart = match.BlueScore, whiteStart = match.WhiteScore;
+        // Isolate original movement/ball fixtures; Friendly/Opponent AI suites exercise live AI separately.
+        var enabledAI = UnityEngine.Object.FindObjectsByType<PrototypeSwimmerAI>().Where(ai => ai.enabled).ToArray();
+        foreach (var ai in enabledAI) ai.enabled = false;
 
         void SingleControl(SwimmerIdentity expected)
         {
@@ -99,14 +102,13 @@ public static class TeamPlayPrototypeVerification
             await Advance(0.1f);
             Require(ball.Owner == null && Vector3.Distance(ballBody.position, ball.ShotOrigin) > 0.4f, "Pass visibly travels before reception.");
             await Until(() => ball.Owner == second.Interaction, 3f);
-            Require(selection.ActivePlayer == first && !second.GetComponent<SwimmerInput>().enabled, "Inactive teammate receives without automatic player switching.");
+            Require(selection.ActivePlayer == second && second.GetComponent<SwimmerInput>().enabled, "Successful reception automatically selects the friendly carrier.");
             Require(!first.Interaction.HasBall && second.Interaction.HasBall && !first.Interaction.TryCollect(), "Received possession is exclusive.");
-            await Tap(keyboard, Key.C);
             SingleControl(second);
             Require(ball.Owner == second.Interaction, "Selecting the receiver preserves possession.");
             await Tap(keyboard, Key.B);
             await Until(() => ball.Owner == first.Interaction, 3f);
-            Require(selection.ActivePlayer == second && first.Interaction.HasBall && !second.Interaction.HasBall, "Second swimmer can pass back to the inactive first swimmer.");
+            Require(selection.ActivePlayer == first && first.Interaction.HasBall && !second.Interaction.HasBall, "Return pass automatically selects the first swimmer upon acquisition.");
             passed.Add("B pass travel, capped assistance, release protection, automatic receiving and return pass");
 
             await ResetFixture();
@@ -149,7 +151,6 @@ public static class TeamPlayPrototypeVerification
             await Tap(keyboard, Key.E);
             await Tap(keyboard, Key.B);
             await Until(() => ball.Owner == second.Interaction, 3f);
-            await Tap(keyboard, Key.C);
             second.Motor.ResetPose(new Vector3(0f, 0f, 11f), Quaternion.identity);
             await Advance(0.15f);
             await Tap(keyboard, Key.Space);
@@ -170,6 +171,7 @@ public static class TeamPlayPrototypeVerification
                 selection.Select(first);
                 camera.SnapToTarget();
             }
+            foreach (var ai in enabledAI) if (ai != null) ai.enabled = true;
         }
     }
 

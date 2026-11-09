@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using ToduStudios.WaterPolo;
 using UnityEngine;
@@ -30,6 +31,8 @@ public static class MovementSandboxVerification
         var passed = new List<string>();
         float straightSpeed = 0f;
         float diagonalSpeed = 0f;
+        var enabledAI = UnityEngine.Object.FindObjectsByType<PrototypeSwimmerAI>().Where(ai => ai.enabled).ToArray();
+        foreach (var ai in enabledAI) ai.enabled = false;
 
         try
         {
@@ -121,6 +124,7 @@ public static class MovementSandboxVerification
             body.rotation = originalRotation;
             motor.enabled = true;
             input.enabled = true;
+            foreach (var ai in enabledAI) if (ai != null) ai.enabled = true;
         }
     }
 
