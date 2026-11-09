@@ -66,10 +66,10 @@ public static class GoalkeeperMatchVerification
             while(Time.fixedTime-start<20f)
             {
                 await Advance(0.1f);
-                Require(selection.ActivePlayer.IsFieldPlayer && selection.ActivePlayer.Team==PrototypeTeam.Blue && Camera.main.GetComponent<GameplayCamera>().Target==selection.ActivePlayer.Motor,"Live play keeps valid Blue field selection/camera.");
+                Require(selection.ActivePlayer.Team==PrototypeTeam.Blue && (selection.ActivePlayer.IsFieldPlayer || ball.Owner==selection.ActivePlayer.Interaction || match.IsRestarting) && Camera.main.GetComponent<GameplayCamera>().Target==selection.ActivePlayer.Motor,"Live play keeps valid Blue selection/camera; keeper selection requires actual possession.");
                 Require(roster.Members.Count(p=>p.Interaction.HasBall)<=1,"Live keeper/field possession remains exclusive.");
                 foreach(var keeper in keepers)Require(Vector3.Distance(keeper.Identity.Motor.Position,keeper.ClampMovement(keeper.Identity.Motor.Position))<0.001f,"Live keeper remains in its goal envelope.");
-                if(ball.Owner!=null && !ball.Owner.GetComponent<SwimmerIdentity>().IsFieldPlayer)Require(Time.time-ball.OwnershipStartedAt<5f,"Keeper cannot stall past secure/aim/distribution timeout.");
+                if(ball.Owner!=null && !ball.Owner.GetComponent<SwimmerIdentity>().IsFieldPlayer && selection.ActivePlayer.Interaction!=ball.Owner)Require(Time.time-ball.OwnershipStartedAt<5f,"AI keeper cannot stall past secure/aim/distribution timeout; human holding is deliberate.");
                 foreach(var team in UnityEngine.Object.FindObjectsByType<PrototypeTeamTactics>())
                 {
                     Require(team.Presser==null || team.Presser.IsFieldPlayer,"Keeper excluded from pressing assignment.");
@@ -77,7 +77,7 @@ public static class GoalkeeperMatchVerification
                 }
             }
             Require(ai.Sum(c=>c.ShotsExecuted)>shots,"White offense still shoots in full six-athlete play.");
-            passed.Add("20 seconds of live six-athlete play: bounded keepers, non-stalling possession, field-only tactics/selection and physical attacking shots");
+            passed.Add("20 seconds of live six-athlete play: bounded keepers, non-stalling AI keeper possession, field-only tactics, valid field/possessing-keeper selection and physical attacking shots");
             return new {passed,completedRestarts=resets};
         }
         finally

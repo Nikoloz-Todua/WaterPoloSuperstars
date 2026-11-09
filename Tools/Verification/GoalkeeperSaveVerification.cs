@@ -45,14 +45,16 @@ public static class GoalkeeperSaveVerification
                 Require(ball.TryShoot(Shooter(keeper), 80f), "Launch high-speed physical shot.");
                 await Until(() => ball.Owner == keeper.Identity.Interaction, 4f);
                 Require(keeper.Catches == count + 1 && ball.State == BallState.Held && !ball.IsScoringShot && roster.Members.Count(p => p.Interaction.HasBall) == 1, "Swept high-speed catch assigns one authoritative owner and clears scoring eligibility.");
-                Require(selection.ActivePlayer == selected && Camera.main.GetComponent<GameplayCamera>().Target == selected.Motor && !selection.Select(keeper.Identity), "Blue/White catches never select a keeper or move camera target to it.");
+                var expected = keeper.Identity.Team == selection.HumanTeam ? keeper.Identity : selected;
+                Require(selection.ActivePlayer == expected && Camera.main.GetComponent<GameplayCamera>().Target == expected.Motor &&
+                    (keeper.Identity.Team == selection.HumanTeam ? keeper.HumanControlled : !selection.Select(keeper.Identity)), "Confirmed Blue catch selects keeper; White catch preserves Blue control.");
                 Require(!Shooter(keeper).TryCollect(), "Opponent cannot take an already held ball.");
                 await Advance(0.2f); Require(keeper.Catches == count + 1 && Score() == score, "Same contact cannot duplicate a save or score.");
                 Vector3 anchor = keeper.Identity.Interaction.CarryAnchor.localPosition;
                 keeper.Identity.Interaction.CarryAnchor.position = keeper.DefendedGoal.transform.TransformPoint(new Vector3(0f, 0.15f, 1f));
                 await Advance(0.3f); Require(Score() == score && ball.Owner == keeper.Identity.Interaction, "Keeper-held ball beyond goal plane cannot score.");
                 keeper.Identity.Interaction.CarryAnchor.localPosition = anchor;
-                passed.Add(keeper.Identity.Team + " high-speed catch, exclusive ownership, held-ball rejection and field-only selection");
+                passed.Add(keeper.Identity.Team + " high-speed catch, exclusive ownership, held-ball rejection and team-specific control policy");
             }
             var guard = keepers[0];
             await Prepare(guard, 1.25f); int beforeScore = Score(), catches = guard.Catches;

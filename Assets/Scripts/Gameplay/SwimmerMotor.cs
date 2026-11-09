@@ -21,11 +21,14 @@ namespace ToduStudios.WaterPolo
         private Vector3 velocity;
         private Vector3 aimDirection;
         private ISwimmerMovementBounds movementBounds;
+        private float speedOverride = -1f;
+        public void OverrideSpeed(float speed) => speedOverride = Mathf.Max(0.1f, speed);
+        public void ClearSpeedOverride() => speedOverride = -1f;
         public void SetMovementBounds(ISwimmerMovementBounds bounds) => movementBounds = bounds;
         private Vector3 ClampMovement(Vector3 position) => poolBounds.ClampPosition(movementBounds != null ? movementBounds.ClampMovement(position) : position, boundaryClearance);
 
         public Vector3 Velocity => velocity;
-        public float MaxSpeed => maxSpeed;
+        public float MaxSpeed => speedOverride > 0f ? speedOverride : maxSpeed;
         public Vector3 Position => body != null ? body.position : transform.position;
 
         public void StopMotion()
@@ -33,6 +36,7 @@ namespace ToduStudios.WaterPolo
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
             aimDirection = Vector3.zero;
+            ClearSpeedOverride();
         }
 
         public void ResetPose(Vector3 position, Quaternion rotation)
@@ -41,6 +45,7 @@ namespace ToduStudios.WaterPolo
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
             aimDirection = Vector3.zero;
+            ClearSpeedOverride();
             body.position = ClampMovement(position);
             body.rotation = rotation;
         }
@@ -77,7 +82,7 @@ namespace ToduStudios.WaterPolo
         private void FixedUpdate()
         {
             float step = Time.fixedDeltaTime;
-            Vector3 targetVelocity = new Vector3(moveInput.x, 0f, moveInput.y) * maxSpeed;
+            Vector3 targetVelocity = new Vector3(moveInput.x, 0f, moveInput.y) * MaxSpeed;
             float changeRate = moveInput.sqrMagnitude > 0f ? acceleration : deceleration;
             velocity = Vector3.MoveTowards(velocity, targetVelocity, changeRate * step);
 
@@ -100,6 +105,7 @@ namespace ToduStudios.WaterPolo
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
             aimDirection = Vector3.zero;
+            ClearSpeedOverride();
         }
     }
 }

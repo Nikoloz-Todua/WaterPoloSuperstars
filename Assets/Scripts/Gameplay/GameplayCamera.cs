@@ -10,6 +10,11 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private SwimmerMotor target;
         [SerializeField] private PoolBounds poolBounds;
         [SerializeField] private BallController ball;
+        [SerializeField] private GoalMouth attackingGoal;
+        [SerializeField, Min(0f)] private float goalLookAhead = 1.2f;
+        [SerializeField, Min(1f)] private float keeperDistance = 8.5f;
+        [SerializeField, Min(1f)] private float keeperHeight = 10.5f;
+        [SerializeField, Min(0.05f)] private float framingSmoothTime = 0.4f;
         [Tooltip("Small bounded framing bias toward the ball only while it is nearby.")]
         [SerializeField, Range(0f, 0.4f)] private float ballInfluence = 0.15f;
         [SerializeField, Min(1f)] private float ballFramingRange = 10f;
@@ -29,6 +34,8 @@ namespace ToduStudios.WaterPolo
         private Vector3 focusVelocity;
         private bool initialized;
         private Camera lens;
+        private bool keeperTarget;
+        private float currentDistance, currentHeight, distanceVelocity, heightVelocity;
 
         public Vector3 Focus => focus;
         public SwimmerMotor Target => target;
@@ -37,6 +44,7 @@ namespace ToduStudios.WaterPolo
         {
             // Keep the current focus/velocity: selecting another swimmer must not snap the camera.
             target = followTarget;
+            keeperTarget = target != null && target.TryGetComponent<SwimmerIdentity>(out var identity) && !identity.IsFieldPlayer;
         }
 
         private Vector3 DesiredFocus()
@@ -52,7 +60,10 @@ namespace ToduStudios.WaterPolo
                 float weight = Mathf.Clamp01(1f - gap.magnitude / Mathf.Max(1f, ballFramingRange));
                 ballOffset = Vector3.ClampMagnitude(gap * ballInfluence * weight, maxBallOffset);
             }
-            return ClampFocus(target.transform.position + lead + ballOffset);
+            Vector3 goalBias = attackingGoal != null && !keeperTarget ? attackingGoal.transform.position - target.transform.position : Vector3.zero;
+            goalBias.y = 0f;
+            goalBias = Vector3.ClampMagnitude(goalBias, goalLookAhead);
+            return ClampFocus(target.transform.position + lead + ballOffset + goalBias);
         }
 
         private Vector3 ClampFocus(Vector3 desired)
@@ -60,7 +71,7 @@ namespace ToduStudios.WaterPolo
             desired = poolBounds.ClampPosition(desired, boundsInset);
             if (lens == null) lens = GetComponent<Camera>();
             Quaternion rotation = Quaternion.Euler(pitch, yaw, 0f);
-            Vector3 offset = Quaternion.Euler(0f, yaw, 0f) * Vector3.back * distance + Vector3.up * height;
+            Vector3 offset = Quaternion.Euler(0f, yaw, 0f) * Vector3.back * currentDistance + Vector3.up * currentHeight;
             float spread = Mathf.Tan(lens.fieldOfView * 0.5f * Mathf.Deg2Rad) * 0.7f;
             Vector2 min = Vector2.positiveInfinity;
             Vector2 max = Vector2.negativeInfinity;
@@ -71,7 +82,7 @@ namespace ToduStudios.WaterPolo
                 Vector3 ray = rotation * new Vector3(x * spread * lens.aspect, y * spread, 1f);
                 if (ray.y >= -0.01f)
                     return desired; // Near-horizon Inspector settings cannot define a finite footprint.
-                Vector3 ground = offset + ray * (-height / ray.y);
+                Vector3 ground = offset + ray * (-currentHeight / ray.y);
                 Vector2 point = new Vector2(ground.x, ground.z);
                 min = Vector2.Min(min, point);
                 max = Vector2.Max(max, point);
@@ -90,6 +101,10 @@ namespace ToduStudios.WaterPolo
         {
             if (target == null || poolBounds == null)
                 return;
+            SetTarget(target);
+            currentDistance = keeperTarget ? keeperDistance : distance;
+            currentHeight = keeperTarget ? keeperHeight : height;
+            distanceVelocity = heightVelocity = 0f;
             focus = DesiredFocus();
             focusVelocity = Vector3.zero;
             initialized = true;
@@ -107,6 +122,10 @@ namespace ToduStudios.WaterPolo
                 return;
             if (!initialized)
                 SnapToTarget();
+            currentDistance = Mathf.SmoothDamp(currentDistance, keeperTarget ? keeperDistance : distance,
+                ref distanceVelocity, framingSmoothTime, Mathf.Infinity, Time.deltaTime);
+            currentHeight = Mathf.SmoothDamp(currentHeight, keeperTarget ? keeperHeight : height,
+                ref heightVelocity, framingSmoothTime, Mathf.Infinity, Time.deltaTime);
             focus = Vector3.SmoothDamp(focus, DesiredFocus(), ref focusVelocity,
                 Mathf.Max(0.01f, smoothTime), Mathf.Infinity, Time.deltaTime);
             focus = ClampFocus(focus);
@@ -115,8 +134,8 @@ namespace ToduStudios.WaterPolo
 
         private void ApplyPose()
         {
-            Vector3 offset = Quaternion.Euler(0f, yaw, 0f) * Vector3.back * distance;
-            transform.SetPositionAndRotation(focus + offset + Vector3.up * height,
+            Vector3 offset = Quaternion.Euler(0f, yaw, 0f) * Vector3.back * currentDistance;
+            transform.SetPositionAndRotation(focus + offset + Vector3.up * currentHeight,
                 Quaternion.Euler(pitch, yaw, 0f));
         }
     }

@@ -32,7 +32,9 @@ public static class GoalkeeperSetupVerification
             foreach(var k in keepers)
             {
                 Require(k.DefendedGoal.ScoringTeam!=k.Identity.Team && k.Identity.Role==AthleteRole.Goalkeeper && k.Identity.Interaction.Ball==k.Ball,"Correct team, goal, role and shared ball.");
-                Require(k.GetComponent<PrototypeSwimmerAI>()==null && k.GetComponent<SwimmerInput>()==null && k.GetComponent<BallInteractionInput>()==null && k.GetComponent<CapsuleCollider>().isTrigger,"Keeper cannot execute field/human AI or act as a hidden solid wall.");
+                bool manualKeeper = k.Identity.Team == PrototypeTeam.Blue && k.GetComponent<ShotCharge>() != null;
+                Require(k.GetComponent<PrototypeSwimmerAI>()==null && k.GetComponent<CapsuleCollider>().isTrigger,"Keeper has no field AI or hidden solid blocking wall.");
+                Require(manualKeeper ? k.GetComponent<SwimmerInput>()!=null && k.GetComponent<BallInteractionInput>()!=null : k.GetComponent<SwimmerInput>()==null && k.GetComponent<BallInteractionInput>()==null,"Only the configured Blue possession keeper has human adapters.");
                 Require(k.GetComponents<PrototypeGoalkeeper>().Length==1 && k.GetComponents<GoalkeeperDistribution>().Length==1 && k.GetComponent<SwimmerPassing>()!=null,"No duplicate keeper/distribution components; shared pass API present.");
                 var distribution=new SerializedObject(k.GetComponent<GoalkeeperDistribution>());
                 Require(distribution.FindProperty("tacticalTeam").objectReferenceValue!=null && distribution.FindProperty("match").objectReferenceValue!=null,"Distribution references assigned.");

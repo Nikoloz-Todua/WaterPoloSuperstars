@@ -13,12 +13,16 @@ namespace ToduStudios.WaterPolo
         private InputAction steal;
         private SwimmerPassing passing;
         private SwimmerSteal stealing;
+        private ShotCharge charge;
+        private bool blockShootUntilRelease;
+        private int enabledFrame;
 
         private void Awake()
         {
             interaction = GetComponent<SwimmerBallInteraction>();
             passing = GetComponent<SwimmerPassing>();
             stealing = GetComponent<SwimmerSteal>();
+            charge = GetComponent<ShotCharge>();
             collect = new InputAction("CollectBall", InputActionType.Button, "<Keyboard>/e");
             collect.AddBinding("<Gamepad>/buttonWest");
             shoot = new InputAction("ShootBall", InputActionType.Button, "<Keyboard>/space");
@@ -34,15 +38,27 @@ namespace ToduStudios.WaterPolo
             shoot.Enable();
             pass.Enable();
             steal.Enable();
+            enabledFrame = Time.frameCount;
+            blockShootUntilRelease = false;
+            foreach (var control in shoot.controls)
+                if (control is UnityEngine.InputSystem.Controls.ButtonControl button && button.isPressed)
+                    blockShootUntilRelease = true;
         }
 
         private void Update()
         {
-            // Shoot first: simultaneous E+Space while empty cannot collect and shoot in one frame.
-            if (shoot.WasPressedThisFrame())
-                interaction.TryShoot();
+            // A control handoff must not replay another athlete's button press/held charge.
+            if (Time.frameCount == enabledFrame) return;
+            if (blockShootUntilRelease)
+            {
+                if (!shoot.IsPressed()) blockShootUntilRelease = false;
+            }
+            else if (shoot.WasPressedThisFrame())
+                charge?.BeginCharge();
+            if (!blockShootUntilRelease && shoot.WasReleasedThisFrame())
+                charge?.ReleaseCharge();
             else if (pass.WasPressedThisFrame())
-                passing?.TryPass();
+            { charge?.CancelCharge(); passing?.TryPass(); }
             else if (steal.WasPressedThisFrame())
                 stealing?.TrySteal();
             else if (collect.WasPressedThisFrame())
@@ -51,6 +67,7 @@ namespace ToduStudios.WaterPolo
 
         private void OnDisable()
         {
+            charge?.CancelCharge();
             collect?.Disable();
             shoot?.Disable();
             pass?.Disable();

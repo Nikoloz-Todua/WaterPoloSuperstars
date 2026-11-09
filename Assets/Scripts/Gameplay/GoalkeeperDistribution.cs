@@ -29,7 +29,7 @@ namespace ToduStudios.WaterPolo
         private void ResetDecision() { receiver = null; nextDecision = 0f; }
         private void Update()
         {
-            if (!keeper.isActiveAndEnabled || keeper.Stopped) { ResetDecision(); return; }
+            if (!keeper.isActiveAndEnabled || keeper.Stopped || keeper.HumanControlled) { ResetDecision(); return; }
             if (!keeper.Identity.Interaction.HasBall) { ResetDecision(); return; }
             float held = Time.time - keeper.Ball.OwnershipStartedAt;
             keeper.Identity.Motor.SetMoveInput(Vector2.zero);

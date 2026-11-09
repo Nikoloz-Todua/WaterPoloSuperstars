@@ -35,7 +35,13 @@ public static class GoalkeeperDistributionVerification
                     await Advance(0.12f); ball.ResetForRestart(keeper.HandPosition);
                     int catches = keeper.Catches, sent = distribution.Distributions;
                     await Until(() => ball.Owner == keeper.Identity.Interaction, 4f);
-                    Require(keeper.Catches == catches + 1 && selection.ActivePlayer == selected, "Physical loose-ball collection gives keeper possession without selecting it.");
+                    var expected = keeper.Identity.Team == selection.HumanTeam ? keeper.Identity : selected;
+                    Require(keeper.Catches == catches + 1 && selection.ActivePlayer == expected, "Physical collection applies the team-specific keeper selection policy.");
+                    // Milestone 8: explicitly return to a field player to exercise Blue's optional AI distribution.
+                    if (keeper.Identity.Team == selection.HumanTeam)
+                    {
+                        Require(selection.Select(selected) && ball.Owner == keeper.Identity.Interaction && !keeper.HumanControlled,"Manual field selection restores keeper AI without changing possession.");
+                    }
                     var ownTeam = UnityEngine.Object.FindObjectsByType<PrototypeTeamTactics>().Single(t => t.Team == keeper.Identity.Team);
                     Require(WaterPoloDecision.Evaluate(receiver,ownTeam).Behaviour == SwimmerAIBehaviour.Support, "Field tactics recognize keeper team possession and offer outlet support.");
                     await Advance(0.25f); Require(ball.Owner == keeper.Identity.Interaction, "Keeper secures hold before distribution.");
@@ -57,6 +63,7 @@ public static class GoalkeeperDistributionVerification
             foreach(var field in roster.FieldPlayers) field.Interaction.enabled=false;
             ball.ResetForRestart(guard.HandPosition);
             await Until(()=>ball.Owner==guard.Identity.Interaction,4f);
+            Require(selection.Select(roster.FieldPlayers[0]),"Return to field control for AI-only no-outlet fallback fixture.");
             int previous = command.Distributions;
             await Until(()=>command.Distributions>previous,6f);
             Require(ball.Owner==null && ball.IntendedReceiver==null && Vector3.Dot(ball.Velocity.normalized,-guard.DefendedGoal.transform.forward)>0.99f, "No eligible outlet causes a timed physical clearance into the pool, not indefinite holding.");

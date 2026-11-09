@@ -13,6 +13,7 @@ namespace ToduStudios.WaterPolo
         public SwimmerIdentity ActivePlayer { get; private set; }
         public bool InputLocked { get; private set; }
         public PrototypeTeam HumanTeam => humanTeam;
+        private SwimmerIdentity lastFieldPlayer;
 
         private void Awake()
         {
@@ -31,6 +32,7 @@ namespace ToduStudios.WaterPolo
                 return;
             }
             if (ball == null) ball = ActivePlayer.Interaction.Ball;
+            lastFieldPlayer = ActivePlayer;
             ApplySelection();
         }
 
@@ -45,13 +47,15 @@ namespace ToduStudios.WaterPolo
         }
 
         public bool IsEligible(SwimmerIdentity player) => player != null && player.enabled && player.gameObject.activeInHierarchy &&
-            player.IsFieldPlayer && player.Team == humanTeam && roster != null && roster.Contains(player);
+            player.Team == humanTeam && roster != null && roster.Contains(player) &&
+            (player.IsFieldPlayer || (ball != null && ball.Owner == player.Interaction));
 
         private void OnPossessionChanged(SwimmerBallInteraction previous, SwimmerBallInteraction next)
         {
-            if (InputLocked || next == null) return;
-            SwimmerIdentity carrier = next.GetComponent<SwimmerIdentity>();
+            if (InputLocked) return;
+            SwimmerIdentity carrier = next != null ? next.GetComponent<SwimmerIdentity>() : null;
             if (IsEligible(carrier) && carrier != ActivePlayer) Select(carrier);
+            else if (ActivePlayer != null && !ActivePlayer.IsFieldPlayer && !IsEligible(ActivePlayer)) SelectFieldFallback();
         }
 
         public bool Select(SwimmerIdentity player)
@@ -61,6 +65,7 @@ namespace ToduStudios.WaterPolo
             if (player == ActivePlayer) return true;
             if (ActivePlayer != null) ActivePlayer.Motor.StopMotion();
             ActivePlayer = player;
+            if (player.IsFieldPlayer) lastFieldPlayer = player;
             ActivePlayer.Motor.StopMotion();
             ApplySelection();
             return true;
@@ -69,21 +74,26 @@ namespace ToduStudios.WaterPolo
         public void SelectNext()
         {
             if (InputLocked) return;
-            for (int i = 0; i < roster.Members.Count; i++)
-                if (roster.Members[i] == ActivePlayer)
-                {
-                    for (int offset = 1; offset <= roster.Members.Count; offset++)
-                    {
-                        SwimmerIdentity candidate = roster.Members[(i + offset) % roster.Members.Count];
-                        if (IsEligible(candidate)) { Select(candidate); return; }
-                    }
-                    return;
-                }
+            int index = -1;
+            var fields = roster.FieldPlayers;
+            for (int i = 0; i < fields.Count; i++) if (fields[i] == ActivePlayer || (ActivePlayer != null && !ActivePlayer.IsFieldPlayer && fields[i] == lastFieldPlayer)) index = i;
+            for (int offset = 1; offset <= fields.Count; offset++)
+            {
+                var candidate = fields[(index + offset) % fields.Count];
+                if (IsEligible(candidate)) { Select(candidate); return; }
+            }
+        }
+
+        private void SelectFieldFallback()
+        {
+            if (lastFieldPlayer != null && lastFieldPlayer.IsFieldPlayer && IsEligible(lastFieldPlayer)) { Select(lastFieldPlayer); return; }
+            foreach (var field in roster.FieldPlayers) if (IsEligible(field)) { Select(field); return; }
         }
 
         public void SetInputLocked(bool locked)
         {
             InputLocked = locked;
+            if (!locked && !IsEligible(ActivePlayer)) SelectFieldFallback();
             ApplySelection();
         }
 

@@ -119,8 +119,8 @@ namespace ToduStudios.WaterPolo
             var attacker = claimant.GetComponent<SwimmerIdentity>();
             var carrier = Owner.GetComponent<SwimmerIdentity>();
             if (attacker == null || carrier == null || attacker.Team == carrier.Team) return StealResult.NoOpponent;
-            // AI-only keepers remain in their goal envelope; protect a secured keeper hold there.
-            if (!carrier.IsFieldPlayer) return StealResult.Protected;
+            // Keep the near-goal keeper protection; a keeper carrying into the pool uses normal steal rules.
+            if (!carrier.IsFieldPlayer && carrier.TryGetComponent<PrototypeGoalkeeper>(out var keeper) && keeper.PossessionProtected) return StealResult.Protected;
             Vector3 delta = carrier.Motor.Position - attacker.Motor.Position;
             delta.y = 0f;
             if (delta.sqrMagnitude > reach * reach) return StealResult.OutOfRange;

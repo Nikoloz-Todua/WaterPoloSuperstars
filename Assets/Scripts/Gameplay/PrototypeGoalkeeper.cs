@@ -10,6 +10,9 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private BallController ball;
         [SerializeField] private PrototypeMatch match;
         [SerializeField] private PlayerSelection selection;
+        [SerializeField] private PoolBounds poolBounds;
+        [SerializeField, Min(0.1f)] private float carryingSpeed = 3.2f;
+        [SerializeField, Min(0f)] private float possessionProtectionDistance = 1.5f;
         [SerializeField, Min(0.5f)] private float stationDepth = 1.4f;
         [SerializeField, Min(0f)] private float lateralMargin = 0.45f;
         [SerializeField, Min(0f)] private float trackingRange = 12f;
@@ -37,10 +40,19 @@ namespace ToduStudios.WaterPolo
         public GoalMouth DefendedGoal => defendedGoal;
         public BallController Ball => ball;
         public bool Stopped => match.IsRestarting || selection.InputLocked || !Identity.Motor.enabled;
+        public bool HumanControlled => selection.ActivePlayer == Identity && !selection.InputLocked;
+        public bool AtStation => Vector3.Distance(Identity.Motor.Position, StationPosition(Identity.Motor.Position)) <= 0.05f;
+        public bool PossessionProtected => Vector3.Distance(Identity.Motor.Position, StationPosition(Identity.Motor.Position)) <= possessionProtectionDistance;
         public float LateralLimit => Mathf.Max(0f, defendedGoal.Width * 0.5f - lateralMargin);
         public bool Ready => Time.time >= reactAt;
         public Vector3 HandPosition => Identity.Motor.Position + (Identity.Interaction.CarryAnchor.position - transform.position);
         public Vector3 ClampMovement(Vector3 position)
+        {
+            // Outside the station, return by swimming. Applying station bounds immediately would teleport.
+            if (HumanControlled || !AtStation) return poolBounds.ClampPosition(position, 1.1f);
+            return StationPosition(position);
+        }
+        private Vector3 StationPosition(Vector3 position)
         {
             Vector3 local = defendedGoal.transform.InverseTransformPoint(position);
             local.x = Mathf.Clamp(local.x, -LateralLimit, LateralLimit); local.z = -stationDepth;
@@ -49,7 +61,7 @@ namespace ToduStudios.WaterPolo
         private void Awake()
         {
             identity = GetComponent<SwimmerIdentity>();
-            if (defendedGoal == null || ball == null || match == null || selection == null || Identity.Role != AthleteRole.Goalkeeper || defendedGoal.ScoringTeam == Identity.Team)
+            if (defendedGoal == null || ball == null || match == null || selection == null || poolBounds == null || Identity.Role != AthleteRole.Goalkeeper || defendedGoal.ScoringTeam == Identity.Team)
             { Debug.LogError("PrototypeGoalkeeper requires its explicit role, opposing scoring goal and match references.", this); enabled = false; return; }
             Identity.Motor.SetMovementBounds(this);
             ballBody = ball.GetComponent<Rigidbody>();
@@ -69,6 +81,8 @@ namespace ToduStudios.WaterPolo
         private void Update()
         {
             if (Stopped) return;
+            if (HumanControlled) { Identity.Motor.OverrideSpeed(carryingSpeed); targetVelocity = 0f; return; }
+            Identity.Motor.ClearSpeedOverride();
             if (Identity.Interaction.HasBall) { Identity.Motor.SetMoveInput(Vector2.zero); return; }
             Vector3 local = defendedGoal.transform.InverseTransformPoint(ball.PhysicsPosition);
             Vector3 velocity = ballBody.linearVelocity;
@@ -87,7 +101,7 @@ namespace ToduStudios.WaterPolo
         }
         public bool ResolveContact(Vector3 contact, Vector3 handAtContact, Vector3 incomingVelocity)
         {
-            if (!isActiveAndEnabled || Stopped || Recovering || ball.Owner != null) return false;
+            if (!isActiveAndEnabled || Stopped || Recovering || !AtStation || ball.Owner != null) return false;
             bool slowLoose = ball.CanCollect && incomingVelocity.sqrMagnitude < 6.25f;
             bool approaching = defendedGoal.transform.InverseTransformDirection(incomingVelocity).z > 0.1f && ball.IsScoringShot;
             if (!slowLoose && (!approaching || !Ready || Time.time < ball.ReleaseStartedAt + reactionDelay)) return false;

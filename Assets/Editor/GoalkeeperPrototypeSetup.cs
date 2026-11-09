@@ -66,6 +66,7 @@ namespace ToduStudios.WaterPolo.Editor
                 }
                 var keeper = identity.GetComponent<PrototypeGoalkeeper>(); if (keeper == null) keeper = identity.gameObject.AddComponent<PrototypeGoalkeeper>();
                 Assign(keeper, "defendedGoal", team.DefendedGoal); Assign(keeper, "ball", ball); Assign(keeper, "match", match); Assign(keeper, "selection", selection);
+                Assign(keeper, "poolBounds", pool);
                 var distribution = identity.GetComponent<GoalkeeperDistribution>(); bool newDistribution = distribution == null;
                 if (newDistribution) distribution = identity.gameObject.AddComponent<GoalkeeperDistribution>();
                 Assign(distribution, "tacticalTeam", team); Assign(distribution, "match", match);
