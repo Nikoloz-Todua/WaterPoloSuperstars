@@ -9,6 +9,7 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private BallController ball;
         [SerializeField] private PrototypeMatch match;
         [SerializeField, Min(1f)] private float possessionSeconds = 28f;
+        [SerializeField, Min(1f)] private float restartPossessionSeconds = 18f;
         [Tooltip("Possession seconds consumed per live second; independent of the match display ratio.")]
         [SerializeField,Min(0.01f)] private float clockRate = 1f;
         public PrototypeTeam? PossessionTeam { get; private set; }
@@ -19,6 +20,18 @@ namespace ToduStudios.WaterPolo
         private void OnEnable(){if(ball!=null)ball.PossessionChanged+=Acquired;}
         private void OnDisable(){if(ball!=null)ball.PossessionChanged-=Acquired;}
         public void ResetPossession(){PossessionTeam=null;Remaining=Mathf.Max(1f,possessionSeconds);}
+        public void AwardFoul(PrototypeTeam team, bool exclusion)
+        {
+            if (PossessionTeam != team) { PossessionTeam = team; Remaining = possessionSeconds; TeamChanges++; }
+            if (exclusion) Remaining = Mathf.Max(Remaining, restartPossessionSeconds);
+            // An ordinary foul keeps time. A penalty's retained-possession reset is applied on resolution.
+        }
+        public void FinishPenalty(PrototypeTeam attackingTeam, SwimmerBallInteraction owner)
+        {
+            if (owner == null || owner.GetComponent<SwimmerIdentity>().Team == attackingTeam)
+            { PossessionTeam = attackingTeam; Remaining = restartPossessionSeconds; }
+            else { PossessionTeam = owner.GetComponent<SwimmerIdentity>().Team; Remaining = possessionSeconds; TeamChanges++; }
+        }
         private void Acquired(SwimmerBallInteraction previous,SwimmerBallInteraction next)
         {
             if(next==null || !match.IsPlaying)return;

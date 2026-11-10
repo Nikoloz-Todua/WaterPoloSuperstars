@@ -30,6 +30,12 @@ namespace ToduStudios.WaterPolo
         private bool sawThreat;
         private System.Random random;
         private float recoverUntil;
+        private float handLift;
+        [SerializeField,Min(0f)] private float maximumHandLift=0.65f;
+        [SerializeField,Min(0.1f)] private float handLiftSpeed=2.5f;
+        [SerializeField] private Transform leftArmVisual,rightArmVisual;
+        private Vector3 leftArmRest,rightArmRest;
+        private bool armRestCaptured;
         public float SaveReach => saveReach;
         public bool Recovering => Time.time < recoverUntil;
         public int Catches { get; private set; }
@@ -41,15 +47,34 @@ namespace ToduStudios.WaterPolo
         public void SetDefendedGoal(GoalMouth goal)
         {defendedGoal=goal;ResetDecisions();}
         public BallController Ball => ball;
-        public bool Stopped => !match.IsPlaying || selection.InputLocked || !Identity.Motor.enabled;
+        public bool Stopped => !Identity.EligibleForPlay || (!match.IsPlaying && (match.Rules==null || !match.Rules.KeeperMayAct(this))) ||
+            (selection.InputLocked && match.Phase!=MatchPhase.PenaltyFlight) || !Identity.Motor.enabled;
         public bool HumanControlled => selection.ActivePlayer == Identity && !selection.InputLocked;
         public bool AtStation => Vector3.Distance(Identity.Motor.Position, StationPosition(Identity.Motor.Position)) <= 0.05f;
         public bool PossessionProtected => Vector3.Distance(Identity.Motor.Position, StationPosition(Identity.Motor.Position)) <= possessionProtectionDistance;
         public float LateralLimit => Mathf.Max(0f, defendedGoal.Width * 0.5f - lateralMargin);
+        private bool PenaltyPosition => match.Rules != null && match.Rules.PenaltyStation(this);
+        private float ActiveStationDepth => PenaltyPosition ? -0.45f : stationDepth;
+        public void PreparePenalty()
+        {
+            Identity.Motor.SetMovementBounds(this);
+            Vector3 point=defendedGoal.transform.position+defendedGoal.transform.forward*0.45f;point.y=poolBounds.Waterline;
+            Identity.Motor.ResetPose(point,Quaternion.LookRotation(-defendedGoal.transform.forward));
+        }
         public bool Ready => Time.time >= reactAt;
-        public Vector3 HandPosition => Identity.Motor.Position + (Identity.Interaction.CarryAnchor.position - transform.position);
+        public Vector3 HandPosition => Identity.Motor.Position + (Identity.Interaction.CarryAnchor.position - transform.position)+Vector3.up*handLift;
         public Vector3 ClampMovement(Vector3 position)
         {
+            if (PenaltyPosition) return StationPosition(position);
+            // A saved penalty leaves the body on the goal line. Swim through the mouth back to the
+            // ordinary station; a generic pool clamp would jump it forward on the first live step.
+            Vector3 currentLocal=defendedGoal.transform.InverseTransformPoint(Identity.Motor.Position);
+            if(!AtStation && currentLocal.z>-stationDepth && currentLocal.z<=0.5f && Mathf.Abs(currentLocal.x)<=LateralLimit)
+            {
+                Vector3 local=defendedGoal.transform.InverseTransformPoint(position);
+                local.x=Mathf.Clamp(local.x,-LateralLimit,LateralLimit);local.z=Mathf.Clamp(local.z,-stationDepth,0.45f);
+                Vector3 result=defendedGoal.transform.TransformPoint(local);result.y=position.y;return result;
+            }
             // Outside the station, return by swimming. Applying station bounds immediately would teleport.
             if (HumanControlled || !AtStation) return poolBounds.ClampPosition(position, 1.1f);
             return StationPosition(position);
@@ -57,7 +82,7 @@ namespace ToduStudios.WaterPolo
         private Vector3 StationPosition(Vector3 position)
         {
             Vector3 local = defendedGoal.transform.InverseTransformPoint(position);
-            local.x = Mathf.Clamp(local.x, -LateralLimit, LateralLimit); local.z = -stationDepth;
+            local.x = Mathf.Clamp(local.x, -LateralLimit, LateralLimit); local.z = -ActiveStationDepth;
             Vector3 result = defendedGoal.transform.TransformPoint(local); result.y = position.y; return result;
         }
         private void Awake()
@@ -68,6 +93,9 @@ namespace ToduStudios.WaterPolo
             Identity.Motor.SetMovementBounds(this);
             ballBody = ball.GetComponent<Rigidbody>();
             random = new System.Random(randomSeed);
+            if(leftArmVisual!=null)leftArmRest=leftArmVisual.localPosition;
+            if(rightArmVisual!=null)rightArmRest=rightArmVisual.localPosition;
+            armRestCaptured=true;
         }
         private void OnEnable()
         {
@@ -76,7 +104,10 @@ namespace ToduStudios.WaterPolo
         }
         private void ResetDecisions()
         {
+            if (match.Phase == MatchPhase.PenaltyFlight) { sawThreat = true; return; }
             targetX = targetVelocity = 0f; sawThreat = false; reactAt = Time.time + reactionDelay;
+            handLift=0f;
+            ApplyArmLift();
             recoverUntil = 0f; random = new System.Random(randomSeed);
             Identity.Motor.StopMotion();
         }
@@ -86,17 +117,22 @@ namespace ToduStudios.WaterPolo
             if (HumanControlled) { Identity.Motor.OverrideSpeed(carryingSpeed); targetVelocity = 0f; return; }
             Identity.Motor.ClearSpeedOverride();
             if (Identity.Interaction.HasBall) { Identity.Motor.SetMoveInput(Vector2.zero); return; }
-            Vector3 local = defendedGoal.transform.InverseTransformPoint(ball.PhysicsPosition);
+            Vector3 ballPoint=ball.PlayPosition;
+            Vector3 local = defendedGoal.transform.InverseTransformPoint(ballPoint);
             Vector3 velocity = ballBody.linearVelocity;
             bool incoming = ball.Owner == null && defendedGoal.transform.InverseTransformDirection(velocity).z > 0.1f && local.z < 0f && local.z > -trackingRange;
             if (incoming && !sawThreat) reactAt = Time.time + reactionDelay;
             sawThreat = incoming;
+            float flightTime=velocity.sqrMagnitude>0.01f?Vector3.Distance(ball.PhysicsPosition,HandPosition)/velocity.magnitude:0f;
+            float desiredLift=incoming && Ready?Mathf.Clamp(ball.PredictPosition(Mathf.Min(0.7f,flightTime)).y-Identity.Motor.Position.y-0.07f,0f,maximumHandLift):0f;
+            handLift=Mathf.MoveTowards(handLift,desiredLift,handLiftSpeed*Time.deltaTime);
+            ApplyArmLift();
             float desired = 0f;
             var carrier = ball.Owner != null ? ball.Owner.GetComponent<SwimmerIdentity>() : null;
             if (Ready && !Recovering && (incoming || (carrier != null && carrier.Team != Identity.Team && local.z > -trackingRange && local.z < 0f)))
-                desired = GoalkeeperPositioning.TrackingX(defendedGoal, ball.PhysicsPosition, velocity, stationDepth, 2f);
+                desired = GoalkeeperPositioning.TrackingX(defendedGoal, ballPoint, velocity, ActiveStationDepth, 2f);
             targetX = Mathf.SmoothDamp(targetX, Mathf.Clamp(desired, -LateralLimit, LateralLimit), ref targetVelocity, trackingSmoothTime);
-            Vector3 target = defendedGoal.transform.TransformPoint(new Vector3(targetX, 0f, -stationDepth)); target.y = Identity.Motor.Position.y;
+            Vector3 target = defendedGoal.transform.TransformPoint(new Vector3(targetX, 0f, -ActiveStationDepth)); target.y = Identity.Motor.Position.y;
             Vector3 delta = target - Identity.Motor.Position;
             Identity.Motor.SetMoveInput(Vector2.ClampMagnitude(new Vector2(delta.x, delta.z) * 2f, 1f));
             Identity.Motor.SetFacingDirection(-defendedGoal.transform.forward);
@@ -108,7 +144,8 @@ namespace ToduStudios.WaterPolo
             bool approaching = defendedGoal.transform.InverseTransformDirection(incomingVelocity).z > 0.1f && ball.IsScoringShot;
             if (!slowLoose && (!approaching || !Ready || Time.time < ball.ReleaseStartedAt + reactionDelay)) return false;
             if (!slowLoose) { SaveAttempts++; if (random.NextDouble() >= saveChance) return false; }
-            bool catchBall = slowLoose || random.NextDouble() < catchChance;
+            float effectiveCatch=catchChance>=0.999f?1f:catchChance*Mathf.Lerp(1f,0.4f,Mathf.InverseLerp(16f,30f,incomingVelocity.magnitude));
+            bool catchBall = slowLoose || random.NextDouble() < effectiveCatch;
             bool applied;
             if (catchBall)
             {
@@ -118,7 +155,6 @@ namespace ToduStudios.WaterPolo
             else
             {
                 Vector3 normal = contact - handAtContact;
-                normal.y = 0f;
                 if (normal.sqrMagnitude < 0.0001f) normal = -incomingVelocity;
                 Vector3 reflected = Vector3.Reflect(incomingVelocity, normal.normalized) * deflectionRestitution;
                 applied = ball.TryDeflectContact(Identity.Interaction, contact, reflected);
@@ -134,8 +170,15 @@ namespace ToduStudios.WaterPolo
         }
         private void OnDisable()
         {
+            handLift=0f;ApplyArmLift();
             if (match != null) match.Changed -= ResetDecisions;
             Identity.Motor.SetMovementBounds(null); Identity.Motor.StopMotion();
+        }
+        private void ApplyArmLift()
+        {
+            if(!armRestCaptured)return;
+            if(leftArmVisual!=null)leftArmVisual.localPosition=leftArmRest+Vector3.up*(handLift*0.75f);
+            if(rightArmVisual!=null)rightArmVisual.localPosition=rightArmRest+Vector3.up*(handLift*0.75f);
         }
     }
 }

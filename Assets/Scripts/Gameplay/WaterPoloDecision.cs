@@ -24,11 +24,13 @@ namespace ToduStudios.WaterPolo
                 if (held >= team.MinimumHoldTime || team.ShotUrgent)
                 {
                     Vector3 goal = team.ShotTarget();
-                    if (team.ShotQuality(player.Motor.Position) >= team.ShotQualityThreshold || team.ShotUrgent)
+                    float range=PrototypeTeamTactics.Planar(team.AttackingGoal.transform.position-player.Motor.Position).magnitude;
+                    bool reachable=range<=Mathf.Min(team.ShootingRange+1f,ball.EstimateFlatTravelRange(team.AIShotSpeed)*0.85f);
+                    if (team.ShotQuality(player.Motor.Position) >= team.ShotQualityThreshold || (team.ShotUrgent && reachable))
                         return new SwimmerDecision(SwimmerAIBehaviour.Shoot, goal);
                     var receiver = team.CanPass ? team.BetterPass(player) : null;
                     if (receiver != null) return new SwimmerDecision(SwimmerAIBehaviour.Pass, receiver.Motor.Position, receiver);
-                    if (held >= team.MaximumHoldTime) return new SwimmerDecision(SwimmerAIBehaviour.Shoot, goal);
+                    if (held >= team.MaximumHoldTime && reachable) return new SwimmerDecision(SwimmerAIBehaviour.Shoot, goal);
                 }
                 return new SwimmerDecision(SwimmerAIBehaviour.Carry, team.CarryTarget(player));
             }
@@ -43,12 +45,12 @@ namespace ToduStudios.WaterPolo
             if (ball.IntendedReceiver != null)
             {
                 var receiver=ball.IntendedReceiver.GetComponent<SwimmerIdentity>();
-                if(receiver==player)return new SwimmerDecision(SwimmerAIBehaviour.AwaitPass,player.Motor.Position);
+                if(receiver==player)return new SwimmerDecision(SwimmerAIBehaviour.Support,team.Clamp(ball.PredictPosition(Mathf.Clamp(Vector3.Distance(player.Motor.Position,ball.PhysicsPosition)/Mathf.Max(1f,ball.Velocity.magnitude),0f,0.6f))));
                 if(receiver.Team==player.Team)return new SwimmerDecision(SwimmerAIBehaviour.Support,team.Support(player,receiver));
                 if(ball.CanCollect && team.LoosePursuer==player)return new SwimmerDecision(SwimmerAIBehaviour.PursueLooseBall,team.Clamp(ball.PhysicsPosition));
                 return new SwimmerDecision(SwimmerAIBehaviour.Defend,team.Defense(player,receiver));
             }
-            if (ball.CanCollect && team.LoosePursuer == player) return new SwimmerDecision(SwimmerAIBehaviour.PursueLooseBall, team.Clamp(ball.PhysicsPosition));
+            if (team.LoosePursuer == player) return new SwimmerDecision(SwimmerAIBehaviour.PursueLooseBall, team.Clamp(ball.PredictPosition(0.35f)));
             return new SwimmerDecision(SwimmerAIBehaviour.Formation, team.Formation(player));
         }
     }

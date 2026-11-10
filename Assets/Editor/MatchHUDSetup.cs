@@ -52,7 +52,7 @@ namespace ToduStudios.WaterPolo.Editor
             rect=new GameObject(name,typeof(RectTransform)).GetComponent<RectTransform>();rect.SetParent(parent,false);
             rect.anchorMin=rect.anchorMax=anchor;rect.anchoredPosition=position;rect.sizeDelta=size;return rect;
         }
-        private static TMP_Text Label(Transform parent,string name,Vector2 anchor,Vector2 position,Vector2 size,float fontSize)
+        internal static TMP_Text Label(Transform parent,string name,Vector2 anchor,Vector2 position,Vector2 size,float fontSize)
         {
             var rect=Rect(parent,name,anchor,position,size);var label=rect.GetComponent<TextMeshProUGUI>();if(label==null)label=rect.gameObject.AddComponent<TextMeshProUGUI>();
             label.font=TMP_Settings.defaultFontAsset;label.fontSize=fontSize;label.alignment=TextAlignmentOptions.Center;label.color=Color.white;label.raycastTarget=false;return label;

@@ -11,6 +11,8 @@ namespace ToduStudios.WaterPolo
         private InputAction shoot;
         private InputAction pass;
         private InputAction steal;
+        private InputAction hold;
+        private InputAction skipModifier, highModifier;
         private SwimmerPassing passing;
         private SwimmerSteal stealing;
         private ShotCharge charge;
@@ -33,6 +35,9 @@ namespace ToduStudios.WaterPolo
             pass = new InputAction("PassBall", InputActionType.Button, "<Keyboard>/b");
             pass.AddBinding("<Gamepad>/buttonNorth");
             steal = new InputAction("AttemptSteal", InputActionType.Button, "<Keyboard>/f");
+            hold = new InputAction("IntentionalHold", InputActionType.Button, "<Keyboard>/g");
+            skipModifier=new InputAction("SkipShotModifier",InputActionType.Button,"<Keyboard>/q");
+            highModifier=new InputAction("HighShotModifier",InputActionType.Button,"<Keyboard>/r");
         }
 
         private void OnEnable()
@@ -41,6 +46,8 @@ namespace ToduStudios.WaterPolo
             shoot.Enable();
             pass.Enable();
             steal.Enable();
+            hold.Enable();
+            skipModifier.Enable();highModifier.Enable();
             lob.Enable();
             enabledFrame = Time.frameCount;
             blockShootUntilRelease = false;
@@ -58,7 +65,7 @@ namespace ToduStudios.WaterPolo
                 if (!shoot.IsPressed()) blockShootUntilRelease = false;
             }
             else if (shoot.WasPressedThisFrame())
-                charge?.BeginCharge();
+                charge?.BeginCharge(skipModifier.IsPressed()?ShotType.Skip:highModifier.IsPressed()?ShotType.High:ShotType.Normal);
             if (!blockShootUntilRelease && shoot.WasReleasedThisFrame())
                 charge?.ReleaseCharge();
             else if (pass.WasPressedThisFrame())
@@ -67,6 +74,8 @@ namespace ToduStudios.WaterPolo
             {charge?.CancelCharge();lobPassing?.TryPass();}
             else if (steal.WasPressedThisFrame())
                 stealing?.TrySteal();
+            else if (hold.WasPressedThisFrame())
+                GetComponent<SwimmerIdentity>().Rules?.TryHold(GetComponent<SwimmerIdentity>());
             else if (collect.WasPressedThisFrame())
                 interaction.TryCollect();
         }
@@ -78,6 +87,8 @@ namespace ToduStudios.WaterPolo
             shoot?.Disable();
             pass?.Disable();
             steal?.Disable();
+            hold?.Disable();
+            skipModifier?.Disable();highModifier?.Disable();
             lob?.Disable();
         }
 
@@ -87,6 +98,8 @@ namespace ToduStudios.WaterPolo
             shoot?.Dispose();
             pass?.Dispose();
             steal?.Dispose();
+            hold?.Dispose();
+            skipModifier?.Dispose();highModifier?.Dispose();
             lob?.Dispose();
         }
     }

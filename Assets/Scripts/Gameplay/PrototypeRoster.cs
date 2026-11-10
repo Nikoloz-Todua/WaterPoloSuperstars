@@ -94,7 +94,7 @@ namespace ToduStudios.WaterPolo
         public void ResetPositions()
         {
             foreach (SwimmerIdentity player in members)
-                player.Motor.ResetPose(player.StartPosition.position, player.StartPosition.rotation);
+                if (player.EligibleForPlay) player.Motor.ResetPose(player.StartPosition.position, player.StartPosition.rotation);
         }
     }
 }

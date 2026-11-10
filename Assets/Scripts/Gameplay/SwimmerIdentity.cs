@@ -24,6 +24,11 @@ namespace ToduStudios.WaterPolo
         public FieldPositionRole FieldPosition => fieldPosition;
         public bool IsFieldPlayer => role == AthleteRole.FieldPlayer;
         public int CapNumber => capNumber;
+        public int PersonalFouls { get; internal set; }
+        public float ExclusionRemaining { get; internal set; }
+        public bool PermanentlyRemoved { get; internal set; }
+        public bool EligibleForPlay => !PermanentlyRemoved && ExclusionRemaining <= 0f;
+        public MatchRules Rules { get; internal set; }
         public Transform StartPosition => startPosition;
         public SwimmerMotor Motor => motor != null ? motor : motor = GetComponent<SwimmerMotor>();
         public SwimmerBallInteraction Interaction => interaction != null ? interaction : interaction = GetComponent<SwimmerBallInteraction>();

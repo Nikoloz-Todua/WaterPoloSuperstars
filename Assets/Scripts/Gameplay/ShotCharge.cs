@@ -13,9 +13,11 @@ namespace ToduStudios.WaterPolo
         private SwimmerBallInteraction interaction;
         private SwimmerIdentity identity;
         private float startedAt;
+        private ShotType selectedShot;
         public bool IsCharging { get; private set; }
         public float NormalizedCharge => IsCharging ? Mathf.Clamp01((Time.time - startedAt) / chargeDuration) : 0f;
-        private bool CanCharge => selection != null && !selection.InputLocked && selection.ActivePlayer == identity && interaction.HasBall;
+        private bool CanCharge => selection != null && !selection.InputLocked && selection.ActivePlayer == identity && identity.EligibleForPlay && interaction.HasBall &&
+            (identity.Rules==null || identity.Rules.CanRelease(interaction,BallReleaseKind.Shot));
 
         private void Awake()
         {
@@ -23,10 +25,12 @@ namespace ToduStudios.WaterPolo
             identity = GetComponent<SwimmerIdentity>();
         }
         private void OnEnable() { if (interaction.Ball != null) interaction.Ball.PossessionChanged += OnPossessionChanged; }
-        public bool BeginCharge()
+        public bool BeginCharge() => BeginCharge(ShotType.Normal);
+        public bool BeginCharge(ShotType shot)
         {
             if (IsCharging || !CanCharge) return false;
             startedAt = Time.time;
+            selectedShot=shot;
             IsCharging = true;
             return true;
         }
@@ -35,8 +39,9 @@ namespace ToduStudios.WaterPolo
             if (!IsCharging) return false;
             float speed = Mathf.Lerp(minimumShotSpeed, Mathf.Max(minimumShotSpeed, maximumShotSpeed), NormalizedCharge);
             bool allowed = CanCharge;
+            ShotType shot=selectedShot==ShotType.Normal && NormalizedCharge>=0.65f?ShotType.Powerful:selectedShot;
             CancelCharge(); // Clear before release emits a synchronous possession/selection change.
-            return allowed && interaction.TryShoot(speed);
+            return allowed && interaction.TryShoot(speed,shot);
         }
         public void CancelCharge() => IsCharging = false;
         private void Update() { if (IsCharging && !CanCharge) CancelCharge(); }

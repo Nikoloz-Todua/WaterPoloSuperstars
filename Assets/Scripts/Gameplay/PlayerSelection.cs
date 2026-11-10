@@ -14,6 +14,11 @@ namespace ToduStudios.WaterPolo
         public bool InputLocked { get; private set; }
         public PrototypeTeam HumanTeam => humanTeam;
         private SwimmerIdentity lastFieldPlayer;
+        [SerializeField] private PrototypeTeamTactics tacticalTeam;
+        [SerializeField] private bool contextualSwitching = true;
+        [SerializeField, Min(0f)] private float returnPenaltySeconds = 0.8f;
+        private SwimmerIdentity previousManualPlayer;
+        private float lastManualSwitch = float.NegativeInfinity;
 
         private void Awake()
         {
@@ -47,7 +52,7 @@ namespace ToduStudios.WaterPolo
         }
 
         public bool IsEligible(SwimmerIdentity player) => player != null && player.enabled && player.gameObject.activeInHierarchy &&
-            player.Team == humanTeam && roster != null && roster.Contains(player) &&
+            player.EligibleForPlay && player.Team == humanTeam && roster != null && roster.Contains(player) &&
             (player.IsFieldPlayer || (ball != null && ball.Owner == player.Interaction));
 
         private void OnPossessionChanged(SwimmerBallInteraction previous, SwimmerBallInteraction next)
@@ -60,6 +65,7 @@ namespace ToduStudios.WaterPolo
 
         public bool Select(SwimmerIdentity player)
         {
+            if (ball != null && ball.Match != null && ball.Match.Rules != null && !ball.Match.Rules.CanSelect(player)) return false;
             if (InputLocked || !IsEligible(player))
                 return false;
             if (player == ActivePlayer) return true;
@@ -74,6 +80,25 @@ namespace ToduStudios.WaterPolo
         public void SelectNext()
         {
             if (InputLocked) return;
+            if (contextualSwitching && tacticalTeam != null)
+            {
+                SwimmerIdentity best = null;
+                float bestScore = float.NegativeInfinity;
+                foreach (var candidate in roster.FieldPlayers)
+                {
+                    if (candidate == ActivePlayer || !IsEligible(candidate)) continue;
+                    float score = ContextualSelection.Score(candidate, tacticalTeam);
+                    if (candidate == previousManualPlayer && Time.time - lastManualSwitch < returnPenaltySeconds) score -= 1.5f;
+                    if (score > bestScore + 0.0001f || (Mathf.Abs(score - bestScore) <= 0.0001f && best != null &&
+                        string.CompareOrdinal(candidate.PlayerId, best.PlayerId) < 0)) { best = candidate; bestScore = score; }
+                }
+                if (best != null)
+                {
+                    var previous = ActivePlayer;
+                    if (Select(best)) { previousManualPlayer = previous; lastManualSwitch = Time.time; }
+                    return;
+                }
+            }
             int index = -1;
             var fields = roster.FieldPlayers;
             for (int i = 0; i < fields.Count; i++) if (fields[i] == ActivePlayer || (ActivePlayer != null && !ActivePlayer.IsFieldPlayer && fields[i] == lastFieldPlayer)) index = i;
@@ -88,6 +113,12 @@ namespace ToduStudios.WaterPolo
         {
             if (lastFieldPlayer != null && lastFieldPlayer.IsFieldPlayer && IsEligible(lastFieldPlayer)) { Select(lastFieldPlayer); return; }
             foreach (var field in roster.FieldPlayers) if (IsEligible(field)) { Select(field); return; }
+        }
+
+        public void RefreshEligibility()
+        {
+            if (!InputLocked && !IsEligible(ActivePlayer)) SelectFieldFallback();
+            ApplySelection();
         }
 
         public void SetInputLocked(bool locked)

@@ -153,6 +153,11 @@ public static class Milestone8Verification
         {
             ball.ResetForRestart(Vector3.zero);roster.ResetPositions();selection.Select(first);
             second.Motor.ResetPose(new Vector3(0f,0f,-9f),Quaternion.identity);
+            // Full-team fixtures must isolate the intended outlet from the added centre-back/flats.
+            int parked=0;
+            foreach(var field in roster.FieldPlayers)
+                if(field.Team==PrototypeTeam.Blue && field!=first && field!=second)
+                    field.Motor.ResetPose(new Vector3(8f,0f,-10f+4f*parked++),Quaternion.identity);
             await Advance(0.12f);ball.ResetForRestart(blue.HandPosition);
             await Until(()=>ball.Owner==blue.Identity.Interaction,4f);
             Require(selection.ActivePlayer==blue.Identity && Camera.main.GetComponent<GameplayCamera>().Target==blue.Identity.Motor,"Actual catch selects Blue keeper and camera.");

@@ -97,9 +97,12 @@ public static class GoalScoringPrototypeVerification
                 await Until(() => !match.IsRestarting, match.RestartDelay + 2f);
                 await Advance(0.05f);
                 Require(motor.enabled && motor.GetComponent<SwimmerInput>().enabled && motor.GetComponent<BallInteractionInput>().enabled, "Controls restored after restart.");
-                Require(ball.Owner == null && ball.State == BallState.Free && !ball.IsScoringShot && ball.CanCollect, "Restart clears possession and shot eligibility.");
-                Require(Vector3.Distance(motor.GetComponent<Rigidbody>().position, Vector3.zero) < 0.02f, "Swimmer reset to saved start.");
-                Require(Vector3.Distance(body.position, new Vector3(0f, ball.SurfaceHeight, 1.65f)) < 0.02f, "Ball reset to collection start.");
+                var conceding = goal.ScoringTeam == PrototypeTeam.Blue ? PrototypeTeam.White : PrototypeTeam.Blue;
+                Require(ball.Owner != null && ball.Owner.GetComponent<SwimmerIdentity>().Team == conceding &&
+                    ball.State == BallState.Held && !ball.IsScoringShot && !ball.CanCollect &&
+                    fixtureRoster.Members.Count(p=>p.Interaction.HasBall)==1, "Restart awards exactly one conceding-team owner and clears shot eligibility.");
+                Require(fixtureRoster.Members.All(p=>Vector3.Distance(p.Motor.Position,p.StartPosition.position)<0.02f), "All athletes reset to their current saved starts.");
+                Require(Vector3.Distance(body.position,ball.Owner.GetComponent<SwimmerMotor>().Position)<1.7f, "Awarded restart ball remains at its legitimate taker.");
                 Require(!notice.activeSelf && match.BlueScore == expectedBlue && match.WhiteScore == expectedWhite, "Restart hides notice and preserves scores.");
             }
 

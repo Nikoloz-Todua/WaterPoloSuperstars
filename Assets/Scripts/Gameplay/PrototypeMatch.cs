@@ -3,7 +3,8 @@ using UnityEngine;
 
 namespace ToduStudios.WaterPolo
 {
-    public enum MatchPhase { PreMatch, Playing, GoalRestart, TurnoverRestart, QuarterBreak, FullTime, HalfTime }
+    public enum MatchPhase { PreMatch, Playing, GoalRestart, TurnoverRestart, QuarterBreak, FullTime, HalfTime,
+        FreeThrowSetup, FreeThrowReady, PenaltySetup, PenaltyReady, PenaltyFlight }
     /// <summary>Authoritative phases, score evaluation and transitions. Clocks advance only in Playing.</summary>
     [DefaultExecutionOrder(-100), DisallowMultipleComponent]
     public sealed class PrototypeMatch : MonoBehaviour
@@ -27,6 +28,9 @@ namespace ToduStudios.WaterPolo
         private PrototypeTeam? restartTeam;
         public MatchPhase Phase { get; private set; } = MatchPhase.Playing;
         public bool IsPlaying => Phase==MatchPhase.Playing;
+        [SerializeField] private MatchRules rules;
+        public MatchRules Rules => rules;
+        public bool BallInMotion => IsPlaying || Phase == MatchPhase.PenaltyFlight;
         public MatchClock Clock => clock;
         public PossessionShotClock ShotClock => shotClock;
         public string Result => BlueScore==WhiteScore?"DRAW":BlueScore>WhiteScore?"WIN":"LOSE";
@@ -71,7 +75,7 @@ namespace ToduStudios.WaterPolo
 
         private void FixedUpdate()
         {
-            if (!IsPlaying)
+            if (!BallInMotion)
                 return;
             Vector3 current = ballBody.position;
             // Release spawn changes are not travel. Start the first segment at the recorded release point.
@@ -83,7 +87,7 @@ namespace ToduStudios.WaterPolo
             {
                 if (goal != null && goal.isActiveAndEnabled && goal.TryGetCrossing(from, current, ball.Radius, out _))
                 {
-                    RegisterGoal(goal.ScoringTeam);
+                    RegisterGoal(goal);
                     break;
                 }
             }
@@ -98,6 +102,7 @@ namespace ToduStudios.WaterPolo
             if(!IsPlaying || seconds<=0f || float.IsNaN(seconds) || float.IsInfinity(seconds))return;
             float step=Mathf.Min(seconds,clock.Remaining);
             if(shotClock!=null)step=Mathf.Min(step,shotClock.LiveSecondsRemaining);
+            if(rules!=null)rules.TickLive(step);
             if(clock.Remaining<=0f || clock.Tick(step))
             {
                 Phase=clock.Quarter>=clock.Quarters?MatchPhase.FullTime:clock.Quarter==2?MatchPhase.HalfTime:MatchPhase.QuarterBreak;
@@ -106,14 +111,17 @@ namespace ToduStudios.WaterPolo
             if(shotClock!=null)shotClock.Tick(step);
         }
 
-        private void RegisterGoal(PrototypeTeam team)
+        private void RegisterGoal(GoalMouth goal)
         {
+            PrototypeTeam team=goal.ScoringTeam;
             lastScoredShot = ball.ShotSequence;
             if (team == PrototypeTeam.Blue)
                 BlueScore++;
             else
                 WhiteScore++;
+            if(rules!=null)rules.GoalScored();
             Phase=MatchPhase.GoalRestart;restartTeam=team==PrototypeTeam.Blue?PrototypeTeam.White:PrototypeTeam.Blue;
+            ball.CaptureGoal(goal);
             restartAt = Time.unscaledTime + restartDelay;
             StopPlay(false);
         }
@@ -145,6 +153,46 @@ namespace ToduStudios.WaterPolo
             if(!IsPlaying)return;
             Phase=MatchPhase.TurnoverRestart;restartTeam=awardedTeam;
             restartAt=Time.unscaledTime+turnoverDelay;StopPlay(true);
+        }
+
+        public void BeginRuleRestart(bool penalty)
+        {
+            if (!IsPlaying) return;
+            Phase = penalty ? MatchPhase.PenaltySetup : MatchPhase.FreeThrowSetup;
+            StopPlay(true);
+        }
+        public void ReadyRuleRestart(bool penalty)
+        {
+            if (Phase != MatchPhase.FreeThrowSetup && Phase != MatchPhase.PenaltySetup) return;
+            Phase = penalty ? MatchPhase.PenaltyReady : MatchPhase.FreeThrowReady;
+            roster.SetSimulationPaused(false);
+            // Ball remains held; motors may turn, but MatchRules freezes translation until the throw.
+            ball.SetSimulationPaused(false);
+            playerSelection.SetInputLocked(false);
+            if (rules.Taker.Team == playerSelection.HumanTeam) playerSelection.Select(rules.Taker);
+            previousPosition = ballBody.position; previousMotion = ball.MotionRevision;
+            Changed?.Invoke();
+        }
+        public void LaunchPenalty()
+        {
+            if (Phase != MatchPhase.PenaltyReady) return;
+            Phase = MatchPhase.PenaltyFlight;
+            playerSelection.SetInputLocked(true);
+            Changed?.Invoke();
+        }
+        public void EndRuleRestart()
+        {
+            if (rules == null || !rules.IsRulePhase) return;
+            Phase = MatchPhase.Playing;
+            roster.SetSimulationPaused(false); ball.SetSimulationPaused(false);
+            playerSelection.SetInputLocked(false);
+            if (ball.Owner != null)
+            {
+                var carrier = ball.Owner.GetComponent<SwimmerIdentity>();
+                if (carrier.Team == playerSelection.HumanTeam) playerSelection.Select(carrier);
+            }
+            previousPosition = ballBody.position; previousMotion = ball.MotionRevision;
+            Changed?.Invoke();
         }
 
         public void ContinueMatch()
@@ -184,7 +232,7 @@ namespace ToduStudios.WaterPolo
             if(restartTeam.HasValue && roster!=null)
             {
                 foreach(var player in roster.FieldPlayers)
-                    if(player.Team==restartTeam.Value){awarded=player;break;}
+                    if(player.Team==restartTeam.Value && player.EligibleForPlay){awarded=player;break;}
                 if(awarded!=null)
                 {
                     ball.ResetForRestart(awarded.Motor.Position+awarded.Motor.Facing*1f);

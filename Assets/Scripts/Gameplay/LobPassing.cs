@@ -10,6 +10,7 @@ namespace ToduStudios.WaterPolo
         [SerializeField,Min(3f)] private float defaultDistance=8f;
         [SerializeField,Min(3f)] private float maximumDistance=16f;
         [SerializeField,Min(0.2f)] private float flightDuration=1.3f;
+        [SerializeField,Min(0.3f)] private float arcHeight=1.8f;
         [SerializeField,Range(0f,60f)] private float assistCone=30f;
         [SerializeField,Range(0f,20f)] private float maximumCorrection=12f;
         private SwimmerIdentity identity;
@@ -31,10 +32,13 @@ namespace ToduStudios.WaterPolo
             }
             if(receiver!=null)
             {
-                Vector3 desired=Vector3.ProjectOnPlane(receiver.Identity.Motor.Position-release,Vector3.up).normalized;
+                Vector3 predicted=receiver.Identity.Motor.Position+Vector3.ClampMagnitude(receiver.Identity.Motor.Velocity*flightDuration,1.5f);
+                Vector3 desired=Vector3.ProjectOnPlane(predicted-release,Vector3.up).normalized;
+                distance=Mathf.Min(maximumDistance,Vector3.ProjectOnPlane(predicted-release,Vector3.up).magnitude);
                 forward=Vector3.RotateTowards(forward,desired,maximumCorrection*Mathf.Deg2Rad,0f);
             }
-            return identity.Interaction.Ball.TryLob(identity.Interaction,forward,Mathf.Min(distance,maximumDistance),flightDuration,receiver);
+            float duration=Mathf.Max(flightDuration,2f*Mathf.Sqrt(2f*arcHeight/Mathf.Max(0.1f,-Physics.gravity.y)));
+            return identity.Interaction.Ball.TryLob(identity.Interaction,forward,Mathf.Min(distance,maximumDistance),duration,receiver);
         }
     }
 }

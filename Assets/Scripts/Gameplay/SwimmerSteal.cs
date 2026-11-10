@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace ToduStudios.WaterPolo
 {
-    public enum StealResult { Unavailable, Cooldown, NoOpponent, OutOfRange, WrongFacing, Protected, Shielded, Success }
+    public enum StealResult { Unavailable, Cooldown, NoOpponent, OutOfRange, WrongFacing, Protected, Shielded, Success, Foul }
 
     /// <summary>Same command for human/touch/AI. The ball resolves every ownership change atomically.</summary>
     [DisallowMultipleComponent, RequireComponent(typeof(SwimmerIdentity))]
@@ -36,7 +36,7 @@ namespace ToduStudios.WaterPolo
 
         public StealResult TrySteal()
         {
-            if (!isActiveAndEnabled || identity == null || !identity.Motor.enabled || !match.IsPlaying || selection.InputLocked)
+            if (!isActiveAndEnabled || identity == null || !identity.EligibleForPlay || !identity.Motor.enabled || !match.IsPlaying || selection.InputLocked)
                 return LastResult = StealResult.Unavailable;
             if (!CanAttempt) return LastResult = StealResult.Cooldown;
             // A valid attempt consumes its cooldown even if facing/range/protection rejects it.
@@ -44,7 +44,13 @@ namespace ToduStudios.WaterPolo
             var ball = identity.Interaction.Ball;
             var carrier = ball.Owner != null ? ball.Owner.GetComponent<SwimmerIdentity>() : null;
             if (!roster.Contains(identity) || carrier == null || !roster.Contains(carrier)) return LastResult = StealResult.NoOpponent;
-            return LastResult = ball.TrySteal(identity.Interaction, reach, Mathf.Cos(facingAngle * Mathf.Deg2Rad), acquisitionProtection, minimumExposure);
+            var result = ball.TrySteal(identity.Interaction, reach, Mathf.Cos(facingAngle * Mathf.Deg2Rad), acquisitionProtection, minimumExposure);
+            // A rear reach through the carrier's body is an explicit push in the prototype profile.
+            // Shielded attempts at ordinary reach, missed attempts and acquisition protection stay legal.
+            if (result == StealResult.Shielded && match.Rules != null &&
+                PrototypeTeamTactics.Planar(identity.Motor.Position-carrier.Motor.Position).sqrMagnitude < 1.21f &&
+                match.Rules.ReportContact(identity, carrier, IllegalContact.Push)) result = StealResult.Foul;
+            return LastResult = result;
         }
     }
 }

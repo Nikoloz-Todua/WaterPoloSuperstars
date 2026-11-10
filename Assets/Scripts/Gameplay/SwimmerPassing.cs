@@ -22,7 +22,7 @@ namespace ToduStudios.WaterPolo
 
         public bool CanReceiveFrom(SwimmerBallInteraction passer)
         {
-            return isActiveAndEnabled && Interaction.isActiveAndEnabled && roster != null &&
+            return Identity.EligibleForPlay && isActiveAndEnabled && Interaction.isActiveAndEnabled && roster != null &&
                 passer != null && roster.AreTeammates(Identity, passer.GetComponent<SwimmerIdentity>());
         }
 
@@ -45,6 +45,7 @@ namespace ToduStudios.WaterPolo
                 SwimmerPassing candidate = teammate.GetComponent<SwimmerPassing>();
                 if (candidate == null || !candidate.CanReceiveFrom(Interaction)) continue;
                 float score = alignment - distance * 0.01f;
+                if(!LaneOpen(origin,teammate.Motor.Position))score-=0.35f;
                 if (score > best) { best = score; receiver = candidate; }
             }
 
@@ -69,12 +70,32 @@ namespace ToduStudios.WaterPolo
             if (receiver != null)
             {
                 Vector3 release = origin + forward * Interaction.ReleaseDistance;
-                Vector3 desired = receiver.Identity.Motor.Position - release;
+                Vector3 desired = AimPoint(receiver.Identity) - release;
                 desired.y = 0f;
                 Vector3 assisted = Vector3.Slerp(forward, desired.normalized, assistStrength);
                 direction = Vector3.RotateTowards(forward, assisted, maximumCorrection * Mathf.Deg2Rad, 0f).normalized;
             }
-            return Interaction.Ball.TryPass(Interaction, direction, passSpeed, receiver, minimumFlightTime, receivingWindow);
+            float distance=receiver!=null?Vector3.Distance(origin,receiver.Identity.Motor.Position):6f;
+            float speed=Mathf.Clamp(distance*0.9f,passSpeed*0.85f,passSpeed*1.35f);
+            return Interaction.Ball.TryPass(Interaction, direction, speed, receiver, minimumFlightTime, receivingWindow);
+        }
+        public Vector3 AimPoint(SwimmerIdentity receiver)
+        {
+            float distance=Vector3.Distance(Identity.Motor.Position,receiver.Motor.Position);
+            float time=Mathf.Clamp(distance/Mathf.Max(1f,passSpeed),0f,1.2f);
+            return receiver.Motor.Position+Vector3.ClampMagnitude(receiver.Motor.Velocity*time,1.4f);
+        }
+        private bool LaneOpen(Vector3 from,Vector3 to)
+        {
+            Vector3 line=Vector3.ProjectOnPlane(to-from,Vector3.up);float length=line.sqrMagnitude;
+            if(length<0.01f)return false;
+            for(int i=0;i<roster.Members.Count;i++)
+            {
+                var p=roster.Members[i];if(p.Team==Identity.Team || !p.EligibleForPlay)continue;
+                float along=Vector3.Dot(p.Motor.Position-from,line)/length;
+                if(along>0.05f && along<0.95f && Vector3.ProjectOnPlane(p.Motor.Position-(from+line*along),Vector3.up).sqrMagnitude<1f)return false;
+            }
+            return true;
         }
     }
 }

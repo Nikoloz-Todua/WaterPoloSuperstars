@@ -1,47 +1,58 @@
-# Water Polo Superstars
+﻿# Water Polo Superstars
 
-Water Polo Superstars is a 3D mobile water polo game developed by **ToduStudios**, targeting Android first and iOS later. The long-term goal is responsive sports gameplay with professional mobile presentation; the current build is a functional prototype with placeholder art.
+Water Polo Superstars is a 3D mobile water polo game developed by **ToduStudios**, targeting Android first and iOS later. The current build uses placeholder art and a functional fourteen-athlete match.
 
 ## Technology and architecture
 
-- Unity 6.6, Editor **6000.6.7f1**.
-- Universal Render Pipeline (URP), C#, 3D physics and the Unity Input System.
-- XZ pool-plane tactics with separate 3D movement/presentation components.
-- Shared tactical reasoning for both teams, one authoritative ball-possession system, and independent human selection.
-- Useful concepts from the previous Water Polo Manager game are references; its 2D physics implementation is not imported.
+- Unity 6.6, pinned Editor **6000.6.7f1**, Universal Render Pipeline, C# and 3D physics.
+- Unity Input System; shared human/AI action APIs and stamina.
+- PrototypeMatch owns transitions; BallController alone owns possession and flight.
+- PlayerSelection owns control independently of possession; PrototypeTeamTactics shares team reasoning.
+- MatchRules decides fouls and eligibility; MatchAtmosphere observes decisions for HUD/audio.
 
-## Current stage — Milestone 9
+## Current stage — Milestone 10 with gameplay realism expansion
 
-`Assets/Scenes/PrototypePool.unity` contains **six field players and one goalkeeper per team: 14 athletes**. The complete Milestone 9 prototype adds six tactical roles, coordinated Press/Zone defense, four compressed periods, a possession shot clock and turnovers, shared sprint/stamina, aerial lob passes and match-flow HUD/panels. Existing movement, passing, stealing, charged shots, temporary human Blue goalkeeper possession, saves and scoring remain.
+`Assets/Scenes/PrototypePool.unity` retains **six field players and one goalkeeper per team: 14 athletes**. Milestone 10 adds contextual C switching, stable defensive marking, attacking improvements, contact-driven fouls, protected free throws, temporary exclusions, personal foul limits, qualifying penalties, referee messages and original procedural audio cues.
 
-The developer manually tested Milestone 8 and backed it up as `734d8da`. Milestone 9 awaits developer manual gameplay testing; see the canonical handoff for actual automated checks and limitations. Mobile builds, device performance and final game feel remain unverified.
+The developer reports functional manual Milestone 9 gameplay. Milestone 10 requires manual review; automated evidence, the file inventory and limitations are in [plan.md](plan.md). Device performance and final game feel remain unverified.
 
-Goalkeepers share the existing ball ownership and passing APIs. Saves require actual swept contact within a limited hand sphere, and missed/out-of-reach shots can score. Blue keeper possession selects the keeper and suspends its positioning/distribution AI; releasing the ball returns field control, and the keeper swims home. White's keeper stays autonomous. Upright orange bodies and team-colored caps are placeholders. Physical goal mouths remain 3m by 0.9m; brighter white frames and smoothly blended keeper/field camera framing improve presentation.
+The current uncommitted expansion adds genuine normal/power/high/skip trajectories, water impact and rebound handling, bounded net motion, moving-receiver prediction and height-aware keeper contact. The existing camera gains adaptive broadcast profiles. Two primitive referees walk along observation decks and signal authoritative rule events; pooled ripples, splashes, wakes and shot trails provide lightweight feedback. Setup and verification run in the Windows Unity Editor without Android hardware, Blender or imported character assets.
 
 ## Open and play
 
-Open **Assets > Scenes > PrototypePool**, press Play, then click the Game view. The saved scene is wired. Optional setup is **Tools > Water Polo > Set Up Milestone 9 Match**, outside Play Mode after saving intended edits. Repeated setup preserves identities, existing pool/goals, and gameplay tuning.
+Open **Assets > Scenes > PrototypePool**, press Play, then click the Game view. The saved scene is wired. Optional repeat-safe setup for the current build is **Tools > Water Polo > Set Up Gameplay Realism Expansion**, outside Play Mode after saving intended edits. This extends the existing M10 scene without rebuilding swimmers or goals.
 
 | Control | Action |
 | --- | --- |
-| WASD / arrows | Swim |
+| WASD / arrows | Swim; turn in place while taking a protected restart |
 | E | Collect a nearby loose ball |
-| B | Pass in the facing/assisted direction |
-| Hold / release Space | Charge / shoot in the facing direction (quick tap also shoots) |
-| C | Switch Blue field player |
-| F | Attempt a close-range steal |
-| Hold Left Shift | Sprint while swimming (field players; consumes stamina) |
+| B | Flat pass |
+| Tap / hold / release Space | Normal / charged powerful shot; also used for penalties |
+| Hold Q before Space | Charge/release a skip shot |
+| Hold R before Space | Charge/release a high shot |
+| C | Select a tactically useful eligible Blue field player |
+| F | Attempt a close-range steal; a rear reach through the carrier's body can be an illegal push |
+| G | Intentional close hold: off-ball holds cause exclusions; qualifying shooting fouls cause penalties |
+| Hold Left Shift | Sprint while swimming; consumes shared stamina |
 | L | Physical aerial lob pass |
 | Z | Toggle Blue Press / Zone defense |
 
-Blue initially attacks +Z and White -Z. Continuing after Period 2 physically switches both teams' ends, formations and goalkeepers; scoring follows the current attacking goal. Periods 3/4 retain those ends, and a new match restores the originals. Friendly acquisition selects the actual carrier, including Blue's keeper; C cycles only the six Blue fields. Human shots use the existing 0.7s charge bar; AI shoots directly. Lob passes have actual Y height, gravity, low descending reception and a ground height cue.
+Shot modifiers latch when charging starts; Q takes priority if both modifiers are held. High/skip shots use actual Y height and physical collisions. Ordinary B passes skim the water; L has a configurable real arc. A fast shot cannot be collected remotely or above a swimmer's receiving height.
 
-Default match: **four periods, each displaying 8:00 over 80 seconds of live play (6×)**. Clocks stop during restarts and breaks. Click **Continue / Start** at breaks, including **HALFTIME — SWITCHING ENDS** after Q2. Full time shows WIN/LOSE/DRAW, **Restart Match** and **Return to Prototype** (the same scene's paused ready state). The independent **28-second** shot clock survives same-team passes and keeper distribution, resets on opposing acquisition and stops at breaks; it is not accelerated sixfold. Expiration awards a controlled opposing restart. Periods use a neutral centre-ball start; goals award the conceding team possession. Stamina persists across ordinary restarts and resets for a new match. A formal swim-off, official foul/rebound exceptions, touch HUD, diving animations and final art remain future work.
+On the camera's **Gameplay Camera** component, Mode selects Normal Broadcast or Wide Tactical; keeper/set-piece profiles activate contextually. The **GameplayRealism** object contains the deck referees and Water Interaction Effects quality settings (**Off / Low / Standard**). Existing score, clocks, defense, stamina and shot-power HUD remain.
+
+Legitimate friendly possession still selects its carrier, including a Blue goalkeeper catch. C never transfers possession. The selection component's **Contextual Switching** option preserves roster-order switching as a configurable fallback. Goalkeeper selection retains its possession-only policy.
+
+Free throws have a short protected setup, then **B/L** puts the ball back into play. Direct restart shots are disabled in this simplified profile. AI takes its own restarts; an idle human restart also has a bounded automatic fallback. Penalties use aiming and charged Space shooting from 5m, with a physical goalkeeper save opportunity.
+
+Defaults remain four periods displaying **8:00 over 80 live seconds (6×)** and an independent **28-second possession clock**. Exclusions default to **18 live seconds**, paced independently of the accelerated period display. Three personal fouls permanently remove the athlete; there is no substitute bench. The HUD shows selected-player fouls, reduced field counts, excluded cap numbers/time and referee messages. These mechanics are a documented prototype profile, not a complete current-rule implementation.
+
+Click **Continue / Start** at period breaks. Continuing after Q2 swaps team goals, goalkeepers and formations once; new matches restore the original ends. Goals award conceding-team possession; periods begin with a neutral centre ball. All clocks freeze during stopped free-throw/penalty phases; ordinary free throws retain shot time. See the handoff for exclusion/penalty reset details.
 
 ## Documentation and source control
 
-- [plan.md](plan.md): canonical architecture, milestone history, verification evidence, limitations and roadmap.
-- [AGENTS.md](AGENTS.md): persistent development rules, including human-only Git write operations.
-- `Tools/Verification/`: Editor-driven verification scripts kept outside player builds.
+- [plan.md](plan.md): canonical architecture, rules sources, verification, manual steps, Burst investigation and limitations.
+- [AGENTS.md](AGENTS.md): permanent development rules, including human-only Git writes.
+- `Tools/Verification/`: Editor-driven checks outside player builds.
 
-Only the human developer stages, commits or pushes. Unity assets must retain their `.meta` files. Generated folders (`Library`, `Temp`, `Logs`, `UserSettings`), credentials, local legacy references and `old-plan.md` are excluded from the proposed backup. Existing ignore rules cover Unity caches; `old-plan.md` must be left out explicitly.
+Only the human stages, commits or pushes. Preserve Unity `.meta` files. Generated folders, credentials, local legacy references, `old-plan.md` and unrelated files are excluded from proposed backups. Milestone 10 ends with developer manual testing; later work needs separate authorization.

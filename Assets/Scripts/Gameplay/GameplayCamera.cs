@@ -2,7 +2,16 @@ using UnityEngine;
 
 namespace ToduStudios.WaterPolo
 {
-    /// <summary>A fixed-angle sports camera. Only the bounded focus point follows the swimmer.</summary>
+    public enum BroadcastCameraMode { NormalBroadcast, WideTactical, GoalkeeperPossession, SetPiece }
+    [System.Serializable]
+    public sealed class BroadcastCameraProfile
+    {
+        [Range(0.7f,1.6f)] public float size=1f;
+        [Range(0f,0.8f)] public float ballWeight=0.4f;
+        [Range(1f,2f)] public float maximumZoom=1.5f;
+        [Min(0.1f)] public float damping=0.45f;
+    }
+    /// <summary>Fixed-orientation broadcast camera with contextual composition, prediction and bounded zoom.</summary>
     [DisallowMultipleComponent, RequireComponent(typeof(Camera))]
     [DefaultExecutionOrder(200)]
     public sealed class GameplayCamera : MonoBehaviour
@@ -33,9 +42,38 @@ namespace ToduStudios.WaterPolo
         private Vector3 focus;
         private Vector3 focusVelocity;
         private bool initialized;
+        private bool snapping;
         private Camera lens;
         private bool keeperTarget;
         private float currentDistance, currentHeight, distanceVelocity, heightVelocity;
+        [SerializeField] private PrototypeMatch match;
+        [SerializeField] private PrototypeRoster roster;
+        [SerializeField] private PrototypeTeamTactics[] teams=new PrototypeTeamTactics[0];
+        [SerializeField] private BroadcastCameraMode mode;
+        [SerializeField] private bool adaptiveBroadcast=true;
+        [SerializeField] private BroadcastCameraProfile normalBroadcast=new BroadcastCameraProfile();
+        [SerializeField] private BroadcastCameraProfile wideTactical=new BroadcastCameraProfile {size=1.18f,ballWeight=0.45f,maximumZoom=1.65f};
+        [SerializeField] private BroadcastCameraProfile goalkeeperPossession=new BroadcastCameraProfile {size=1.1f,ballWeight=0.2f,maximumZoom=1.5f};
+        [SerializeField] private BroadcastCameraProfile setPiece=new BroadcastCameraProfile {size=1.1f,ballWeight=0.5f,maximumZoom=1.5f};
+        [SerializeField,Range(0f,1f)] private float predictionSeconds=0.28f;
+        [SerializeField,Range(0f,0.3f)] private float teammateInfluence=0.12f;
+        [SerializeField,Min(0.1f)] private float minimumZoom=1f;
+        private float requestedZoom=1f, zoomHoldUntil;
+        private readonly Vector3[] framingPoints=new Vector3[18];
+        private int framingCount;
+        public BroadcastCameraMode ActiveMode {get;private set;}
+        public BroadcastCameraMode Mode {get=>mode;set=>mode=value;}
+        public float Zoom => currentHeight/Mathf.Max(1f,keeperTarget?keeperHeight:height);
+        private BroadcastCameraProfile Profile
+        {
+            get
+            {
+                ActiveMode=match!=null && match.Rules!=null && match.Rules.IsRulePhase?BroadcastCameraMode.SetPiece:
+                    keeperTarget?BroadcastCameraMode.GoalkeeperPossession:mode==BroadcastCameraMode.WideTactical?mode:BroadcastCameraMode.NormalBroadcast;
+                return ActiveMode==BroadcastCameraMode.SetPiece?setPiece:ActiveMode==BroadcastCameraMode.GoalkeeperPossession?goalkeeperPossession:
+                    ActiveMode==BroadcastCameraMode.WideTactical?wideTactical:normalBroadcast;
+            }
+        }
 
         public Vector3 Focus => focus;
         public SwimmerMotor Target => target;
@@ -49,6 +87,43 @@ namespace ToduStudios.WaterPolo
         }
 
         private Vector3 DesiredFocus()
+        {
+            if(!adaptiveBroadcast)return LegacyFocus();
+            var profile=Profile;
+            framingCount=0;
+            Vector3 player=snapping?target.Position:target.transform.position;
+            framingPoints[framingCount++]=player;
+            Vector3 desired=player+Vector3.ClampMagnitude(target.Velocity*predictionSeconds,lookAhead);
+            GoalMouth goal=attackingGoal;
+            if(ball!=null)
+            {
+                Vector3 point=snapping?ball.PlayPosition:ball.Owner!=null?ball.Owner.transform.position:ball.transform.position;
+                framingPoints[framingCount++]=point;
+                Vector3 prediction=ball.PredictPosition(predictionSeconds);
+                desired=Vector3.Lerp(desired,point,profile.ballWeight)+Vector3.ClampMagnitude(prediction-point,2f)*0.3f;
+                if(ball.Owner!=null)
+                {
+                    var carrier=ball.Owner.GetComponent<SwimmerIdentity>();
+                    for(int i=0;i<teams.Length;i++)if(teams[i].Team==carrier.Team)goal=teams[i].AttackingGoal;
+                }
+                if(roster!=null)
+                {
+                    Vector3 support=Vector3.zero;int count=0;
+                    for(int i=0;i<roster.Members.Count;i++)
+                    {
+                        var p=roster.Members[i];if(!p.EligibleForPlay || !p.IsFieldPlayer || p.Motor==target || (p.Motor.Position-point).sqrMagnitude>64f)continue;
+                        support+=p.Motor.Position;count++;
+                        if(framingCount<framingPoints.Length)framingPoints[framingCount++]=p.Motor.Position;
+                    }
+                    if(count>0)desired=Vector3.Lerp(desired,support/count,teammateInfluence);
+                }
+                if(goal!=null && !keeperTarget && Vector3.Distance(point,goal.transform.position)<11f)
+                {desired+=Vector3.ClampMagnitude(goal.transform.position-point,goalLookAhead)*0.5f;framingPoints[framingCount++]=goal.transform.position+Vector3.up*goal.Height*0.5f;}
+            }
+            desired=poolBounds.ClampPosition(desired,0.5f);
+            return desired;
+        }
+        private Vector3 LegacyFocus()
         {
             // Velocity-based lead fades away at rest and doesn't jump when facing reverses.
             Vector3 lead = target.Velocity / Mathf.Max(0.1f, target.MaxSpeed) * lookAhead;
@@ -65,6 +140,30 @@ namespace ToduStudios.WaterPolo
             goalBias.y = 0f;
             goalBias = Vector3.ClampMagnitude(goalBias, goalLookAhead);
             return ClampFocus(target.transform.position + lead + ballOffset + goalBias);
+        }
+
+        private float FramingZoom(Vector3 desired,BroadcastCameraProfile profile)
+        {
+            float zoom=Mathf.Max(minimumZoom,profile.size);
+            float baseHeight=keeperTarget?keeperHeight:height,baseDistance=keeperTarget?keeperDistance:distance;
+            Quaternion inverse=Quaternion.Inverse(Quaternion.Euler(pitch,yaw,0f));
+            float tan=Mathf.Tan(lens.fieldOfView*0.5f*Mathf.Deg2Rad);
+            for(int pass=0;pass<4;pass++)
+            {
+                Vector3 position=desired+Quaternion.Euler(0f,yaw,0f)*Vector3.back*(baseDistance*zoom)+Vector3.up*(baseHeight*zoom);
+                float requirement=1f;
+                for(int i=0;i<framingCount;i++)
+                {
+                    Vector3 local=inverse*(framingPoints[i]-position);
+                    if(local.z<=0.1f){requirement=1.3f;continue;}
+                    requirement=Mathf.Max(requirement,Mathf.Max(Mathf.Abs(local.x)/(local.z*tan*lens.aspect*0.8f),Mathf.Abs(local.y)/(local.z*tan*0.74f)));
+                }
+                if(requirement<=1.01f)break;
+                zoom=Mathf.Min(profile.maximumZoom,zoom*Mathf.Min(1.35f,requirement));
+            }
+            if(zoom>requestedZoom+0.04f){requestedZoom=zoom;zoomHoldUntil=Time.unscaledTime+0.6f;}
+            else if(Time.unscaledTime>=zoomHoldUntil && zoom<requestedZoom-0.06f)requestedZoom=zoom;
+            return Mathf.Clamp(requestedZoom,minimumZoom,profile.maximumZoom);
         }
 
         private Vector3 ClampFocus(Vector3 desired)
@@ -103,10 +202,13 @@ namespace ToduStudios.WaterPolo
             if (target == null || poolBounds == null)
                 return;
             SetTarget(target);
+            if(lens==null)lens=GetComponent<Camera>();
+            requestedZoom=Profile.size;
             currentDistance = keeperTarget ? keeperDistance : distance;
             currentHeight = keeperTarget ? keeperHeight : height;
             distanceVelocity = heightVelocity = 0f;
-            focus = DesiredFocus();
+            snapping=true;focus=DesiredFocus();snapping=false;
+            float zoom=FramingZoom(focus,Profile);currentDistance*=zoom;currentHeight*=zoom;
             focusVelocity = Vector3.zero;
             initialized = true;
             ApplyPose();
@@ -123,13 +225,14 @@ namespace ToduStudios.WaterPolo
                 return;
             if (!initialized)
                 SnapToTarget();
-            currentDistance = Mathf.SmoothDamp(currentDistance, keeperTarget ? keeperDistance : distance,
-                ref distanceVelocity, framingSmoothTime, Mathf.Infinity, Time.deltaTime);
-            currentHeight = Mathf.SmoothDamp(currentHeight, keeperTarget ? keeperHeight : height,
-                ref heightVelocity, framingSmoothTime, Mathf.Infinity, Time.deltaTime);
-            focus = Vector3.SmoothDamp(focus, DesiredFocus(), ref focusVelocity,
+            var profile=Profile;Vector3 desired=DesiredFocus();float zoom=FramingZoom(desired,profile);
+            float framingDamping=adaptiveBroadcast?profile.damping:framingSmoothTime;
+            currentDistance = Mathf.SmoothDamp(currentDistance, (keeperTarget ? keeperDistance : distance)*zoom,
+                ref distanceVelocity, framingDamping, Mathf.Infinity, Time.deltaTime);
+            currentHeight = Mathf.SmoothDamp(currentHeight, (keeperTarget ? keeperHeight : height)*zoom,
+                ref heightVelocity, framingDamping, Mathf.Infinity, Time.deltaTime);
+            focus = Vector3.SmoothDamp(focus, desired, ref focusVelocity,
                 Mathf.Max(0.01f, smoothTime), Mathf.Infinity, Time.deltaTime);
-            focus = ClampFocus(focus);
             ApplyPose();
         }
 

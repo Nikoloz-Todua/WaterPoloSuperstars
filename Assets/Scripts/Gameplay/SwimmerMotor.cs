@@ -23,10 +23,11 @@ namespace ToduStudios.WaterPolo
         private ISwimmerMovementBounds movementBounds;
         private float speedOverride = -1f;
         private SwimmerStamina stamina;
+        private SwimmerIdentity identity;
         public void OverrideSpeed(float speed) => speedOverride = Mathf.Max(0.1f, speed);
         public void ClearSpeedOverride() => speedOverride = -1f;
         public void SetMovementBounds(ISwimmerMovementBounds bounds) => movementBounds = bounds;
-        private Vector3 ClampMovement(Vector3 position) => poolBounds.ClampPosition(movementBounds != null ? movementBounds.ClampMovement(position) : position, boundaryClearance);
+        private Vector3 ClampMovement(Vector3 position) => movementBounds != null ? movementBounds.ClampMovement(position) : poolBounds.ClampPosition(position, boundaryClearance);
 
         public Vector3 Velocity => velocity;
         public float MaxSpeed => (speedOverride > 0f ? speedOverride : maxSpeed) * (stamina!=null?stamina.SpeedMultiplier:1f);
@@ -70,6 +71,7 @@ namespace ToduStudios.WaterPolo
         {
             body = GetComponent<Rigidbody>();
             stamina = GetComponent<SwimmerStamina>();
+            identity = GetComponent<SwimmerIdentity>();
             body.isKinematic = true;
             body.useGravity = false;
             body.interpolation = RigidbodyInterpolation.Interpolate;
@@ -85,6 +87,13 @@ namespace ToduStudios.WaterPolo
 
         private void FixedUpdate()
         {
+            if (identity != null && !identity.EligibleForPlay) { StopMotion(); return; }
+            if (identity != null && identity.Rules != null && !identity.Rules.CanMove(identity))
+            {
+                if (moveInput.sqrMagnitude > 0.01f && identity.Rules.Taker == identity)
+                    aimDirection = new Vector3(moveInput.x, 0f, moveInput.y);
+                moveInput = Vector2.zero; velocity = Vector3.zero; if(stamina!=null)stamina.StopSprint();
+            }
             float step = Time.fixedDeltaTime;
             if(stamina!=null)stamina.Simulate(moveInput.sqrMagnitude>0.01f,step);
             Vector3 targetVelocity = new Vector3(moveInput.x, 0f, moveInput.y) * MaxSpeed;

@@ -25,6 +25,7 @@ namespace ToduStudios.WaterPolo
         private SwimmerDecision decision;
         private SwimmerBallInteraction previousOwner;
         private float nextDecision;
+        private float committedUntil;
         private SwimmerStamina stamina;
         public SwimmerAIBehaviour Behaviour { get; private set; }
         public Vector3 Target => decision.Target;
@@ -43,29 +44,41 @@ namespace ToduStudios.WaterPolo
         private void OnEnable() { if (match != null) match.Changed += ResetDecisions; nextDecision = 0f; }
         private void ResetDecisions()
         {
-            nextDecision = 0f; previousOwner = null; decision = default;
+            nextDecision = committedUntil = 0f; previousOwner = null; decision = default;
             if (identity != null && selection.ActivePlayer != identity) identity.Motor.StopMotion();
         }
         private void Update()
         {
             if (selection.ActivePlayer == identity) { Behaviour = SwimmerAIBehaviour.Human; nextDecision = 0f; return; }
-            if (!match.IsPlaying || selection.InputLocked || !identity.Motor.enabled)
+            if (!identity.EligibleForPlay || !match.IsPlaying || selection.InputLocked || !identity.Motor.enabled)
             { Behaviour = SwimmerAIBehaviour.Stopped; nextDecision = 0f; return; }
             if (Time.time >= nextDecision || previousOwner != ball.Owner)
             {
+                bool ownershipChanged=previousOwner!=ball.Owner;
                 previousOwner = ball.Owner; nextDecision = Time.time + decisionInterval;
-                decision = WaterPoloDecision.Evaluate(identity, tacticalTeam);
+                var next = WaterPoloDecision.Evaluate(identity, tacticalTeam);
+                bool committed=decision.Behaviour==SwimmerAIBehaviour.Pass || decision.Behaviour==SwimmerAIBehaviour.Shoot;
+                bool receiverValid=decision.Receiver==null || PrototypeTeamTactics.Eligible(decision.Receiver);
+                if(ownershipChanged || !committed || Time.time>=committedUntil || !receiverValid)
+                {
+                    if(next.Behaviour!=decision.Behaviour)committedUntil=Time.time+0.45f;
+                    decision=next;
+                }
             }
             Behaviour = decision.Behaviour;
             if(stamina!=null)stamina.RequestSprint(false);
             if (Behaviour == SwimmerAIBehaviour.Pass || Behaviour == SwimmerAIBehaviour.Shoot)
             {
-                Vector3 point = decision.Receiver != null ? decision.Receiver.Motor.Position : decision.Target;
+                Vector3 point = decision.Receiver != null ? passing.AimPoint(decision.Receiver) : decision.Target;
                 Vector3 aim = PrototypeTeamTactics.Planar(point - identity.Motor.Position).normalized;
                 identity.Motor.SetMoveInput(Vector2.zero); identity.Motor.SetFacingDirection(aim);
-                if (Vector3.Dot(transform.forward, aim) > 0.9995f && identity.Motor.Velocity.sqrMagnitude < 0.04f && identity.Interaction.HasBall)
+                if (Vector3.Dot(identity.Motor.Facing, aim) > 0.9995f && identity.Motor.Velocity.sqrMagnitude < 0.04f && identity.Interaction.HasBall)
                 {
-                    bool released = Behaviour == SwimmerAIBehaviour.Shoot ? identity.Interaction.TryShoot(tacticalTeam.AIShotSpeed) : passing.TryPassTo(decision.Receiver);
+                    ShotType shot=tacticalTeam.AIShotSpeed>=18f?ShotType.Powerful:ShotType.Normal;
+                    float goalDistance=Vector3.Distance(identity.Motor.Position,tacticalTeam.AttackingGoal.transform.position);
+                    if(goalDistance>6f && goalDistance<9f && tacticalTeam.Pressure(identity.Motor.Position)>0.3f)shot=ShotType.High;
+                    else if(goalDistance>5f && goalDistance<8f && identity.FieldPosition==FieldPositionRole.CentreForward && tacticalTeam.LaneClear(identity.Motor.Position,point))shot=ShotType.Skip;
+                    bool released = Behaviour == SwimmerAIBehaviour.Shoot ? identity.Interaction.TryShoot(tacticalTeam.AIShotSpeed,shot) : passing.TryPassTo(decision.Receiver);
                     if (released)
                     {
                         if (Behaviour == SwimmerAIBehaviour.Shoot) ShotsExecuted++;

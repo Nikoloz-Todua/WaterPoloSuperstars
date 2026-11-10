@@ -22,6 +22,7 @@ namespace ToduStudios.WaterPolo
         public bool TryCollect() => ball != null && ball.TryCollect(this);
         public bool TryShoot() => ball != null && ball.TryShoot(this, shotSpeed);
         public bool TryShoot(float speed) => ball != null && ball.TryShoot(this, Mathf.Max(0f, speed));
+        public bool TryShoot(float speed,ShotType shot) => ball != null && ball.TryShoot(this,Mathf.Max(0f,speed),shot);
 
         private void OnDisable()
         {
