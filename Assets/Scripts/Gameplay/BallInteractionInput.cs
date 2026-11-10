@@ -59,6 +59,7 @@ namespace ToduStudios.WaterPolo
         private void Update()
         {
             // A control handoff must not replay another athlete's button press/held charge.
+            if (interaction.Ball.Match != null && interaction.Ball.Match.IsPaused) return;
             if (Time.frameCount == enabledFrame) return;
             if (blockShootUntilRelease)
             {
@@ -78,6 +79,12 @@ namespace ToduStudios.WaterPolo
                 GetComponent<SwimmerIdentity>().Rules?.TryHold(GetComponent<SwimmerIdentity>());
             else if (collect.WasPressedThisFrame())
                 interaction.TryCollect();
+        }
+
+        public void ResetAfterMenu()
+        {
+            charge?.CancelCharge(); enabledFrame = Time.frameCount;
+            blockShootUntilRelease = shoot != null && shoot.IsPressed();
         }
 
         private void OnDisable()

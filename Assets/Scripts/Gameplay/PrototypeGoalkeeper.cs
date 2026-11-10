@@ -113,6 +113,7 @@ namespace ToduStudios.WaterPolo
         }
         private void Update()
         {
+            if (match.IsPaused) return;
             if (Stopped) return;
             if (HumanControlled) { Identity.Motor.OverrideSpeed(carryingSpeed); targetVelocity = 0f; return; }
             Identity.Motor.ClearSpeedOverride();

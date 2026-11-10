@@ -90,7 +90,7 @@ namespace ToduStudios.WaterPolo
             if (identity != null && !identity.EligibleForPlay) { StopMotion(); return; }
             if (identity != null && identity.Rules != null && !identity.Rules.CanMove(identity))
             {
-                if (moveInput.sqrMagnitude > 0.01f && identity.Rules.Taker == identity)
+                if (moveInput.sqrMagnitude > 0.01f && identity.Rules.IsRulePhase && identity.Rules.Taker == identity)
                     aimDirection = new Vector3(moveInput.x, 0f, moveInput.y);
                 moveInput = Vector2.zero; velocity = Vector3.zero; if(stamina!=null)stamina.StopSprint();
             }

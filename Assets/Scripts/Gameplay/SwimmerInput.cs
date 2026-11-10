@@ -14,10 +14,13 @@ namespace ToduStudios.WaterPolo
         private InputAction moveAction;
         private InputAction sprintAction;
         private SwimmerStamina stamina;
+        private PrototypeMatch match;
+        [SerializeField] private MobileMatchControls mobileControls;
 
         private void Awake()
         {
             motor = GetComponent<SwimmerMotor>();
+            match = GetComponent<SwimmerBallInteraction>()?.Ball?.Match;
             stamina = GetComponent<SwimmerStamina>();
             sprintAction = new InputAction("Sprint",InputActionType.Button,"<Keyboard>/leftShift");
             sprintAction.wantsInitialStateCheck=true;
@@ -45,10 +48,15 @@ namespace ToduStudios.WaterPolo
 
         private void Update()
         {
+            if (match != null && match.IsPaused) return;
             motor.ClearFacingDirection();
-            motor.SetMoveInput(moveAction.ReadValue<Vector2>());
-            if(stamina!=null)stamina.RequestSprint(sprintAction.IsPressed());
+            Vector2 keyboard=moveAction.ReadValue<Vector2>();
+            motor.SetMoveInput(keyboard.sqrMagnitude>0.0001f?keyboard:mobileControls!=null?mobileControls.MovementFor(motor):Vector2.zero);
+            if(stamina!=null)stamina.RequestSprint(sprintAction.IsPressed() || mobileControls!=null && mobileControls.SprintFor(motor));
         }
+
+        public void ResetAfterMenu()
+        { motor.ClearFacingDirection(); motor.SetMoveInput(Vector2.zero); stamina?.RequestSprint(false); }
 
         private void OnDisable()
         {

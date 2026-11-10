@@ -28,6 +28,7 @@ namespace ToduStudios.WaterPolo
 
         public bool TryPass()
         {
+            if(Interaction.Ball.Match!=null && Interaction.Ball.Match.IsCentreRestart)return Interaction.Ball.Match.TryCentrePass(Identity);
             if (!Interaction.HasBall || roster == null) return false;
             Vector3 forward = Vector3.ProjectOnPlane(Identity.Motor.Facing, Vector3.up).normalized;
             Vector3 origin = Identity.Motor.Position;

@@ -68,13 +68,17 @@ namespace ToduStudios.WaterPolo
         {
             get
             {
-                ActiveMode=match!=null && match.Rules!=null && match.Rules.IsRulePhase?BroadcastCameraMode.SetPiece:
+                ActiveMode=match!=null && (match.IsCentreRestart || match.Rules!=null && match.Rules.IsRulePhase)?BroadcastCameraMode.SetPiece:
                     keeperTarget?BroadcastCameraMode.GoalkeeperPossession:mode==BroadcastCameraMode.WideTactical?mode:BroadcastCameraMode.NormalBroadcast;
                 return ActiveMode==BroadcastCameraMode.SetPiece?setPiece:ActiveMode==BroadcastCameraMode.GoalkeeperPossession?goalkeeperPossession:
                     ActiveMode==BroadcastCameraMode.WideTactical?wideTactical:normalBroadcast;
             }
         }
 
+        public float UserZoom { get; private set; } = 1f;
+        public float UserSmoothing { get; private set; } = 1f;
+        public void SetUserPreferences(float zoom, float smoothing)
+        { UserZoom=Mathf.Clamp(zoom,0.85f,1.25f); UserSmoothing=Mathf.Clamp(smoothing,0.65f,1.8f); requestedZoom=Profile.size*UserZoom; zoomHoldUntil=0f; }
         public Vector3 Focus => focus;
         public SwimmerMotor Target => target;
         public void SetAttackingGoal(GoalMouth goal) => attackingGoal=goal;
@@ -144,7 +148,7 @@ namespace ToduStudios.WaterPolo
 
         private float FramingZoom(Vector3 desired,BroadcastCameraProfile profile)
         {
-            float zoom=Mathf.Max(minimumZoom,profile.size);
+            float zoom=Mathf.Max(minimumZoom,profile.size)*UserZoom;
             float baseHeight=keeperTarget?keeperHeight:height,baseDistance=keeperTarget?keeperDistance:distance;
             Quaternion inverse=Quaternion.Inverse(Quaternion.Euler(pitch,yaw,0f));
             float tan=Mathf.Tan(lens.fieldOfView*0.5f*Mathf.Deg2Rad);
@@ -159,11 +163,11 @@ namespace ToduStudios.WaterPolo
                     requirement=Mathf.Max(requirement,Mathf.Max(Mathf.Abs(local.x)/(local.z*tan*lens.aspect*0.8f),Mathf.Abs(local.y)/(local.z*tan*0.74f)));
                 }
                 if(requirement<=1.01f)break;
-                zoom=Mathf.Min(profile.maximumZoom,zoom*Mathf.Min(1.35f,requirement));
+                zoom=Mathf.Min(profile.maximumZoom*UserZoom,zoom*Mathf.Min(1.35f,requirement));
             }
-            if(zoom>requestedZoom+0.04f){requestedZoom=zoom;zoomHoldUntil=Time.unscaledTime+0.6f;}
-            else if(Time.unscaledTime>=zoomHoldUntil && zoom<requestedZoom-0.06f)requestedZoom=zoom;
-            return Mathf.Clamp(requestedZoom,minimumZoom,profile.maximumZoom);
+            if(zoom>requestedZoom+0.04f){requestedZoom=zoom;zoomHoldUntil=(match != null ? match.PresentationTime : Time.unscaledTime)+0.6f;}
+            else if((match != null ? match.PresentationTime : Time.unscaledTime)>=zoomHoldUntil && zoom<requestedZoom-0.06f)requestedZoom=zoom;
+            return Mathf.Clamp(requestedZoom,minimumZoom*UserZoom,profile.maximumZoom*UserZoom);
         }
 
         private Vector3 ClampFocus(Vector3 desired)
@@ -221,18 +225,19 @@ namespace ToduStudios.WaterPolo
 
         private void LateUpdate()
         {
+            if (match != null && match.IsPaused) return;
             if (target == null || poolBounds == null)
                 return;
             if (!initialized)
                 SnapToTarget();
             var profile=Profile;Vector3 desired=DesiredFocus();float zoom=FramingZoom(desired,profile);
-            float framingDamping=adaptiveBroadcast?profile.damping:framingSmoothTime;
+            float framingDamping=(adaptiveBroadcast?profile.damping:framingSmoothTime)*UserSmoothing;
             currentDistance = Mathf.SmoothDamp(currentDistance, (keeperTarget ? keeperDistance : distance)*zoom,
                 ref distanceVelocity, framingDamping, Mathf.Infinity, Time.deltaTime);
             currentHeight = Mathf.SmoothDamp(currentHeight, (keeperTarget ? keeperHeight : height)*zoom,
                 ref heightVelocity, framingDamping, Mathf.Infinity, Time.deltaTime);
             focus = Vector3.SmoothDamp(focus, desired, ref focusVelocity,
-                Mathf.Max(0.01f, smoothTime), Mathf.Infinity, Time.deltaTime);
+                Mathf.Max(0.01f, smoothTime*UserSmoothing), Mathf.Infinity, Time.deltaTime);
             ApplyPose();
         }
 

@@ -29,6 +29,7 @@ namespace ToduStudios.WaterPolo
         private void ResetDecision() { receiver = null; nextDecision = 0f; }
         private void Update()
         {
+            if (match.IsPaused) return;
             if (!keeper.isActiveAndEnabled || keeper.Stopped || keeper.HumanControlled) { ResetDecision(); return; }
             if (!keeper.Identity.Interaction.HasBall) { ResetDecision(); return; }
             float held = Time.time - keeper.Ball.OwnershipStartedAt;

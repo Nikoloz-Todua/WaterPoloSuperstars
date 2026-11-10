@@ -12,6 +12,10 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private PrototypeTeamTactics humanTeam;
         [SerializeField] private TMP_Text clockLabel, shotClockLabel, strategyLabel, panelTitle;
         [SerializeField] private GameObject panel, continueButton, restartButton, returnButton;
+        [SerializeField] private MatchMenuController menus;
+        [SerializeField] private TMP_Text possessionLabel;
+        private PrototypeTeam? shownPossession;
+        private bool possessionInitialized;
         private int displayedTime=-1,displayedShot=-1,displayedQuarter=-1;
         private DefenseStrategy? displayedDefense;
         private MatchPhase? displayedPhase;
@@ -19,10 +23,17 @@ namespace ToduStudios.WaterPolo
         {
             int seconds=Mathf.CeilToInt(match.Clock.DisplayRemaining);
             if(seconds!=displayedTime || match.Clock.Quarter!=displayedQuarter)
-            {displayedTime=seconds;displayedQuarter=match.Clock.Quarter;clockLabel.text=$"Q{displayedQuarter} — {seconds/60:0}:{seconds%60:00}";}
+            {displayedTime=seconds;displayedQuarter=match.Clock.Quarter;clockLabel.text=$"Q{displayedQuarter} | {seconds/60:0}:{seconds%60:00}";}
             int shot=match.ShotClock!=null?Mathf.CeilToInt(match.ShotClock.Remaining):28;
             if(shot!=displayedShot){displayedShot=shot;shotClockLabel.text=$"SHOT {shot:00}";shotClockLabel.color=shot<=5?new Color(1f,0.3f,0.12f):Color.white;}
             if(displayedDefense!=humanTeam.DefenseMode){displayedDefense=humanTeam.DefenseMode;strategyLabel.text=$"DEFENSE: {humanTeam.DefenseMode.ToString().ToUpperInvariant()} [Z]";}
+            if(possessionLabel!=null)
+            {
+                var team=match.ShotClock!=null?match.ShotClock.PossessionTeam:null;
+                if(!possessionInitialized || team!=shownPossession)
+                {possessionInitialized=true;shownPossession=team;possessionLabel.text=team.HasValue?$"{team.Value.ToString().ToUpperInvariant()} POSSESSION":"LOOSE BALL";}
+            }
+            if(menus!=null)return;
             if(displayedPhase==match.Phase)return;
             displayedPhase=match.Phase;
             bool modal=match.Phase==MatchPhase.QuarterBreak || match.Phase==MatchPhase.HalfTime || match.Phase==MatchPhase.FullTime || match.Phase==MatchPhase.PreMatch;
@@ -32,9 +43,9 @@ namespace ToduStudios.WaterPolo
             switch(match.Phase)
             {
                 case MatchPhase.QuarterBreak:panelTitle.text=$"QUARTER {match.Clock.Quarter} COMPLETE";break;
-                case MatchPhase.HalfTime:panelTitle.text=$"HALFTIME — SWITCHING ENDS\nBLUE {match.BlueScore} - {match.WhiteScore} WHITE";break;
-                case MatchPhase.FullTime:panelTitle.text=$"FULL TIME — {match.Result}\nBLUE {match.BlueScore} - {match.WhiteScore} WHITE";break;
-                case MatchPhase.TurnoverRestart:panelTitle.text="SHOT CLOCK — TURNOVER";break;
+                case MatchPhase.HalfTime:panelTitle.text=$"HALFTIME | SWITCHING ENDS\nBLUE {match.BlueScore} - {match.WhiteScore} WHITE";break;
+                case MatchPhase.FullTime:panelTitle.text=$"FULL TIME | {match.Result}\nBLUE {match.BlueScore} - {match.WhiteScore} WHITE";break;
+                case MatchPhase.TurnoverRestart:panelTitle.text="SHOT CLOCK | TURNOVER";break;
                 case MatchPhase.PreMatch:panelTitle.text="WATER POLO PROTOTYPE";break;
             }
         }

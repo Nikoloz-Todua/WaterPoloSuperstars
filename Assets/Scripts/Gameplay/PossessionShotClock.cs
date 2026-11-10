@@ -20,6 +20,8 @@ namespace ToduStudios.WaterPolo
         private void OnEnable(){if(ball!=null)ball.PossessionChanged+=Acquired;}
         private void OnDisable(){if(ball!=null)ball.PossessionChanged-=Acquired;}
         public void ResetPossession(){PossessionTeam=null;Remaining=Mathf.Max(1f,possessionSeconds);}
+        public void AwardCentreRestart(PrototypeTeam team)
+        {if(PossessionTeam!=team)TeamChanges++;PossessionTeam=team;Remaining=possessionSeconds;}
         public void AwardFoul(PrototypeTeam team, bool exclusion)
         {
             if (PossessionTeam != team) { PossessionTeam = team; Remaining = possessionSeconds; TeamChanges++; }

@@ -14,6 +14,7 @@ namespace ToduStudios.WaterPolo
         private SwimmerIdentity identity;
         private float startedAt;
         private ShotType selectedShot;
+        private object chargeSource;
         public bool IsCharging { get; private set; }
         public float NormalizedCharge => IsCharging ? Mathf.Clamp01((Time.time - startedAt) / chargeDuration) : 0f;
         private bool CanCharge => selection != null && !selection.InputLocked && selection.ActivePlayer == identity && identity.EligibleForPlay && interaction.HasBall &&
@@ -26,24 +27,26 @@ namespace ToduStudios.WaterPolo
         }
         private void OnEnable() { if (interaction.Ball != null) interaction.Ball.PossessionChanged += OnPossessionChanged; }
         public bool BeginCharge() => BeginCharge(ShotType.Normal);
-        public bool BeginCharge(ShotType shot)
+        public bool BeginCharge(ShotType shot)=>BeginCharge(shot,null);
+        public bool BeginCharge(ShotType shot,object source)
         {
             if (IsCharging || !CanCharge) return false;
-            startedAt = Time.time;
+            startedAt = Time.time;chargeSource=source;
             selectedShot=shot;
             IsCharging = true;
             return true;
         }
-        public bool ReleaseCharge()
+        public bool ReleaseCharge()=>ReleaseCharge(null);
+        public bool ReleaseCharge(object source)
         {
-            if (!IsCharging) return false;
+            if (!IsCharging || !ReferenceEquals(source,chargeSource)) return false;
             float speed = Mathf.Lerp(minimumShotSpeed, Mathf.Max(minimumShotSpeed, maximumShotSpeed), NormalizedCharge);
             bool allowed = CanCharge;
             ShotType shot=selectedShot==ShotType.Normal && NormalizedCharge>=0.65f?ShotType.Powerful:selectedShot;
             CancelCharge(); // Clear before release emits a synchronous possession/selection change.
             return allowed && interaction.TryShoot(speed,shot);
         }
-        public void CancelCharge() => IsCharging = false;
+        public void CancelCharge(){IsCharging=false;chargeSource=null;}
         private void Update() { if (IsCharging && !CanCharge) CancelCharge(); }
         private void OnPossessionChanged(SwimmerBallInteraction previous, SwimmerBallInteraction next)
         { if (next != interaction) CancelCharge(); }

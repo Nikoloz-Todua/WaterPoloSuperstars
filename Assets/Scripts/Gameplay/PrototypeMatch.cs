@@ -4,7 +4,7 @@ using UnityEngine;
 namespace ToduStudios.WaterPolo
 {
     public enum MatchPhase { PreMatch, Playing, GoalRestart, TurnoverRestart, QuarterBreak, FullTime, HalfTime,
-        FreeThrowSetup, FreeThrowReady, PenaltySetup, PenaltyReady, PenaltyFlight }
+        FreeThrowSetup, FreeThrowReady, PenaltySetup, PenaltyReady, PenaltyFlight, CentreRestartSetup, CentreRestartReady }
     /// <summary>Authoritative phases, score evaluation and transitions. Clocks advance only in Playing.</summary>
     [DefaultExecutionOrder(-100), DisallowMultipleComponent]
     public sealed class PrototypeMatch : MonoBehaviour
@@ -27,10 +27,16 @@ namespace ToduStudios.WaterPolo
         [SerializeField, Min(0.1f)] private float turnoverDelay = 1f;
         private PrototypeTeam? restartTeam;
         public MatchPhase Phase { get; private set; } = MatchPhase.Playing;
-        public bool IsPlaying => Phase==MatchPhase.Playing;
+        public bool IsPlaying => !IsPaused && Phase==MatchPhase.Playing;
+        public bool IsPaused { get; private set; }
+        // Gameplay stoppage deadlines share a pause-aware unscaled timeline. UI animation uses real unscaled time.
+        public float PresentationTime => (IsPaused ? pausedAt : Time.unscaledTime) - pausedSeconds;
+        private float pausedAt, pausedSeconds, resumeTimeScale = 1f;
+        private bool resumeAudioPause;
+        public event Action<bool> PauseChanged;
         [SerializeField] private MatchRules rules;
         public MatchRules Rules => rules;
-        public bool BallInMotion => IsPlaying || Phase == MatchPhase.PenaltyFlight;
+        public bool BallInMotion => !IsPaused && (IsPlaying || Phase == MatchPhase.PenaltyFlight);
         public MatchClock Clock => clock;
         public PossessionShotClock ShotClock => shotClock;
         public string Result => BlueScore==WhiteScore?"DRAW":BlueScore>WhiteScore?"WIN":"LOSE";
@@ -42,6 +48,14 @@ namespace ToduStudios.WaterPolo
         private int previousMotion, lastScoredShot = -1;
         private bool restoreMotor, restoreMovementInput, restoreInteractionInput;
         private float restartAt;
+        [SerializeField, Min(0.1f)] private float centrePreparationDelay=0.85f;
+        [SerializeField, Min(0.1f)] private float aiCentrePassDelay=0.45f;
+        public SwimmerIdentity CentreTaker { get; private set; }
+        public SwimmerIdentity CentreReceiver { get; private set; }
+        public bool IsCentreRestart => Phase==MatchPhase.CentreRestartSetup || Phase==MatchPhase.CentreRestartReady;
+        public int CentreSignals { get; private set; }
+        public event Action<SwimmerIdentity> CentreRestartSignalled;
+        private float centreReadyAt, centrePassAt;
 
         public int BlueScore { get; private set; }
         public int WhiteScore { get; private set; }
@@ -71,6 +85,7 @@ namespace ToduStudios.WaterPolo
                 return;
             previousPosition = ballBody.position;
             previousMotion = ball.MotionRevision;
+            ball.Released += CentreReleased;
         }
 
         private void FixedUpdate()
@@ -122,7 +137,7 @@ namespace ToduStudios.WaterPolo
             if(rules!=null)rules.GoalScored();
             Phase=MatchPhase.GoalRestart;restartTeam=team==PrototypeTeam.Blue?PrototypeTeam.White:PrototypeTeam.Blue;
             ball.CaptureGoal(goal);
-            restartAt = Time.unscaledTime + restartDelay;
+            restartAt = PresentationTime + restartDelay;
             StopPlay(false);
         }
 
@@ -152,7 +167,7 @@ namespace ToduStudios.WaterPolo
         {
             if(!IsPlaying)return;
             Phase=MatchPhase.TurnoverRestart;restartTeam=awardedTeam;
-            restartAt=Time.unscaledTime+turnoverDelay;StopPlay(true);
+            restartAt=PresentationTime+turnoverDelay;StopPlay(true);
         }
 
         public void BeginRuleRestart(bool penalty)
@@ -163,7 +178,7 @@ namespace ToduStudios.WaterPolo
         }
         public void ReadyRuleRestart(bool penalty)
         {
-            if (Phase != MatchPhase.FreeThrowSetup && Phase != MatchPhase.PenaltySetup) return;
+            if (IsPaused || (Phase != MatchPhase.FreeThrowSetup && Phase != MatchPhase.PenaltySetup)) return;
             Phase = penalty ? MatchPhase.PenaltyReady : MatchPhase.FreeThrowReady;
             roster.SetSimulationPaused(false);
             // Ball remains held; motors may turn, but MatchRules freezes translation until the throw.
@@ -175,14 +190,14 @@ namespace ToduStudios.WaterPolo
         }
         public void LaunchPenalty()
         {
-            if (Phase != MatchPhase.PenaltyReady) return;
+            if (IsPaused || Phase != MatchPhase.PenaltyReady) return;
             Phase = MatchPhase.PenaltyFlight;
             playerSelection.SetInputLocked(true);
             Changed?.Invoke();
         }
         public void EndRuleRestart()
         {
-            if (rules == null || !rules.IsRulePhase) return;
+            if (IsPaused || rules == null || !rules.IsRulePhase) return;
             Phase = MatchPhase.Playing;
             roster.SetSimulationPaused(false); ball.SetSimulationPaused(false);
             playerSelection.SetInputLocked(false);
@@ -197,6 +212,7 @@ namespace ToduStudios.WaterPolo
 
         public void ContinueMatch()
         {
+            if (IsPaused) return;
             if(Phase==MatchPhase.PreMatch){RestartMatch();return;}
             if(Phase!=MatchPhase.QuarterBreak && Phase!=MatchPhase.HalfTime)return;
             bool half=Phase==MatchPhase.HalfTime;
@@ -207,6 +223,8 @@ namespace ToduStudios.WaterPolo
         public void ReturnToPrototype()=>PrepareMatch(false);
         private void PrepareMatch(bool play)
         {
+            SetPaused(false);
+            CentreTaker=CentreReceiver=null;CentreSignals=0;
             Phase=MatchPhase.PreMatch;StopPlay(true);
             SetEnds(false);EndSwitchCount=0;
             BlueScore=WhiteScore=0;lastScoredShot=-1;clock.Reset();restartTeam=null;
@@ -217,8 +235,12 @@ namespace ToduStudios.WaterPolo
 
         private void Update()
         {
-            if (IsRestarting && Time.unscaledTime >= restartAt)
-                CompleteRestart();
+            if(IsPaused)return;
+            if(IsRestarting && PresentationTime>=restartAt)
+            {if(Phase==MatchPhase.GoalRestart)BeginCentreRestart();else CompleteRestart();}
+            if(Phase==MatchPhase.CentreRestartSetup && PresentationTime>=centreReadyAt)ReadyCentreRestart();
+            if(Phase==MatchPhase.CentreRestartReady && CentreTaker.Team!=playerSelection.HumanTeam && PresentationTime>=centrePassAt)
+                TryCentrePass(CentreTaker);
         }
 
         private void CompleteRestart(bool smoothCamera = false)
@@ -258,6 +280,71 @@ namespace ToduStudios.WaterPolo
             Changed?.Invoke();
         }
 
+        private PrototypeTeamTactics Team(PrototypeTeam team)
+        {foreach(var t in teams)if(t.Team==team)return t;return null;}
+        private void BeginCentreRestart()
+        {
+            if(Phase!=MatchPhase.GoalRestart || !restartTeam.HasValue)return;
+            var awarded=restartTeam.Value;restartTeam=null;CentreTaker=CentreReceiver=null;
+            roster.ResetPositions();
+            // Stable designated field taker; never assign a goalkeeper or an excluded athlete.
+            foreach(var p in roster.FieldPlayers)
+                if(p.Team==awarded && p.EligibleForPlay && (CentreTaker==null || p.CapNumber<CentreTaker.CapNumber))CentreTaker=p;
+            if(CentreTaker==null){Debug.LogWarning("No eligible field athlete for centre restart; match remains stopped.",this);return;}
+            Vector3 center=ballStart.position;center.y=CentreTaker.Motor.Position.y;
+            foreach(var p in roster.FieldPlayers)
+            {
+                if(!p.EligibleForPlay || p==CentreTaker)continue;
+                var direction=Team(p.Team).AttackDirection;Vector3 point=p.Motor.Position;
+                float depth=Vector3.Dot(point-center,direction);
+                if(depth>-3f)point-=direction*(depth+3f);
+                p.Motor.ResetPose(point,Quaternion.LookRotation(direction));
+                if(p.Team==awarded && (CentreReceiver==null || (point-center).sqrMagnitude<(CentreReceiver.Motor.Position-center).sqrMagnitude))CentreReceiver=p;
+            }
+            if(CentreReceiver!=null)
+            {
+                var direction=Team(awarded).AttackDirection;var right=Vector3.Cross(Vector3.up,direction);
+                CentreReceiver.Motor.ResetPose(center+right*3.8f-direction*3.5f,Quaternion.LookRotation(direction));
+            }
+            Vector3 facing=CentreReceiver!=null?CentreReceiver.Motor.Position-center:-Team(awarded).AttackDirection;
+            CentreTaker.Motor.ResetPose(center,Quaternion.LookRotation(facing));
+            Phase=MatchPhase.CentreRestartSetup;
+            ball.ResetForRestart(center);ball.TryAwardRestart(CentreTaker.Interaction);
+            if(shotClock!=null)shotClock.AwardCentreRestart(awarded);
+            centreReadyAt=PresentationTime+centrePreparationDelay;
+            previousPosition=ballBody.position;previousMotion=ball.MotionRevision;
+            Changed?.Invoke();
+        }
+        private void ReadyCentreRestart()
+        {
+            if(IsPaused || Phase!=MatchPhase.CentreRestartSetup)return;
+            Phase=MatchPhase.CentreRestartReady;roster.SetSimulationPaused(false);ball.SetSimulationPaused(false);
+            bool human=CentreTaker.Team==playerSelection.HumanTeam;
+            playerSelection.SetInputLocked(!human);
+            if(human)playerSelection.Select(CentreTaker);
+            centrePassAt=PresentationTime+aiCentrePassDelay;
+            CentreSignals++;Changed?.Invoke();CentreRestartSignalled?.Invoke(CentreTaker);
+        }
+        public bool CanCentreRelease(SwimmerBallInteraction player,BallReleaseKind kind)=>!IsPaused &&
+            Phase==MatchPhase.CentreRestartReady && CentreTaker!=null && CentreTaker.EligibleForPlay &&
+            CentreTaker.Interaction==player && kind==BallReleaseKind.Pass;
+        public bool IsCentreReceiver(SwimmerIdentity receiver)=>receiver!=null && CentreTaker!=null && receiver!=CentreTaker &&
+            receiver.IsFieldPlayer && receiver.EligibleForPlay && receiver.Team==CentreTaker.Team && roster.Contains(receiver) &&
+            Vector3.Dot(receiver.Motor.Position-ballStart.position,Team(receiver.Team).AttackDirection)<=0f;
+        public bool TryCentrePass(SwimmerIdentity player)
+        {
+            if(player==null || !CanCentreRelease(player.Interaction,BallReleaseKind.Pass) || !IsCentreReceiver(CentreReceiver))return false;
+            return player.GetComponent<SwimmerPassing>().TryPassTo(CentreReceiver);
+        }
+        private void CentreReleased(SwimmerBallInteraction player,BallReleaseKind kind)
+        {
+            if(!CanCentreRelease(player,kind))return;
+            // Release has already created a physical ball. Resume once, without resetting or assigning it.
+            Phase=MatchPhase.Playing;CentreTaker=CentreReceiver=null;
+            playerSelection.SetInputLocked(false);
+            previousPosition=ballBody.position;previousMotion=ball.MotionRevision;Changed?.Invoke();
+        }
+
         private void CaptureInitialEnds()
         {
             if(initialAttackGoals!=null)return;
@@ -280,8 +367,33 @@ namespace ToduStudios.WaterPolo
             if(roster!=null)roster.SetEndsReversed(reversed);
         }
 
+        /// <summary>Suspension preserves phase, body velocities and possession without applying a restart freeze.</summary>
+        public void SetPaused(bool paused)
+        {
+            if (paused == IsPaused || (paused && (Phase == MatchPhase.PreMatch || Phase == MatchPhase.FullTime))) return;
+            if (paused)
+            {
+                pausedAt = Time.unscaledTime; resumeTimeScale = Time.timeScale; resumeAudioPause = AudioListener.pause;
+                IsPaused = true; Time.timeScale = 0f; AudioListener.pause = true;
+            }
+            else
+            {
+                pausedSeconds += Time.unscaledTime - pausedAt; IsPaused = false;
+                Time.timeScale = resumeTimeScale; AudioListener.pause = resumeAudioPause;
+            }
+            if (playerSelection != null && playerSelection.ActivePlayer != null)
+            {
+                var active = playerSelection.ActivePlayer;
+                active.GetComponent<BallInteractionInput>()?.ResetAfterMenu();
+                if (!paused) active.GetComponent<SwimmerInput>()?.ResetAfterMenu();
+            }
+            PauseChanged?.Invoke(paused);
+        }
+
         private void OnDisable()
         {
+            SetPaused(false);
+            if(ball!=null)ball.Released-=CentreReleased;
             if (!IsPlaying && ball != null && swimmer != null && ballStart != null && swimmerStart != null)
                 CompleteRestart();
         }

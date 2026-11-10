@@ -11,7 +11,8 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private BallController ball;
         [SerializeField] private PrototypeTeam humanTeam = PrototypeTeam.Blue;
         public SwimmerIdentity ActivePlayer { get; private set; }
-        public bool InputLocked { get; private set; }
+        private bool phaseInputLocked;
+        public bool InputLocked => phaseInputLocked || (ball != null && ball.Match != null && ball.Match.IsPaused);
         public PrototypeTeam HumanTeam => humanTeam;
         private SwimmerIdentity lastFieldPlayer;
         [SerializeField] private PrototypeTeamTactics tacticalTeam;
@@ -123,7 +124,7 @@ namespace ToduStudios.WaterPolo
 
         public void SetInputLocked(bool locked)
         {
-            InputLocked = locked;
+            phaseInputLocked = locked;
             if (!locked && !IsEligible(ActivePlayer)) SelectFieldFallback();
             ApplySelection();
         }

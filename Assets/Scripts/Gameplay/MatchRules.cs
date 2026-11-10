@@ -68,17 +68,18 @@ namespace ToduStudios.WaterPolo
         { for (int i = 0; i < teams.Length; i++) if (teams[i].Team == team) return teams[i]; return null; }
         public int ActiveFields(PrototypeTeam team)
         { int count = 0; foreach (var p in roster.FieldPlayers) if (p.Team == team && p.EligibleForPlay) count++; return count; }
-        public bool CanSelect(SwimmerIdentity player) => !IsRulePhase || taker == null || taker.Team != selection.HumanTeam || player == taker;
+        public bool CanSelect(SwimmerIdentity player) => match.IsCentreRestart ? player==match.CentreTaker : !IsRulePhase || taker == null || taker.Team != selection.HumanTeam || player == taker;
         public bool CanRelease(SwimmerBallInteraction player, BallReleaseKind kind)
         {
             var identity = player != null ? player.GetComponent<SwimmerIdentity>() : null;
-            if (identity == null || !identity.EligibleForPlay) return false;
+            if (match.IsPaused || identity == null || !identity.EligibleForPlay) return false;
             if (match.IsPlaying) return true;
+            if (match.IsCentreRestart) return match.CanCentreRelease(player,kind);
             return identity == taker && (match.Phase == MatchPhase.FreeThrowReady &&
                 (kind == BallReleaseKind.Pass || kind == BallReleaseKind.Lob) ||
                 match.Phase == MatchPhase.PenaltyReady && kind == BallReleaseKind.Shot);
         }
-        public bool KeeperMayAct(PrototypeGoalkeeper keeper) => keeper != null && match.Phase == MatchPhase.PenaltyFlight && keeper == penaltyKeeper;
+        public bool KeeperMayAct(PrototypeGoalkeeper keeper) => !match.IsPaused && keeper != null && match.Phase == MatchPhase.PenaltyFlight && keeper == penaltyKeeper;
         public bool PenaltyStation(PrototypeGoalkeeper keeper) => IsPenalty && keeper == penaltyKeeper;
         public bool CanMove(SwimmerIdentity player) => match.IsPlaying || (!player.IsFieldPlayer && KeeperMayAct(player.GetComponent<PrototypeGoalkeeper>()));
 
@@ -131,7 +132,7 @@ namespace ToduStudios.WaterPolo
             ArrangeRestart(); ball.TryAwardRestart(taker.Interaction);
             if (match.ShotClock != null)
                 match.ShotClock.AwardFoul(victim.Team, exclusion);
-            readyAt = Time.unscaledTime + setupSeconds;
+            readyAt = match.PresentationTime + setupSeconds;
             Emit(penalty ? RefereeDecision.Penalty : exclusion ? RefereeDecision.Exclusion : RefereeDecision.Ordinary, offender, victim.Team);
             selection.RefreshEligibility();
             return true;
@@ -215,17 +216,17 @@ namespace ToduStudios.WaterPolo
         }
         private void Update()
         {
-            if (!IsRulePhase) return;
+            if (match.IsPaused || !IsRulePhase) return;
             if (match.Phase == MatchPhase.FreeThrowSetup || match.Phase == MatchPhase.PenaltySetup)
             {
-                if (Time.unscaledTime < readyAt) return;
-                match.ReadyRuleRestart(penalty); throwAt = Time.unscaledTime + maximumThrowWait;
+                if (match.PresentationTime < readyAt) return;
+                match.ReadyRuleRestart(penalty); throwAt = match.PresentationTime + maximumThrowWait;
                 if (!penalty) Emit(RefereeDecision.FreeThrow, taker, taker.Team);
                 return;
             }
             if (match.Phase == MatchPhase.PenaltyFlight)
             {
-                if (ball.Owner != null || Time.unscaledTime >= flightUntil)
+                if (ball.Owner != null || match.PresentationTime >= flightUntil)
                 {
                     if (match.ShotClock != null) match.ShotClock.FinishPenalty(taker.Team, ball.Owner);
                     match.EndRuleRestart();
@@ -234,7 +235,7 @@ namespace ToduStudios.WaterPolo
             }
             if (taker == null || !taker.EligibleForPlay) { match.EndRuleRestart(); return; }
             bool human = taker.Team == selection.HumanTeam;
-            if (human && Time.unscaledTime < throwAt) return;
+            if (human && match.PresentationTime < throwAt) return;
             var team = Team(taker.Team);
             var receiver = penalty ? null : FindOutlet();
             Vector3 target = penalty ? team.ShotTarget() : receiver != null ? receiver.Motor.Position : taker.Motor.Position + team.AttackDirection * 5f;
@@ -262,7 +263,7 @@ namespace ToduStudios.WaterPolo
         {
             if (player != taker?.Interaction) return;
             if (match.Phase == MatchPhase.FreeThrowReady) match.EndRuleRestart();
-            else if (match.Phase == MatchPhase.PenaltyReady) { flightUntil = Time.unscaledTime + 3f; match.LaunchPenalty(); }
+            else if (match.Phase == MatchPhase.PenaltyReady) { flightUntil = match.PresentationTime + 3f; match.LaunchPenalty(); }
         }
         public void TickLive(float seconds)
         {

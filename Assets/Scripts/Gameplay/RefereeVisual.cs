@@ -19,6 +19,7 @@ namespace ToduStudios.WaterPolo
             if(signal==RefereeSignal.Foul || signal==RefereeSignal.Exclusion || signal==RefereeSignal.Period)left=new Vector3(-115f,0f,45f);
             if(signal==RefereeSignal.Exclusion)right=new Vector3(-75f,0f,-80f);
             if(signal==RefereeSignal.Penalty){left=new Vector3(-90f,0f,0f);right=new Vector3(-90f,0f,0f);}
+            if(signal==RefereeSignal.Restart)right=new Vector3(-100f,0f,-35f);
             if(signal==RefereeSignal.Goal)right=new Vector3(-90f,0f,-20f);
             if(signal==RefereeSignal.Period)right=new Vector3(-115f,0f,25f);
             leftArm.localRotation=Quaternion.Slerp(leftArm.localRotation,Quaternion.Euler(left),1f-Mathf.Exp(-10f*Time.deltaTime));

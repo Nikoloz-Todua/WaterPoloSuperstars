@@ -2,7 +2,137 @@
 
 Last updated: 2026-11-10.
 
-## Current handoff — M10 gameplay realism expansion
+## Current handoff — M11 UI visibility, mobile controls and centre-pass correction
+
+This is the explicitly authorized corrective implementation following the developer's M11 manual test. All prior uncommitted M11 changes are preserved. **Do not perform Git write operations.** The saved PrototypePool scene is now configured through the Editor; this delivery must include actual scene wiring and Game view evidence, not source compilation alone. No new milestone, project, gameplay scene or authority was created.
+
+### Confirmed defects and repairs
+
+1. **The saved scene was never configured for M11.** Fresh inspection found the old active Screen Space Overlay Canvas, fourteen athletes, one EventSystem, **zero MatchMenuController components and no Pause button**. The previous source-only delivery had left setup/runtime verification pending. The existing Canvas was working; the new interface was absent from the scene. The setup is now applied and saved directly in PrototypePool.
+2. **Custom graphics lacked CanvasRenderer components.** The first actual Game view capture showed text with invisible panel backgrounds/icon bars and repeated MissingComponentException errors. RoundedPanelGraphic now explicitly requires CanvasRenderer, and setup repairs missing renderers on existing active/inactive graphics. A trial triangle-winding change did not solve this and was reverted. Subsequent actual renders show the panels, Pause bars, joystick and action backgrounds correctly.
+3. **Goal restarts returned directly to Playing.** The old delayed CompleteRestart reset athletes and awarded the first conceding athlete possession at its start marker, then immediately enabled competition. It had no protected centre-pass procedure. Explicit centre restart phases now replace that goal-only path.
+4. **Pause could move a held ball once.** BallController's LateUpdate carry smoothing lacked an immediate pause guard; changing timeScale does not retroactively zero the current frame's deltaTime. Carry smoothing now exits while paused. AI, commands, clocks, swimmers, rules, referee and water updates already have explicit suspension gates.
+
+Setup initially assumed every athlete had human SwimmerInput. White AI athletes do not. This was corrected to wire existing human components only; incomplete setup can resume using an interface-version marker and existing objects. No swimmers/components were recreated to work around the failure.
+
+### On-screen input architecture
+
+- `MobileMatchControls` is a presentation/input adapter on the existing Canvas. It caches the selected athlete's existing APIs. **SwimmerInput remains the sole writer of human movement**, choosing keyboard/gamepad movement when non-zero, otherwise the selected athlete's virtual joystick. Sprint requests combine keyboard Shift with the UI hold. It never creates possession, a ball, another motor or a second phase controller.
+- `VirtualSwimJoystick` implements pointer down/drag/up/cancel with one pointer ID, analogue magnitude, dead zone and a reusable handle. Release/disable recentres it. Keyboard movement has priority during simultaneous input.
+- `GameplayActionButton` implements pointer down/up/exit/cancel; it does not fake holds with Button.onClick. **SHOOT** begins charge on down and releases on up; leaving the button cancels. **SPRINT** remains held until release/cancel. Independent pointer IDs permit joystick plus action holds. PASS, LOB, SWITCH, STEAL, COLLECT, defensive strategy and shot-mode cycling call existing commands.
+- ShotCharge tracks an optional initiating input source. A keyboard release cannot release a pointer-owned charge, or vice versa. Both retain the same charge timing, speed, mode and release APIs. Pass/lob, pause, selection changes, stoppages, lost focus and disabled controls cancel relevant holds; nothing replays on resume.
+- Actions adapt to possession and rule eligibility. Attacking exposes SHOOT/PASS/LOB, with NORMAL → SKIP → HIGH mode selection. Defending exposes STEAL; a loose ball exposes COLLECT. SPRINT/SWITCH and the strategy control remain accessible but respect current eligibility. During a human centre restart PASS is available after the signal, while shooting, swimming, sprint, switching, stealing and lobs are blocked. Pause remains available. Modal screens hide/block gameplay controls.
+- Existing WASD/arrows, E/B/C/F/Space/Shift/L/Z/G and Q/R shot modifiers remain. Menu mouse/touch interactions use the existing InputSystemUIInputModule. No legacy Input API or external assets are introduced.
+
+### Authoritative centre restart
+
+PrototypeMatch appends **CentreRestartSetup** and **CentreRestartReady** without renumbering earlier phases. GoalRestart still provides the brief GOAL/net pause. Its expiry now enters centre setup instead of Playing. Period starts and shot-clock turnovers keep their separate existing procedures; foul/penalty phases remain owned by MatchRules plus PrototypeMatch.
+
+- Reset eligible athletes to roster starts, keep goalkeepers at their current defended ends, and constrain other fields to their own half using each team's **current AttackDirection**. Excluded/permanently removed athletes remain ineligible and parked through the existing rules observer.
+- Choose the conceding team's eligible field taker deterministically by cap number. Place that taker at the centre marker, choose an eligible teammate outlet, and face the taker toward it. BallController.TryAwardRestart is extended for this exact authoritative centre award; it remains the sole owner of possession.
+- The possession clock is awarded/reset to the conceding team while stopped. Match/exclusion/possession time stays frozen through setup and ready. No centre-setup steals or shots are permitted.
+- After the configurable **0.85s preparation** default, enter Ready and emit **one CentreRestartSignalled event**. MatchAtmosphere whistles; deck referees show a restart arm signal. They observe the authoritative transition and do not decide readiness themselves. GameplayCamera uses its existing set-piece profile.
+- **Blue:** automatically select the taker and show **PASS TO RESTART | B OR PASS**. There is **no human auto-pass timeout**. B and UI PASS enter SwimmerPassing.TryPass → PrototypeMatch.TryCentrePass → the existing physical pass API toward the designated outlet.
+- **White:** after the same signal plus a configurable **0.45s AI pass delay**, use the same pass API without keyboard simulation. The pass has velocity and travel time; the receiver acquires only when physically reachable.
+- BallController.Released is the single successful-release transition into Playing. It does not reset/re-award the already travelling ball. Centre passes cannot count as scoring shots. The shot clock remains with the awarded team through friendly reception rather than resetting twice. Pause-aware PresentationTime preserves both preparation deadlines. Restart/exit clears the centre references and signal count.
+
+### Saved layout and repeat-safe automation
+
+Use **Tools > Water Polo > Set Up Milestone 11 Interface**, outside Play Mode on saved PrototypePool. This now repairs custom renderers, extends an existing M11 interface with missing controls and preserves completed layout tuning. `MobileControlsSetup` creates/reuses controls and wires only athletes that already have SwimmerInput. It adds no Canvas/EventSystem, ball, swimmer, goal or duplicate menu. Repeated setup verified **419 transforms and the same fourteen athlete IDs**. SampleScene is unchanged.
+
+CanvasScaler remains 1920×1080 with landscape height scaling. The top-right Pause icon is 106×106 reference pixels. Left thumb space contains the 220×220 joystick; compact athlete status sits above it. Right actions have separate thumb zones; rule status sits above them. Safe-area roots cover HUD and menus, with a full-screen dim backdrop. Existing score, clocks, stamina, shot power, strategy and foul information retain their observers. The pause heading spacing was corrected in the saved scene to match the current setup defaults.
+
+### Fresh automated evidence
+
+Pinned Windows Editor: **Unity 6000.6.7f1**. Verified an advancing player loop using job wait on frameCount before trusting Play Mode renders. Checks are in **Tools/Verification/Milestone11Verification.cs**; results/captures in ignored **Logs/UIFix-***.
+
+| Entry | Fresh result / coverage |
+| --- | --- |
+| Setup | PASS: repeat-safe wiring, CanvasRenderer requirements, one Canvas/EventSystem/menu/preferences component, fourteen identities. |
+| MousePause | PASS: injected mouse down/up through the actual InputSystemUIInputModule opens Pause; pointer Resume returns to play. |
+| MobileButtons | PASS: joystick, keyboard priority after physical turning, sprint hold/release, source-owned charge/release, pass plus real reception and automatic control transfer, lob, switch without ownership, valid steal, strategy, skip mode, cancelled pause holds, Blue goalkeeper control/distribution eligibility. |
+| MenusSettingsAndTransitions | PASS: visible button raycasts, confirmation/cancel, restart/exit/landing/start, applied and persisted preferences (user values restored after test), Q2 end swap, full-time draw and foul/stamina reset. |
+| PauseAndRules | PASS: Escape, charge cancellation, clock/position/velocity/ownership/stamina preservation, direct command rejection, airborne ball, exclusion, free throw, penalty and delayed goal/turnover restarts. |
+| CentreRestarts | PASS: physical Blue/White scoring and conceding restarts in Q1 and Q3, own-half formations, exactly one signal, no premature movement with enabled AI, physical AI pass/reception, manual B/UI PASS after >6s wait, pause during ready, clock release timing and exact-once score. |
+| ActualGameViewLayouts | PASS: **18 actual Game view renders**, HUD/Pause/Settings/Confirmation/Landing/Transition at **1920×1080, 2340×1080, 2400×1080** (16:9, 19.5:9, 20:9), simulated 70px side/24px vertical safe insets, button bounds, text overflow and populated panel meshes. Original Game view selection restored; temporary resolution entries removed. Representative images and Q3 centre restart inspected visually. |
+| LiveAIPause | Carry guard correction implemented; final rerun pending below. |
+| GameplayRealismVerification.Integration | One consolidated regression pending below. |
+
+Failed checks were investigated rather than weakened: the null human-input wiring and absent renderers were repaired; the keyboard-turn test now allows finite motor acceleration; UI centre-pass testing allows the presentation frame after Resume; the live AI pause check exposed the carry guard defect. Source compilation alone is not counted as runtime success. No historical suites were repeatedly rerun wholesale.
+
+### Exact developer review
+
+1. Open **Assets > Scenes > PrototypePool** and press Play. The saved interface is configured; no Inspector wiring is needed. If repairing a different local copy, stop Play Mode, save intended edits and run **Tools > Water Polo > Set Up Milestone 11 Interface** once.
+2. Confirm the top-right Pause icon, joystick and right-side actions. Click Pause and Resume; repeat with Escape. Pause while swimming, sprinting, holding SHOOT, and during ball flight. Scores, ball ownership, positions and both clocks must remain stable. Release held inputs while paused, then resume without a stale action.
+3. Drag the joystick; hold a movement key at the same time to check keyboard priority. Hold SPRINT while moving, then release it. Collect the ball; hold/release SHOOT, use PASS/LOB, cycle NORMAL/SKIP/HIGH, SWITCH and the defense-mode button. Test STEAL against a nearby exposed opponent after acquisition protection.
+4. Settings: move audio/camera sliders, choose graphics presets, Save & Back, resume, then stop/re-enter Play to inspect persistence. Crowd volume is intentionally absent with no crowd clip. Subjective audio levels and camera comfort need human review.
+5. Restart/Exit > Cancel must preserve play. Confirm Restart resets Q1, 0:0, ends, stamina and foul history while keeping preferences. Confirm Exit opens the landing screen; Start Match returns to the match.
+6. Score as Blue: inspect the GOAL pause, White's centre setup, whistle and real automatic pass. Let White score: Blue's selected taker must remain at centre with **PASS TO RESTART** indefinitely. Press B or PASS; verify physical travel and resumed clocks. SHOOT/SWITCH/joystick cannot bypass the protected phase; Pause still works.
+7. Continue through Q2 halftime and repeat both goal restarts after ends change. Period starts retain the neutral centre ball. Review full-time win/loss/draw and Play Again. Automated transition coverage includes draw; subjective win/loss presentation remains manual.
+8. Game view resolution dropdown: review 16:9, 19.5:9 and 20:9 landscape. Check pointer targets and comfortable visibility while playing, plus Console. Screenshots in Logs/UIFix-* provide repeatable Editor evidence; no physical phone/touch/performance claim is made.
+
+### Files and limits
+
+New for this correction: **MobileMatchControls.cs, VirtualSwimJoystick.cs, GameplayActionButton.cs** in Assets/Scripts/Gameplay and **MobileControlsSetup.cs** in Assets/Editor, with Unity meta files. Existing uncommitted M11 files remain new in Git. Modified for this correction: PrototypeMatch, MatchRules, BallController, SwimmerPassing, PossessionShotClock, ShotCharge, SwimmerInput, SwimmerMotor, PoolsideReferee, RefereeVisual, MatchAtmosphere, GameplayCamera, RoundedPanelGraphic, Milestone11UISetup, PrototypePool scene, consolidated M11 verification, README, AGENTS and this handoff. The older M11 inventory below records its other integration changes.
+
+No Android/iOS hardware or real multitouch verification; pointer IDs are implemented, but simultaneous physical touch and cancellation by device OS remain manual/device follow-up. No touchscreen aim stick: joystick/keyboard facing aims ordinary play; centre passes use the prepared outlet. No substitution/forfeit rule is added for a team with too few permanently eligible fields to form a centre pass; it remains stopped rather than inventing possession or replacing athletes. Graphics presets remain lightweight presentation controls, not measured device performance. Windows Burst code-integrity warning remains an external issue; security, package versions and caches were not altered.
+
+Stop after this correction. Human manual review and human-only Git operations follow.
+
+## Historical handoff — M11 source-only interface (2026-11-10)
+
+Milestone 11 is explicitly authorized. It extends the committed realism baseline `4def2fb`; all M11 changes must remain **unstaged and uncommitted**. Earlier M10 sections below retain their historical status. The full **14-athlete** match, one ball authority, physical shots, tactics, rules and four-period flow remain the foundation.
+
+### Interface implementation
+
+- Existing uGUI Canvas and observers are extended in place. No new UI framework, gameplay scene, ball authority or competing match timer. **Tools > Water Polo > Set Up Milestone 11 Interface** configures PrototypePool with Play Mode stopped and the scene saved. It refuses other scenes/unsaved edits and preserves layout/Inspector tuning on subsequent runs. SampleScene is untouched.
+- Navy/water-blue rounded mesh panels, compact Blue/White score, quarter/displayed 8:00 clock, urgent shot clock, possession chip, athlete/energy card, Press/Zone chip, rules/personal-foul/exclusion card and short hints. Existing charged-power graphic remains. Rules notifications use a compact event card; goals retain their own notice.
+- Top-right Pause uses the existing InputSystemUIInputModule for mouse and future touch. Escape and gamepad Start use a private New Input System action; Escape is also the platform Back route where provided by the input backend. No legacy input. Android Back and physical touch require device verification.
+- Pause offers Resume, Settings, Restart and Exit. Restart/Exit use cancellable confirmations. Exit calls the existing ReturnToPrototype reset into PreMatch and opens an in-scene prototype landing screen; Start Match uses the existing reset API. It does not quit the application or load/overwrite another scene.
+- Quarter, halftime and full-time cards observe the existing phases. Continue uses the existing atomic end swap; full-time shows Victory/Defeat/Draw from Blue's result. Fades use unscaled time; hidden panels cannot accept pointer input. Buttons have color feedback. Events/actions have explicit enable/disable/disposal lifetimes.
+
+### Pause integration
+
+**PrototypeMatch remains the sole authority.** Its orthogonal `IsPaused` preserves the underlying phase. `IsPlaying` and `BallInMotion` reject suspended activity. Suspension saves/restores timeScale and AudioListener.pause without calling the restart freeze that clears swimmer velocities or changes ball kinematics. No position/velocity/ownership snapshot is teleported back on resume.
+
+Gameplay input, selection, rule release/keeper permissions, restart awards, AI decisions, keeper distribution, referee updates and stamina are explicitly gated. Human charge cancels safely; held Space is blocked until released and same-frame input is suppressed on return. Human command vectors clear on resume while physical velocity remains. AI decisions are preserved rather than reset through a phase Changed event. Water feedback freezes without removing existing effects.
+
+Existing unscaled goal/turnover, free-throw setup/fallback, penalty-resolution and referee/feed/camera deadlines now use `PrototypeMatch.PresentationTime`: the original unscaled timeline minus suspended duration. It freezes during suspension and is **not** another match/shot clock. Do not reset its epoch during a new match. Scaled cooldowns/physics freeze with simulation. Resume retains the phase; confirmed Restart/Exit release suspension before the synchronous authoritative reset. Disable/teardown releases owned global pause state. Application backgrounding opens pause; returning does not silently resume competition.
+
+### Settings and landscape architecture
+
+`GamePreferences` persists one versioned local JSON PlayerPrefs key, `ToduStudios.WaterPolo.UI.v1`. Values are validated/clamped; unsupported versions/corrupt JSON use defaults. Sliders apply immediately; disk saves happen on leaving menus/disable/backgrounding, not every slider frame. Preferences survive match reset.
+
+- Master controls AudioListener.volume; SFX controls the match cue source. Optional crowd audio has a separate source/level; its slider is hidden when no crowd clip is configured. No fake crowd control or downloaded audio.
+- Camera distance (0.85–1.25x) multiplies existing bounded framing; smoothing (0.65–1.8x) multiplies damping without overwriting authored profiles.
+- Low disables water feedback and camera shadows/post effects. Medium uses reduced water feedback with those camera features disabled. High restores standard water feedback and the camera's original shadow/post flags. These are presentation presets, not measured phone-performance claims or URP asset quality changes.
+- CanvasScaler uses 1920×1080 and landscape height scaling. HUD/menu content have separate normalized safe-area roots; the dim backdrop covers the whole view. A controls reference documents current keyboard actions. Full touchscreen gameplay controls remain future scope.
+
+### Files
+
+New runtime files in `Assets/Scripts/Gameplay/`: `MatchMenuController.cs`, `GamePreferences.cs`, `MatchSettingsView.cs`, `SafeAreaLayout.cs`, `RoundedPanelGraphic.cs`, plus Unity-generated meta files. New setup: `Assets/Editor/Milestone11UISetup.cs` (+ meta). Focused checks: `Tools/Verification/Milestone11Verification.cs` outside player builds.
+
+Modified integration files in `Assets/Scripts/Gameplay/`: PrototypeMatch, MatchRules, PlayerSelection, BallController, BallInteractionInput, SwimmerInput, PrototypeSwimmerAI, PrototypeGoalkeeper, GoalkeeperDistribution, SwimmerStamina, PoolsideReferee, GameplayCamera, WaterInteractionEffects, MatchAtmosphere, MatchHUD, PrototypeScoreboard and ActiveStaminaHUD. Scene configuration and final documentation changes are recorded with verification below.
+
+### Fresh verification status / remaining handoff
+
+- Fresh Unity script recompilation completed without errors. The complete external M11 verification file compiled through `Milestone11Verification.SourceContracts` (latest 684ms compilation, no diagnostics). This is source/API verification, not gameplay validation. Latest native Console audit: **0 errors, 1 warning** (pre-existing Burst JIT DLL blocked by Windows code-integrity policy); Unity AI NoSubscription entries are ordinary logs. The Console was not cleared.
+- The initial Editor was ready but its Play Mode was **paused**. M11 setup correctly refused to change a playing scene. The user's session is preserved pending explicit approval to stop it. **Scene setup, focused Play Mode checks, layout renders and consolidated gameplay regression have not yet run.**
+- Focused entries: Setup (repeat safety/14 identities); PauseAndRules (Escape, charge cancellation, physical state, clocks, exclusions, throws, penalties, restarts); MenusSettingsAndTransitions (pointer raycasts, confirmations, reset/exit, preferences and periods); LiveAIPause (enabled AI decision preservation); LandscapeLayouts (16:9, 19.5:9, 20:9 and simulated safe insets). Reuse GameplayRealismVerification.Integration once for consolidated gameplay coverage.
+- No developer manual gameplay, phone/touch or performance verification is claimed. Burst/Smart App Control remains the pre-existing external issue documented below; M11 does not change security settings, packages or caches.
+
+### Manual Unity review
+
+1. Open **Assets > Scenes > PrototypePool**. Stop Play Mode, save intended edits, then run **Tools > Water Polo > Set Up Milestone 11 Interface** if not already configured. Press Play and focus Game view.
+2. Click Pause; verify frozen clocks, athletes, ball and referees. Resume. Repeat with Escape while swimming, charging Space, during high/lob flight and a protected restart. Release Space while paused; resume must not release a stale shot.
+3. In Settings, change Master/SFX, camera distance/smoothing and Low/Medium/High. Save & Back, resume and compare actual behavior. Stop/re-enter Play Mode to check persistence. Crowd slider should be absent with the current clip-free crowd configuration.
+4. Restart > Cancel preserves the match. Restart > Confirm returns Q1, 0:0, full stamina, clean fouls/exclusions and original ends. Exit > Cancel preserves play; Exit > Confirm opens the landing screen. Settings and Start Match there must work.
+5. In the **Game view resolution/aspect dropdown**, review **16:9, 19.5:9 and 20:9** landscape. Check pause/confirm/settings click targets, readable text, HUD spacing and visible play. Real cutouts and touch remain unverified.
+6. Play through quarter/halftime/full time. Continuing after Q2 swaps ends once. Check result and Play Again confirmation, including win/loss/draw as available. Check Console and exact-once goals/turnovers, including pause near shot-clock expiry.
+
+Stop after M11. Next work is human manual review and human-only Git operations.
+
+## Historical handoff — M10 gameplay realism expansion
 
 This is the explicitly authorized follow-up to the existing **uncommitted M10 phase**, not a separately committed/pushed milestone. It preserves the previous M10 work and all **14 athletes**. Verification uses the pinned Windows **Unity 6000.6.7f1** Editor; no Android hardware, Blender, paid assets, imported rigs or external services are needed. The earlier M10 handoff below remains technical history, with its rule-profile limits still applicable.
 

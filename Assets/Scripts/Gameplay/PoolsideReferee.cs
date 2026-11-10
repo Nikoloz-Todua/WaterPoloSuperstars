@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace ToduStudios.WaterPolo
 {
-    public enum RefereeSignal { None, Foul, Exclusion, Penalty, Goal, Period }
+    public enum RefereeSignal { None, Foul, Exclusion, Penalty, Goal, Period, Restart }
     /// <summary>Purposeful deck movement and rule-event observation. Never decides a foul or touches gameplay physics.</summary>
     [DisallowMultipleComponent]
     public sealed class PoolsideReferee : MonoBehaviour
@@ -29,30 +29,33 @@ namespace ToduStudios.WaterPolo
         public float TargetZ=>targetZ;
         public bool Walking=>walking;
         private void Awake(){presentation=visual as IRefereePresentation;targetZ=transform.position.z;lastScore=match.BlueScore+match.WhiteScore;}
-        private void OnEnable(){rules.Decided+=Decision;match.Changed+=Phase;match.NewMatch+=ResetObserver;}
-        private void OnDisable(){rules.Decided-=Decision;match.Changed-=Phase;match.NewMatch-=ResetObserver;}
+        private void OnEnable(){rules.Decided+=Decision;match.Changed+=Phase;match.NewMatch+=ResetObserver;match.CentreRestartSignalled+=CentreSignal;}
+        private void OnDisable(){rules.Decided-=Decision;match.Changed-=Phase;match.NewMatch-=ResetObserver;match.CentreRestartSignalled-=CentreSignal;}
         private void ResetObserver(){targetZ=pool.transform.position.z;walking=false;speed=0f;Signal=RefereeSignal.None;lastScore=0;holdUntil=0f;}
+        private void CentreSignal(SwimmerIdentity taker)
+        {Signal=RefereeSignal.Restart;signalUntil=match.PresentationTime+1.6f;holdUntil=signalUntil;}
         private void Decision(RefereeEvent e)
         {
             if(e.Decision==RefereeDecision.Reentry || e.Decision==RefereeDecision.FreeThrow)return;
             Signal=e.Decision==RefereeDecision.Penalty?RefereeSignal.Penalty:e.Decision==RefereeDecision.Exclusion?RefereeSignal.Exclusion:RefereeSignal.Foul;
-            signalUntil=Time.unscaledTime+1.8f;holdUntil=Time.unscaledTime+0.8f;
+            signalUntil=match.PresentationTime+1.8f;holdUntil=match.PresentationTime+0.8f;
         }
         private void Phase()
         {
             int score=match.BlueScore+match.WhiteScore;
-            if(score!=lastScore){Signal=RefereeSignal.Goal;signalUntil=Time.unscaledTime+2f;holdUntil=signalUntil;}
+            if(score!=lastScore){Signal=RefereeSignal.Goal;signalUntil=match.PresentationTime+2f;holdUntil=signalUntil;}
             else if(match.Phase==MatchPhase.QuarterBreak || match.Phase==MatchPhase.HalfTime || match.Phase==MatchPhase.FullTime)
-            {Signal=RefereeSignal.Period;signalUntil=Time.unscaledTime+1.6f;targetZ=pool.transform.position.z;}
+            {Signal=RefereeSignal.Period;signalUntil=match.PresentationTime+1.6f;targetZ=pool.transform.position.z;}
             lastScore=score;nextDecision=0f;
         }
         private void Update()
         {
-            if(Time.unscaledTime>=signalUntil)Signal=RefereeSignal.None;
+            if (match.IsPaused) return;
+            if(match.PresentationTime>=signalUntil)Signal=RefereeSignal.None;
             Vector3 action=ball.PlayPosition;
-            if(Time.unscaledTime>=nextDecision && Time.unscaledTime>=holdUntil)
+            if(match.PresentationTime>=nextDecision && match.PresentationTime>=holdUntil)
             {
-                nextDecision=Time.unscaledTime+decisionInterval;
+                nextDecision=match.PresentationTime+decisionInterval;
                 float z=action.z-pool.transform.position.z;
                 // Observe sectors, rather than tracking every small ball displacement.
                 float sector=Mathf.Abs(z)<4f?0f:Mathf.Sign(z)*(Mathf.Abs(z)>10f?pool.Length*0.38f:pool.Length*0.22f);
@@ -62,8 +65,8 @@ namespace ToduStudios.WaterPolo
                 if(Mathf.Abs(desired-targetZ)>moveThreshold)targetZ=desired;
             }
             float delta=targetZ-transform.position.z;
-            if(!walking && Mathf.Abs(delta)>moveThreshold && Time.unscaledTime>=holdUntil)walking=true;
-            if(walking && (Mathf.Abs(delta)<stopThreshold || Time.unscaledTime<holdUntil))walking=false;
+            if(!walking && Mathf.Abs(delta)>moveThreshold && match.PresentationTime>=holdUntil)walking=true;
+            if(walking && (Mathf.Abs(delta)<stopThreshold || match.PresentationTime<holdUntil))walking=false;
             float desiredSpeed=walking?Mathf.Sign(delta)*Mathf.Min(walkingSpeed,Mathf.Sqrt(2f*acceleration*Mathf.Abs(delta))):0f;
             speed=Mathf.MoveTowards(speed,desiredSpeed,acceleration*Time.deltaTime);
             Vector3 point=transform.position;point.z+=speed*Time.deltaTime;

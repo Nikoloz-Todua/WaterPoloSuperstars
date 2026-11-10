@@ -7,6 +7,7 @@ namespace ToduStudios.WaterPolo
     public sealed class ActiveStaminaHUD : MonoBehaviour
     {
         [SerializeField] private PlayerSelection selection;
+        [SerializeField] private bool showAthlete;
         [SerializeField] private UnityEngine.UI.Image fill;
         [SerializeField] private TMP_Text label;
         private SwimmerIdentity observed;
@@ -16,7 +17,7 @@ namespace ToduStudios.WaterPolo
             if(observed!=selection.ActivePlayer)
             {
                 observed=selection.ActivePlayer;stamina=observed!=null?observed.GetComponent<SwimmerStamina>():null;
-                label.text=stamina!=null && stamina.SprintAllowed?"STAMINA [SHIFT]":"GOALKEEPER";
+                label.text=showAthlete && observed!=null?$"BLUE #{observed.CapNumber}  /  {(observed.IsFieldPlayer?"FIELD":"GOALKEEPER")}":stamina!=null && stamina.SprintAllowed?"STAMINA [SHIFT]":"GOALKEEPER";
             }
             float value=stamina!=null?stamina.Value:1f;fill.rectTransform.anchorMax=new Vector2(value,1f);
             fill.color=Color.Lerp(new Color(1f,0.2f,0.08f),new Color(0.15f,0.9f,0.45f),value);

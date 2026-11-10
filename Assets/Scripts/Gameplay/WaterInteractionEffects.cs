@@ -69,6 +69,7 @@ namespace ToduStudios.WaterPolo
         }
         private void LateUpdate()
         {
+            if (match.IsPaused) return;
             if(appliedQuality!=quality){appliedQuality=quality;Clear();}
             ActiveEffects=0;
             if(quality==WaterEffectsQuality.Off)return;

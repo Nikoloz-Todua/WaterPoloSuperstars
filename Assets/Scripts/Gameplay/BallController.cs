@@ -141,7 +141,10 @@ namespace ToduStudios.WaterPolo
 
         public bool TryAwardRestart(SwimmerBallInteraction claimant)
         {
-            if (match == null || match.Rules == null || !match.Rules.IsRulePhase || match.Rules.Taker?.Interaction != claimant || !Eligible(claimant)) return false;
+            if(match==null || match.IsPaused || !Eligible(claimant))return false;
+            bool centre=match.IsCentreRestart && match.CentreTaker?.Interaction==claimant;
+            bool foul=match.Rules!=null && match.Rules.IsRulePhase && match.Rules.Taker?.Interaction==claimant;
+            if(!centre && !foul)return false;
             ResetForRestart(claimant.GetComponent<SwimmerMotor>().Position);
             AssignOwner(claimant);
             return true;
@@ -236,6 +239,7 @@ namespace ToduStudios.WaterPolo
         {
             if (!CanRelease(claimant, BallReleaseKind.Pass) || simulationPaused || State != BallState.Held || Owner != claimant || !Eligible(claimant))
                 return false;
+            if(match!=null && match.IsCentreRestart && (receiver==null || !match.IsCentreReceiver(receiver.Identity)))return false;
             direction = Vector3.ProjectOnPlane(direction, Vector3.up);
             if (direction.sqrMagnitude < 0.0001f || speed <= 0f ||
                 (receiver != null && !receiver.CanReceiveFrom(claimant))) return false;
@@ -276,7 +280,7 @@ namespace ToduStudios.WaterPolo
 
         public void Drop(SwimmerBallInteraction claimant)
         {
-            if (State == BallState.Held && Owner == claimant && claimant != null)
+            if ((match == null || !match.IsPaused) && State == BallState.Held && Owner == claimant && claimant != null)
                 Release(claimant, 0f, claimant.transform.forward, BallReleaseKind.Drop);
         }
 
@@ -301,7 +305,7 @@ namespace ToduStudios.WaterPolo
             ReleaseKind = kind;
             ReleaseStartedAt = Time.time;
             LastReleaser = claimant;
-            IsScoringShot = speed > 0f && (match == null || match.Phase != MatchPhase.FreeThrowReady);
+            IsScoringShot = speed > 0f && (match == null || (!match.IsCentreRestart && match.Phase != MatchPhase.FreeThrowReady));
             if (IsScoringShot) ShotSequence++;
             Owner = null;
             State = BallState.Released;
@@ -361,7 +365,7 @@ namespace ToduStudios.WaterPolo
         public bool TryCatchContact(SwimmerBallInteraction claimant, Vector3 contact)
         {
             var identity = claimant != null ? claimant.GetComponent<SwimmerIdentity>() : null;
-            if (!(Live || match!=null && match.Phase==MatchPhase.PenaltyFlight) || !isActiveAndEnabled || simulationPaused || Owner != null || State == BallState.Held || identity == null || !identity.EligibleForPlay || identity.IsFieldPlayer || !claimant.isActiveAndEnabled || claimant.CarryAnchor == null)
+            if (!(Live || match!=null && !match.IsPaused && match.Phase==MatchPhase.PenaltyFlight) || !isActiveAndEnabled || simulationPaused || Owner != null || State == BallState.Held || identity == null || !identity.EligibleForPlay || identity.IsFieldPlayer || !claimant.isActiveAndEnabled || claimant.CarryAnchor == null)
                 return false;
             Vector3 incoming=Velocity;
             body.position = contact;
@@ -374,7 +378,7 @@ namespace ToduStudios.WaterPolo
         public bool TryDeflectContact(SwimmerBallInteraction claimant, Vector3 contact, Vector3 outgoingVelocity)
         {
             var identity = claimant != null ? claimant.GetComponent<SwimmerIdentity>() : null;
-            if (!(Live || match!=null && match.Phase==MatchPhase.PenaltyFlight) || !isActiveAndEnabled || simulationPaused || Owner != null || State == BallState.Held || identity == null || !identity.EligibleForPlay || identity.IsFieldPlayer || !claimant.isActiveAndEnabled) return false;
+            if (!(Live || match!=null && !match.IsPaused && match.Phase==MatchPhase.PenaltyFlight) || !isActiveAndEnabled || simulationPaused || Owner != null || State == BallState.Held || identity == null || !identity.EligibleForPlay || identity.IsFieldPlayer || !claimant.isActiveAndEnabled) return false;
             intendedReceiver = null; RestoreOwnerCollision();
             Vector3 incoming=Velocity;
             if(contact.y>SurfaceHeight+0.04f || outgoingVelocity.y>0.1f)BeginFlight(contact,outgoingVelocity);
@@ -538,6 +542,8 @@ namespace ToduStudios.WaterPolo
 
         private void LateUpdate()
         {
+            // timeScale changes do not retroactively zero this frame's deltaTime. Freeze carry immediately.
+            if (match!=null && match.IsPaused)return;
             if (State != BallState.Held || Owner == null)
                 return;
             // Use the interpolated swimmer pose, after physics, for a smooth visible carry.

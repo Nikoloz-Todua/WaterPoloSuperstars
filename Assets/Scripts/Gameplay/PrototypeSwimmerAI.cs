@@ -49,6 +49,7 @@ namespace ToduStudios.WaterPolo
         }
         private void Update()
         {
+            if (match.IsPaused) return;
             if (selection.ActivePlayer == identity) { Behaviour = SwimmerAIBehaviour.Human; nextDecision = 0f; return; }
             if (!identity.EligibleForPlay || !match.IsPlaying || selection.InputLocked || !identity.Motor.enabled)
             { Behaviour = SwimmerAIBehaviour.Stopped; nextDecision = 0f; return; }

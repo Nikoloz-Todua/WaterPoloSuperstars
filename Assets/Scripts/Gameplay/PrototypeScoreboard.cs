@@ -7,6 +7,7 @@ namespace ToduStudios.WaterPolo
     public sealed class PrototypeScoreboard : MonoBehaviour
     {
         [SerializeField] private PrototypeMatch match;
+        [SerializeField] private bool compactScore;
         [SerializeField] private TMP_Text scoreLabel;
         [SerializeField] private TMP_Text goalLabel;
 
@@ -21,7 +22,7 @@ namespace ToduStudios.WaterPolo
         {
             if (match == null)
                 return;
-            scoreLabel.text = $"BLUE {match.BlueScore} - {match.WhiteScore} WHITE";
+            scoreLabel.text = compactScore?$"{match.BlueScore} : {match.WhiteScore}":$"BLUE {match.BlueScore} - {match.WhiteScore} WHITE";
             goalLabel.gameObject.SetActive(match.Phase==MatchPhase.GoalRestart);
         }
 

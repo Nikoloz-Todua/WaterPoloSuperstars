@@ -27,6 +27,7 @@ namespace ToduStudios.WaterPolo
         private void OnDisable(){if(match!=null)match.NewMatch-=ResetStamina;StopSprint();}
         public void Simulate(bool moving,float seconds)
         {
+            if(match!=null && match.IsPaused)return;
             if(match!=null && !match.IsPlaying){StopSprint();return;}
             if(!sprintAllowed){StopSprint();return;}
             if(exhausted && Value>=restartThreshold)exhausted=false;
