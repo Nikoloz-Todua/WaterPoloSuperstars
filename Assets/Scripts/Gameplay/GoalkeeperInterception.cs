@@ -36,7 +36,7 @@ namespace ToduStudios.WaterPolo
         {
             Vector3 current = ball.PhysicsPosition;
             Vector3 from = previousMotion == ball.MotionRevision ? previousBall : ball.MotionOrigin;
-            if (!match.IsRestarting && ball.Owner == null)
+            if (match.IsPlaying && ball.Owner == null)
             {
                 // Two opposite goal areas do not overlap; resolve at most one confirmed contact per step.
                 for (int i = 0; i < keepers.Length; i++)

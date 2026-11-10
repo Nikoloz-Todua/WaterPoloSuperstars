@@ -39,6 +39,7 @@ namespace ToduStudios.WaterPolo
 
         public Vector3 Focus => focus;
         public SwimmerMotor Target => target;
+        public void SetAttackingGoal(GoalMouth goal) => attackingGoal=goal;
 
         public void SetTarget(SwimmerMotor followTarget)
         {

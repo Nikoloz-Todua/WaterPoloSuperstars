@@ -10,17 +10,17 @@ Water Polo Superstars is a 3D mobile water polo game developed by **ToduStudios*
 - Shared tactical reasoning for both teams, one authoritative ball-possession system, and independent human selection.
 - Useful concepts from the previous Water Polo Manager game are references; its 2D physics implementation is not imported.
 
-## Current stage — Milestone 8
+## Current stage — Milestone 9
 
-`Assets/Scenes/PrototypePool.unity` contains two Blue field players, two White AI field players, and one goalkeeper per team. Swimming, physical passing/reception, tactical AI, stealing, goal detection, score HUD and six-athlete restarts remain. Milestone 8 adds temporary human Blue goalkeeper control on confirmed possession, charged human shots with a power bar, and modest camera/goal-frame readability improvements.
+`Assets/Scenes/PrototypePool.unity` contains **six field players and one goalkeeper per team: 14 athletes**. The complete Milestone 9 prototype adds six tactical roles, coordinated Press/Zone defense, four compressed periods, a possession shot clock and turnovers, shared sprint/stamina, aerial lob passes and match-flow HUD/panels. Existing movement, passing, stealing, charged shots, temporary human Blue goalkeeper possession, saves and scoring remain.
 
-The developer manually tested and backed up Milestone 7 as `a1374a8`. Earlier Milestone 6 confirmations cover movement, passing, shooting, stealing, AI activity and both teams scoring; they do not establish exhaustive edge-case coverage. Milestone 8 awaits developer manual testing. See the canonical handoff for actual automated results and limitations. Mobile builds and device performance remain unverified.
+The developer manually tested Milestone 8 and backed it up as `734d8da`. Milestone 9 awaits developer manual gameplay testing; see the canonical handoff for actual automated checks and limitations. Mobile builds, device performance and final game feel remain unverified.
 
 Goalkeepers share the existing ball ownership and passing APIs. Saves require actual swept contact within a limited hand sphere, and missed/out-of-reach shots can score. Blue keeper possession selects the keeper and suspends its positioning/distribution AI; releasing the ball returns field control, and the keeper swims home. White's keeper stays autonomous. Upright orange bodies and team-colored caps are placeholders. Physical goal mouths remain 3m by 0.9m; brighter white frames and smoothly blended keeper/field camera framing improve presentation.
 
 ## Open and play
 
-Open the project in the pinned Unity Editor. In the Project panel, double-click **Assets > Scenes > PrototypePool**, press Play, then click the Game view. The saved scene is already wired; optional setup is **Tools > Water Polo > Set Up Milestone 8 Prototype**, outside Play Mode after saving intended scene edits. Repeated setup preserves the existing pool/goals/camera/HUD and tuning.
+Open **Assets > Scenes > PrototypePool**, press Play, then click the Game view. The saved scene is wired. Optional setup is **Tools > Water Polo > Set Up Milestone 9 Match**, outside Play Mode after saving intended edits. Repeated setup preserves identities, existing pool/goals, and gameplay tuning.
 
 | Control | Action |
 | --- | --- |
@@ -30,8 +30,13 @@ Open the project in the pinned Unity Editor. In the Project panel, double-click 
 | Hold / release Space | Charge / shoot in the facing direction (quick tap also shoots) |
 | C | Switch Blue field player |
 | F | Attempt a close-range steal |
+| Hold Left Shift | Sprint while swimming (field players; consumes stamina) |
+| L | Physical aerial lob pass |
+| Z | Toggle Blue Press / Zone defense |
 
-Blue attacks +Z and White attacks -Z. Friendly acquisition selects the actual carrier, including Blue's keeper. The keeper is not included in routine C switching. A single bottom-centre bar appears only while charging and progresses green/yellow/red over the default 0.7s charge. AI uses immediate shots. Touch controls are not implemented. Goals reset all six athletes while retaining the score; this remains free play without official clocks, match end or full rules. Diving animations, shot-height/arcing mechanics and realistic water are future work.
+Blue initially attacks +Z and White -Z. Continuing after Period 2 physically switches both teams' ends, formations and goalkeepers; scoring follows the current attacking goal. Periods 3/4 retain those ends, and a new match restores the originals. Friendly acquisition selects the actual carrier, including Blue's keeper; C cycles only the six Blue fields. Human shots use the existing 0.7s charge bar; AI shoots directly. Lob passes have actual Y height, gravity, low descending reception and a ground height cue.
+
+Default match: **four periods, each displaying 8:00 over 80 seconds of live play (6×)**. Clocks stop during restarts and breaks. Click **Continue / Start** at breaks, including **HALFTIME — SWITCHING ENDS** after Q2. Full time shows WIN/LOSE/DRAW, **Restart Match** and **Return to Prototype** (the same scene's paused ready state). The independent **28-second** shot clock survives same-team passes and keeper distribution, resets on opposing acquisition and stops at breaks; it is not accelerated sixfold. Expiration awards a controlled opposing restart. Periods use a neutral centre-ball start; goals award the conceding team possession. Stamina persists across ordinary restarts and resets for a new match. A formal swim-off, official foul/rebound exceptions, touch HUD, diving animations and final art remain future work.
 
 ## Documentation and source control
 

@@ -12,10 +12,15 @@ namespace ToduStudios.WaterPolo
 
         private SwimmerMotor motor;
         private InputAction moveAction;
+        private InputAction sprintAction;
+        private SwimmerStamina stamina;
 
         private void Awake()
         {
             motor = GetComponent<SwimmerMotor>();
+            stamina = GetComponent<SwimmerStamina>();
+            sprintAction = new InputAction("Sprint",InputActionType.Button,"<Keyboard>/leftShift");
+            sprintAction.wantsInitialStateCheck=true;
         }
 
         private void OnEnable()
@@ -35,17 +40,20 @@ namespace ToduStudios.WaterPolo
             }
 
             moveAction.Enable();
+            sprintAction.Enable();
         }
 
         private void Update()
         {
             motor.ClearFacingDirection();
             motor.SetMoveInput(moveAction.ReadValue<Vector2>());
+            if(stamina!=null)stamina.RequestSprint(sprintAction.IsPressed());
         }
 
         private void OnDisable()
         {
             moveAction?.Disable();
+            sprintAction?.Disable();if(stamina!=null)stamina.StopSprint();
             if (motor != null)
                 motor.SetMoveInput(Vector2.zero);
         }
@@ -53,6 +61,7 @@ namespace ToduStudios.WaterPolo
         private void OnDestroy()
         {
             moveAction?.Dispose();
+            sprintAction?.Dispose();
         }
     }
 }

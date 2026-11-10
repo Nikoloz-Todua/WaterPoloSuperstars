@@ -36,7 +36,7 @@ namespace ToduStudios.WaterPolo
 
         public StealResult TrySteal()
         {
-            if (!isActiveAndEnabled || identity == null || !identity.Motor.enabled || match.IsRestarting || selection.InputLocked)
+            if (!isActiveAndEnabled || identity == null || !identity.Motor.enabled || !match.IsPlaying || selection.InputLocked)
                 return LastResult = StealResult.Unavailable;
             if (!CanAttempt) return LastResult = StealResult.Cooldown;
             // A valid attempt consumes its cooldown even if facing/range/protection rejects it.

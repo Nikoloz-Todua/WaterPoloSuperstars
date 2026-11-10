@@ -29,7 +29,7 @@ namespace ToduStudios.WaterPolo
         public bool TryPass()
         {
             if (!Interaction.HasBall || roster == null) return false;
-            Vector3 forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+            Vector3 forward = Vector3.ProjectOnPlane(Identity.Motor.Facing, Vector3.up).normalized;
             Vector3 origin = Identity.Motor.Position;
             SwimmerPassing receiver = null;
             float best = float.NegativeInfinity;
@@ -57,7 +57,7 @@ namespace ToduStudios.WaterPolo
             Vector3 delta = Vector3.ProjectOnPlane(teammate.Motor.Position - Identity.Motor.Position, Vector3.up);
             float distance = delta.magnitude;
             var receiver = teammate.GetComponent<SwimmerPassing>();
-            Vector3 forward = Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
+            Vector3 forward = Vector3.ProjectOnPlane(Identity.Motor.Facing, Vector3.up).normalized;
             if (distance < 2.5f || distance > maximumTargetDistance || Vector3.Dot(forward, delta / distance) < Mathf.Cos(assistCone * Mathf.Deg2Rad) || receiver == null || !receiver.CanReceiveFrom(Interaction)) return false;
             return Launch(forward, receiver);
         }

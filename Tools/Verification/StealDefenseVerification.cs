@@ -27,6 +27,10 @@ public static class StealDefenseVerification
         foreach (var ai in allAI) ai.enabled = false;
         var steal = blue[0].GetComponent<SwimmerSteal>();
         var keyboard = InputSystem.AddDevice<Keyboard>(); var passed = new List<string>();
+        // This fixture verifies Press; automatic White strategy selection is covered by integrated M9 play.
+        var defenderTeam=white[0].GetComponent<PrototypeSwimmerAI>().TacticalTeam;
+        var defenseTuning=new UnityEditor.SerializedObject(defenderTeam);bool automatic=defenseTuning.FindProperty("automaticDefense").boolValue;var defenseMode=defenderTeam.DefenseMode;
+        defenseTuning.FindProperty("automaticDefense").boolValue=false;defenseTuning.ApplyModifiedPropertiesWithoutUndo();defenderTeam.SetDefense(DefenseStrategy.Press);
         void Pose(SwimmerIdentity p, float x, float z, float yaw) => p.Motor.ResetPose(new Vector3(x, 0f, z), Quaternion.Euler(0f, yaw, 0f));
         async Task Claim(SwimmerIdentity carrier)
         {
@@ -85,6 +89,7 @@ public static class StealDefenseVerification
         }
         finally
         {
+            defenseTuning.Update();defenseTuning.FindProperty("automaticDefense").boolValue=automatic;defenseTuning.ApplyModifiedPropertiesWithoutUndo();defenderTeam.SetDefense(defenseMode);
             foreach (var keeper in isolatedKeepers) if (keeper != null) keeper.enabled = true;
             InputSystem.RemoveDevice(keyboard); foreach (var ai in allAI) ai.enabled = false;
             selection.SetInputLocked(false); roster.ResetPositions(); ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f)); selection.Select(blue[0]);

@@ -42,7 +42,7 @@ namespace ToduStudios.WaterPolo.Editor
             }
             SwimmerIdentity[] players = actors.GetComponentsInChildren<SwimmerIdentity>(true)
                 .Where(p => p.IsFieldPlayer).OrderBy(p => p.Team).ThenBy(p => p.PlayerId, StringComparer.Ordinal).ToArray();
-            if (players.Length != 4 || players.Count(p => p.Team == PrototypeTeam.Blue) != 2 || players.Count(p => p.Team == PrototypeTeam.White) != 2 || players.Select(p => p.PlayerId).Distinct().Count() != players.Length)
+            if (players.Length < 4 || players.Count(p => p.Team == PrototypeTeam.Blue) < 2 || players.Count(p => p.Team == PrototypeTeam.White) < 2 || players.Select(p => p.PlayerId).Distinct().Count() != players.Length)
                 throw new InvalidOperationException("2v2 setup requires two distinct Blue and two distinct White identities; existing unexpected actors were preserved.");
             var rosterData = new SerializedObject(roster);
             var allAthletes = players.Concat(actors.GetComponentsInChildren<SwimmerIdentity>(true).Where(p => !p.IsFieldPlayer)).ToArray();

@@ -38,8 +38,10 @@ namespace ToduStudios.WaterPolo
         public bool ThreateningShot => ball.Owner == null && ball.ReleaseKind == BallReleaseKind.Shot && ball.IsScoringShot && defendedGoal.transform.InverseTransformDirection(ball.Velocity).z > 0.1f;
         public SwimmerIdentity Identity => identity != null ? identity : identity = GetComponent<SwimmerIdentity>();
         public GoalMouth DefendedGoal => defendedGoal;
+        public void SetDefendedGoal(GoalMouth goal)
+        {defendedGoal=goal;ResetDecisions();}
         public BallController Ball => ball;
-        public bool Stopped => match.IsRestarting || selection.InputLocked || !Identity.Motor.enabled;
+        public bool Stopped => !match.IsPlaying || selection.InputLocked || !Identity.Motor.enabled;
         public bool HumanControlled => selection.ActivePlayer == Identity && !selection.InputLocked;
         public bool AtStation => Vector3.Distance(Identity.Motor.Position, StationPosition(Identity.Motor.Position)) <= 0.05f;
         public bool PossessionProtected => Vector3.Distance(Identity.Motor.Position, StationPosition(Identity.Motor.Position)) <= possessionProtectionDistance;

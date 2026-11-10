@@ -29,6 +29,7 @@ public static class GoalScoringPrototypeVerification
         PlayerSelection selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
         if (selection != null) selection.Select(UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>().Members[0]);
         SwimmerMotor motor = selection != null ? selection.ActivePlayer.Motor : UnityEngine.Object.FindAnyObjectByType<SwimmerMotor>();
+        PrototypeRoster fixtureRoster = UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>();
         SwimmerBallInteraction interaction = motor.GetComponent<SwimmerBallInteraction>();
         BallController ball = UnityEngine.Object.FindAnyObjectByType<BallController>();
         Rigidbody body = ball.GetComponent<Rigidbody>();
@@ -63,6 +64,10 @@ public static class GoalScoringPrototypeVerification
             async Task Prepare(GoalMouth goal, float x = 0f, float distance = 4f)
             {
                 Press(keyboard);
+                // Isolate the shot geometry from every roster size: the M9 central defender can block a long shot.
+                int parked=0;
+                foreach(var other in fixtureRoster.FieldPlayers)
+                    if(other.Motor!=motor)other.Motor.ResetPose(new Vector3(other.Team==PrototypeTeam.Blue?8f:-8f,0f,-9f+3f*parked++),Quaternion.identity);
                 Vector3 position = goal.transform.TransformPoint(new Vector3(x, 0f, -distance));
                 position.y = pool.Waterline;
                 motor.ResetPose(position, goal.transform.rotation);
@@ -149,6 +154,7 @@ public static class GoalScoringPrototypeVerification
             if (!match.enabled) match.enabled = true;
             if (!match.IsRestarting)
             {
+                fixtureRoster.ResetPositions();
                 motor.ResetPose(Vector3.zero, Quaternion.identity);
                 ball.ResetForRestart(new Vector3(0f, ball.SurfaceHeight, 1.65f));
                 Camera.main.GetComponent<GameplayCamera>().SnapToTarget();

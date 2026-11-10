@@ -35,7 +35,7 @@ namespace ToduStudios.WaterPolo.Editor
             if (opponent != null && (opponent.PlayerId != "prototype-white-1" || opponent.Team != PrototypeTeam.White))
                 throw new InvalidOperationException("Unexpected opponent identity; refusing to replace it.");
             if (actors.GetComponentsInChildren<SwimmerMotor>(true).Any(m => m != first && m.name != "Swimmer2" &&
-                (m.GetComponent<SwimmerIdentity>() == null || (m.GetComponent<SwimmerIdentity>().IsFieldPlayer && m.GetComponent<SwimmerIdentity>().Team != PrototypeTeam.White))))
+                m.GetComponent<SwimmerIdentity>() == null))
                 throw new InvalidOperationException("Unexpected extra swimmers; refusing to duplicate them.");
 
             Transform secondTransform = actors.Find("Swimmer2");

@@ -22,14 +22,16 @@ namespace ToduStudios.WaterPolo
         private Vector3 aimDirection;
         private ISwimmerMovementBounds movementBounds;
         private float speedOverride = -1f;
+        private SwimmerStamina stamina;
         public void OverrideSpeed(float speed) => speedOverride = Mathf.Max(0.1f, speed);
         public void ClearSpeedOverride() => speedOverride = -1f;
         public void SetMovementBounds(ISwimmerMovementBounds bounds) => movementBounds = bounds;
         private Vector3 ClampMovement(Vector3 position) => poolBounds.ClampPosition(movementBounds != null ? movementBounds.ClampMovement(position) : position, boundaryClearance);
 
         public Vector3 Velocity => velocity;
-        public float MaxSpeed => speedOverride > 0f ? speedOverride : maxSpeed;
+        public float MaxSpeed => (speedOverride > 0f ? speedOverride : maxSpeed) * (stamina!=null?stamina.SpeedMultiplier:1f);
         public Vector3 Position => body != null ? body.position : transform.position;
+        public Vector3 Facing => body!=null?body.rotation*Vector3.forward:transform.forward;
 
         public void StopMotion()
         {
@@ -37,6 +39,7 @@ namespace ToduStudios.WaterPolo
             velocity = Vector3.zero;
             aimDirection = Vector3.zero;
             ClearSpeedOverride();
+            if(stamina!=null)stamina.StopSprint();
         }
 
         public void ResetPose(Vector3 position, Quaternion rotation)
@@ -66,6 +69,7 @@ namespace ToduStudios.WaterPolo
         private void Awake()
         {
             body = GetComponent<Rigidbody>();
+            stamina = GetComponent<SwimmerStamina>();
             body.isKinematic = true;
             body.useGravity = false;
             body.interpolation = RigidbodyInterpolation.Interpolate;
@@ -82,8 +86,10 @@ namespace ToduStudios.WaterPolo
         private void FixedUpdate()
         {
             float step = Time.fixedDeltaTime;
+            if(stamina!=null)stamina.Simulate(moveInput.sqrMagnitude>0.01f,step);
             Vector3 targetVelocity = new Vector3(moveInput.x, 0f, moveInput.y) * MaxSpeed;
             float changeRate = moveInput.sqrMagnitude > 0f ? acceleration : deceleration;
+            if(stamina!=null)changeRate*=stamina.AccelerationMultiplier;
             velocity = Vector3.MoveTowards(velocity, targetVelocity, changeRate * step);
 
             Vector3 previous = body.position;
@@ -102,6 +108,7 @@ namespace ToduStudios.WaterPolo
 
         private void OnDisable()
         {
+            if(stamina!=null)stamina.StopSprint();
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
             aimDirection = Vector3.zero;

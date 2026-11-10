@@ -22,7 +22,7 @@ namespace ToduStudios.WaterPolo
             if (match == null)
                 return;
             scoreLabel.text = $"BLUE {match.BlueScore} - {match.WhiteScore} WHITE";
-            goalLabel.gameObject.SetActive(match.IsRestarting);
+            goalLabel.gameObject.SetActive(match.Phase==MatchPhase.GoalRestart);
         }
 
         private void OnDisable()

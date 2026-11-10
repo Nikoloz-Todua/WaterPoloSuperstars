@@ -16,6 +16,8 @@ namespace ToduStudios.WaterPolo
         private ShotCharge charge;
         private bool blockShootUntilRelease;
         private int enabledFrame;
+        private InputAction lob;
+        private LobPassing lobPassing;
 
         private void Awake()
         {
@@ -23,6 +25,7 @@ namespace ToduStudios.WaterPolo
             passing = GetComponent<SwimmerPassing>();
             stealing = GetComponent<SwimmerSteal>();
             charge = GetComponent<ShotCharge>();
+            lobPassing=GetComponent<LobPassing>();lob=new InputAction("LobPass",InputActionType.Button,"<Keyboard>/l");
             collect = new InputAction("CollectBall", InputActionType.Button, "<Keyboard>/e");
             collect.AddBinding("<Gamepad>/buttonWest");
             shoot = new InputAction("ShootBall", InputActionType.Button, "<Keyboard>/space");
@@ -38,6 +41,7 @@ namespace ToduStudios.WaterPolo
             shoot.Enable();
             pass.Enable();
             steal.Enable();
+            lob.Enable();
             enabledFrame = Time.frameCount;
             blockShootUntilRelease = false;
             foreach (var control in shoot.controls)
@@ -59,6 +63,8 @@ namespace ToduStudios.WaterPolo
                 charge?.ReleaseCharge();
             else if (pass.WasPressedThisFrame())
             { charge?.CancelCharge(); passing?.TryPass(); }
+            else if(lob.WasPressedThisFrame())
+            {charge?.CancelCharge();lobPassing?.TryPass();}
             else if (steal.WasPressedThisFrame())
                 stealing?.TrySteal();
             else if (collect.WasPressedThisFrame())
@@ -72,6 +78,7 @@ namespace ToduStudios.WaterPolo
             shoot?.Disable();
             pass?.Disable();
             steal?.Disable();
+            lob?.Disable();
         }
 
         private void OnDestroy()
@@ -80,6 +87,7 @@ namespace ToduStudios.WaterPolo
             shoot?.Dispose();
             pass?.Dispose();
             steal?.Dispose();
+            lob?.Dispose();
         }
     }
 }

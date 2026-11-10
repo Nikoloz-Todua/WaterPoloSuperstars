@@ -3,12 +3,15 @@ using UnityEngine;
 namespace ToduStudios.WaterPolo
 {
     public enum AthleteRole { FieldPlayer, Goalkeeper }
+    // Preserve the serialized values of the original centre/left/right athletes.
+    public enum FieldPositionRole { CentreForward = 0, LeftWing = 1, RightWing = 2, CentreBack = 3, LeftFlat = 4, RightFlat = 5 }
     [DisallowMultipleComponent, RequireComponent(typeof(SwimmerMotor), typeof(SwimmerBallInteraction))]
     public sealed class SwimmerIdentity : MonoBehaviour
     {
         [SerializeField] private string playerId;
         [SerializeField] private PrototypeTeam team = PrototypeTeam.Blue;
         [SerializeField] private AthleteRole role;
+        [SerializeField] private FieldPositionRole fieldPosition;
         [SerializeField, Min(1)] private int capNumber = 1;
         [SerializeField] private Transform startPosition;
         [SerializeField] private GameObject selectionIndicator;
@@ -18,6 +21,7 @@ namespace ToduStudios.WaterPolo
         public string PlayerId => playerId;
         public PrototypeTeam Team => team;
         public AthleteRole Role => role;
+        public FieldPositionRole FieldPosition => fieldPosition;
         public bool IsFieldPlayer => role == AthleteRole.FieldPlayer;
         public int CapNumber => capNumber;
         public Transform StartPosition => startPosition;

@@ -8,6 +8,10 @@ namespace ToduStudios.WaterPolo
     public sealed class PrototypeRoster : MonoBehaviour
     {
         [SerializeField] private SwimmerIdentity[] members = new SwimmerIdentity[0];
+        [SerializeField] private PoolBounds poolBounds;
+        private Vector3[] initialStarts;
+        private Quaternion[] initialRotations;
+        public bool EndsReversed { get; private set; }
         private bool[] restoreMotors;
         private bool paused;
         private SwimmerIdentity[] fieldPlayers;
@@ -29,6 +33,7 @@ namespace ToduStudios.WaterPolo
 
         private void Awake()
         {
+            CaptureStarts();
             restoreMotors = new bool[members.Length];
             var ids = new HashSet<string>();
             foreach (SwimmerIdentity player in members)
@@ -41,6 +46,22 @@ namespace ToduStudios.WaterPolo
                     return;
                 }
             }
+        }
+
+        private void CaptureStarts()
+        {
+            if(initialStarts!=null)return;
+            initialStarts=new Vector3[members.Length];initialRotations=new Quaternion[members.Length];
+            for(int i=0;i<members.Length;i++)
+            {if(members[i]==null || members[i].StartPosition==null)continue;initialStarts[i]=members[i].StartPosition.position;initialRotations[i]=members[i].StartPosition.rotation;}
+        }
+        public void SetEndsReversed(bool reversed)
+        {
+            CaptureStarts();EndsReversed=reversed;
+            Vector3 center=poolBounds!=null?poolBounds.transform.position:Vector3.zero;
+            Quaternion rotation=reversed?Quaternion.Euler(0f,180f,0f):Quaternion.identity;
+            for(int i=0;i<members.Length;i++)
+                members[i].StartPosition.SetPositionAndRotation(center+rotation*(initialStarts[i]-center),rotation*initialRotations[i]);
         }
 
         public bool Contains(SwimmerIdentity player)

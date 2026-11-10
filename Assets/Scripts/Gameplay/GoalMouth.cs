@@ -15,6 +15,7 @@ namespace ToduStudios.WaterPolo
         [SerializeField, Min(0.02f)] private float postThickness = 0.1f;
 
         public PrototypeTeam ScoringTeam => scoringTeam;
+        public void SetScoringTeam(PrototypeTeam team) => scoringTeam=team;
         public float Width => Mathf.Max(0.5f, width);
         public float Height => Mathf.Max(0.3f, height);
         public float Depth => Mathf.Max(0.5f, depth);

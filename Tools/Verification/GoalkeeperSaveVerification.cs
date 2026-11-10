@@ -28,6 +28,10 @@ public static class GoalkeeperSaveVerification
             foreach (var k in keepers) k.enabled = k == keeper;
             keeper.Identity.Motor.ResetPose(keeper.Identity.StartPosition.position, keeper.Identity.StartPosition.rotation);
             var shooter = roster.FieldPlayers.First(p => p.Team != keeper.Identity.Team);
+            // Keep the physical shot lane clear when the full-team centre back is present.
+            int blueRank=0,whiteRank=0;
+            foreach(var field in roster.FieldPlayers)
+                if(field!=shooter)field.Motor.ResetPose(new Vector3(field.Team==PrototypeTeam.Blue?8f:-8f,0f,-11f+3f*(field.Team==PrototypeTeam.Blue?blueRank++:whiteRank++)),Quaternion.identity);
             Vector3 point = keeper.DefendedGoal.transform.TransformPoint(new Vector3(x, 0f, -distance)); point.y = 0f;
             shooter.Motor.ResetPose(point, keeper.DefendedGoal.transform.rotation);
             await Advance(0.12f);

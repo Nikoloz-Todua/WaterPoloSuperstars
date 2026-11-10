@@ -54,6 +54,7 @@ namespace ToduStudios.WaterPolo.Editor
             data = new SerializedObject(roster);
             SerializedProperty members = data.FindProperty("members");
             SwimmerIdentity[] participants = new[] { actors.Find("Swimmer").GetComponent<SwimmerIdentity>(), actors.Find("Swimmer2").GetComponent<SwimmerIdentity>(), identity }
+                .Concat(actors.GetComponentsInChildren<SwimmerIdentity>(true).Where(p => p.IsFieldPlayer && p.Team == PrototypeTeam.Blue && p != actors.Find("Swimmer").GetComponent<SwimmerIdentity>() && p != actors.Find("Swimmer2").GetComponent<SwimmerIdentity>()))
                 .Concat(actors.GetComponentsInChildren<SwimmerIdentity>(true).Where(p => p.IsFieldPlayer && p.Team == PrototypeTeam.White && p != identity))
                 .Concat(actors.GetComponentsInChildren<SwimmerIdentity>(true).Where(p => !p.IsFieldPlayer)).ToArray();
             members.arraySize = participants.Length;
@@ -119,7 +120,7 @@ namespace ToduStudios.WaterPolo.Editor
             return material;
         }
 
-        private static void ConfigureAI(SwimmerIdentity player, PrototypeRoster roster, PlayerSelection selection, BallController ball, PoolBounds pool, PrototypeMatch match)
+        internal static void ConfigureAI(SwimmerIdentity player, PrototypeRoster roster, PlayerSelection selection, BallController ball, PoolBounds pool, PrototypeMatch match)
         {
             PrototypeSwimmerAI ai = player.GetComponent<PrototypeSwimmerAI>();
             if (ai == null) ai = player.gameObject.AddComponent<PrototypeSwimmerAI>();
