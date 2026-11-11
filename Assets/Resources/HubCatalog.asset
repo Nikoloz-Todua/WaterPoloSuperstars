@@ -1,0 +1,294 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4dc2f2a00a1c40c4185ebeead10f9aea, type: 3}
+  m_Name: HubCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::ToduStudios.WaterPolo.Hub.HubCatalog
+  catalogVersion: m12.1
+  seasonId: tidebreak-01
+  seasonTitle: "TIDEBREAK \u2022 FOUNDING SEASON"
+  maxLevel: 10
+  slotCapacity: 4
+  unlockSeconds: 45
+  seasonLevels: 20
+  seasonXpPerLevel: 60
+  winCoins: 120
+  drawCoins: 85
+  lossCoins: 60
+  matchXp: 40
+  matchSeasonXp: 35
+  winTrophies: 12
+  lossTrophies: 3
+  rarities:
+  - id: Common
+    color: {r: 0.47058824, g: 0.7254902, b: 0.8039216, a: 1}
+    upgradeCoins: 60
+  - id: Rare
+    color: {r: 0.2509804, g: 0.65882355, b: 1, a: 1}
+    upgradeCoins: 90
+  - id: Epic
+    color: {r: 0.6784314, g: 0.4745098, b: 0.96862745, a: 1}
+    upgradeCoins: 120
+  - id: Legendary
+    color: {r: 1, g: 0.7764706, b: 0.3529412, a: 1}
+    upgradeCoins: 160
+  - id: Mythic
+    color: {r: 1, g: 0.4, b: 0.5568628, a: 1}
+    upgradeCoins: 200
+  players:
+  - id: wp_001
+    name: Mika Cove
+    rarity: Common
+    role: Goalkeeper
+    goalkeeper: 1
+    swim: 55
+    stamina: 66
+    shot: 60
+    pass: 63
+    defense: 62
+    handling: 65
+    keeping: 78
+  - id: wp_002
+    name: Niko Reef
+    rarity: Common
+    role: Centre Forward
+    goalkeeper: 0
+    swim: 57
+    stamina: 66
+    shot: 61
+    pass: 63
+    defense: 62
+    handling: 65
+    keeping: 20
+  - id: wp_003
+    name: Ari Current
+    rarity: Common
+    role: Left Wing
+    goalkeeper: 0
+    swim: 59
+    stamina: 66
+    shot: 62
+    pass: 63
+    defense: 62
+    handling: 65
+    keeping: 20
+  - id: wp_004
+    name: Luca Wave
+    rarity: Rare
+    role: Right Wing
+    goalkeeper: 0
+    swim: 61
+    stamina: 66
+    shot: 63
+    pass: 63
+    defense: 62
+    handling: 65
+    keeping: 20
+  - id: wp_005
+    name: Ivo Storm
+    rarity: Rare
+    role: Centre Back
+    goalkeeper: 0
+    swim: 63
+    stamina: 66
+    shot: 64
+    pass: 63
+    defense: 62
+    handling: 65
+    keeping: 20
+  - id: wp_006
+    name: Sami Drift
+    rarity: Rare
+    role: Left Flat
+    goalkeeper: 0
+    swim: 65
+    stamina: 66
+    shot: 65
+    pass: 63
+    defense: 62
+    handling: 65
+    keeping: 20
+  - id: wp_007
+    name: Remy Tide
+    rarity: Epic
+    role: Right Flat
+    goalkeeper: 0
+    swim: 67
+    stamina: 66
+    shot: 66
+    pass: 63
+    defense: 62
+    handling: 65
+    keeping: 20
+  - id: wp_008
+    name: Kian Harbor
+    rarity: Epic
+    role: Left Wing
+    goalkeeper: 0
+    swim: 69
+    stamina: 66
+    shot: 67
+    pass: 63
+    defense: 62
+    handling: 65
+    keeping: 20
+  - id: wp_009
+    name: Alex Foam
+    rarity: Epic
+    role: Goalkeeper
+    goalkeeper: 1
+    swim: 71
+    stamina: 66
+    shot: 68
+    pass: 63
+    defense: 62
+    handling: 65
+    keeping: 78
+  - id: wp_010
+    name: Noa Crest
+    rarity: Legendary
+    role: Centre Forward
+    goalkeeper: 0
+    swim: 73
+    stamina: 66
+    shot: 69
+    pass: 63
+    defense: 62
+    handling: 65
+    keeping: 20
+  - id: wp_011
+    name: Rio Surge
+    rarity: Legendary
+    role: Right Flat
+    goalkeeper: 0
+    swim: 75
+    stamina: 66
+    shot: 70
+    pass: 63
+    defense: 62
+    handling: 65
+    keeping: 20
+  - id: wp_012
+    name: Eli Deep
+    rarity: Mythic
+    role: Centre Back
+    goalkeeper: 0
+    swim: 77
+    stamina: 66
+    shot: 71
+    pass: 63
+    defense: 62
+    handling: 65
+    keeping: 20
+  offers:
+  - id: reef-card
+    title: "Niko Reef \u2022 15 shards"
+    section: Player Cards
+    coins: 150
+    gems: 0
+    reward:
+      coins: 0
+      gems: 0
+      shards: 15
+      playerId: wp_002
+  - id: crest-card
+    title: "Noa Crest \u2022 unlock + 10 shards"
+    section: Player Cards
+    coins: 350
+    gems: 0
+    reward:
+      coins: 0
+      gems: 0
+      shards: 10
+      playerId: wp_010
+  - id: surge-card
+    title: "Rio Surge \u2022 unlock + 10 shards"
+    section: Featured
+    coins: 0
+    gems: 12
+    reward:
+      coins: 0
+      gems: 0
+      shards: 10
+      playerId: wp_011
+  - id: keeper-material
+    title: "Mika Cove \u2022 20 shards"
+    section: Upgrade Materials
+    coins: 180
+    gems: 0
+    reward:
+      coins: 0
+      gems: 0
+      shards: 20
+      playerId: wp_001
+  - id: coin-bundle
+    title: "Known bundle \u2022 250 coins"
+    section: Coins
+    coins: 0
+    gems: 5
+    reward:
+      coins: 250
+      gems: 0
+      shards: 0
+      playerId: 
+  packOutcomes:
+  - label: 80 coins + 8 Reef shards
+    weight: 60
+    reward:
+      coins: 80
+      gems: 0
+      shards: 8
+      playerId: wp_002
+  - label: 120 coins + Noa Crest + 5 shards
+    weight: 30
+    reward:
+      coins: 120
+      gems: 0
+      shards: 5
+      playerId: wp_010
+  - label: 160 coins + Eli Deep + 3 gems
+    weight: 10
+    reward:
+      coins: 160
+      gems: 3
+      shards: 5
+      playerId: wp_012
+  achievements:
+  - id: first-win
+    title: First Victory
+    counter: wins
+    target: 1
+    coins: 100
+  - id: first-goal
+    title: First Goal
+    counter: goals
+    target: 1
+    coins: 100
+  - id: five-wins
+    title: Five Wins
+    counter: wins
+    target: 5
+    coins: 100
+  - id: ten-matches
+    title: Ten Completed Matches
+    counter: played
+    target: 10
+    coins: 100
+  - id: first-upgrade
+    title: First Player Upgrade
+    counter: upgrades
+    target: 1
+    coins: 100
+  - id: first-pack
+    title: First Pack Opened
+    counter: packs
+    target: 1
+    coins: 100

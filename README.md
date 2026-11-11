@@ -10,7 +10,17 @@ Water Polo Superstars is a 3D mobile water polo game developed by **ToduStudios*
 - PlayerSelection owns control independently of possession; PrototypeTeamTactics shares team reasoning.
 - MatchRules decides fouls and eligibility; MatchAtmosphere observes decisions for HUD/audio.
 
-## Current stage — Milestone 10 with gameplay realism expansion
+## Current stage — Milestone 12 offline game hub
+
+Boot -> MainLobby -> Quick Match / Training -> results -> lobby. The new uGUI hub includes a twelve-athlete collection, upgrades, a legal seven-player lineup editor, live Press/Zone selection, fixed-price local shop, four timed free reward slots, twenty free season tiers, profile/color editing and achievements. Friends, Clubs, ads and premium purchases are clearly marked future features. Everything implemented uses local progress; no Firebase or monetization SDK is installed.
+
+The scenes and services are implemented, initial core/setup checks passed, and latest sources compile. **Runtime visual/pointer/match-loop acceptance is still pending after an Editor automation stall and failed sandbox recovery.** Read the newest [handoff](plan.md) for the exact evidence and commands. Collection ratings and cosmetics currently affect collection/lobby presentation; live match stat/material integration is deferred.
+
+Use **Tools > Water Polo > Play Hub Entry** or normal Play with Boot configured as the Editor start scene. Repeat-safe configuration: **Tools > Water Polo > Set Up Milestone 12 Hub**, outside Play Mode with intended edits saved. For isolated gameplay use **Tools > Water Polo > Play PrototypePool Directly**; restore normal Play with **Use Boot as Editor Play Entry**.
+
+Local schema-1 progress lives at `Application.persistentDataPath/profile-v1.json`, with atomic writes/recovery backups and compact owned-player IDs. Preferences remain separate. See [future backend and economy architecture](docs/FUTURE_BACKEND_AND_ECONOMY.md). No internet is required. Local saves/timers are not cheat-proof.
+
+## Existing match foundation
 
 `Assets/Scenes/PrototypePool.unity` retains **six field players and one goalkeeper per team: 14 athletes**. Milestone 10 adds contextual C switching, stable defensive marking, attacking improvements, contact-driven fouls, protected free throws, temporary exclusions, personal foul limits, qualifying penalties, referee messages and original procedural audio cues.
 
@@ -22,7 +32,7 @@ Milestone 11 adds a uGUI pause/settings interface, compact match HUD, confirmati
 
 ## Open and play
 
-Open **Assets > Scenes > PrototypePool**. With Play Mode stopped and intended edits saved, use **Tools > Water Polo > Set Up Milestone 11 Interface** if the interface is not already configured. Press Play and click the Game view. The setup extends the existing match without rebuilding swimmers or goals; rerunning it preserves the configured layout.
+For the full game, use **Tools > Water Polo > Play Hub Entry**. To isolate the match, use **Tools > Water Polo > Play PrototypePool Directly**. With Play Mode stopped and intended edits saved, use **Tools > Water Polo > Set Up Milestone 11 Interface** if repairing the match interface. That setup extends the existing match without rebuilding swimmers or goals; rerunning it preserves the configured layout.
 
 | Control | Action |
 | --- | --- |
@@ -62,4 +72,4 @@ Click **Continue Match** at period breaks. Continuing after Q2 swaps team goals,
 - [AGENTS.md](AGENTS.md): permanent development rules, including human-only Git writes.
 - `Tools/Verification/`: Editor-driven checks outside player builds.
 
-Only the human stages, commits or pushes. Preserve Unity `.meta` files. Generated folders, credentials, local legacy references, `old-plan.md` and unrelated files are excluded from proposed backups. Milestone 11 ends with developer manual testing; later work needs separate authorization.
+Only the human stages, commits or pushes. Preserve Unity `.meta` files. Generated folders, credentials, local legacy references, `old-plan.md` and unrelated files are excluded from proposed backups. Stop after Milestone 12; later work needs separate authorization.

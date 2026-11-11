@@ -19,6 +19,9 @@ namespace ToduStudios.WaterPolo
         private SwimmerMotor motor;
         private SwimmerBallInteraction interaction;
         public string PlayerId => playerId;
+        // Collection IDs never replace the scene IDs used by rules and roster validation.
+        public string CollectionDefinitionId { get; private set; }
+        public void SetCollectionDefinition(string id) => CollectionDefinitionId = id;
         public PrototypeTeam Team => team;
         public AthleteRole Role => role;
         public FieldPositionRole FieldPosition => fieldPosition;

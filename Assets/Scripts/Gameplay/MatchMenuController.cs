@@ -49,7 +49,10 @@ namespace ToduStudios.WaterPolo
                     match.Phase==MatchPhase.HalfTime?"HALFTIME":$"QUARTER {match.Clock.Quarter} COMPLETE";
                 transitionBody.text=$"BLUE  {match.BlueScore} : {match.WhiteScore}  WHITE\n"+
                     (match.Phase==MatchPhase.FullTime?"FULL TIME  |  THANK YOU FOR PLAYING":match.Phase==MatchPhase.HalfTime?"Teams change ends when you continue.":$"Next up: Quarter {match.Clock.Quarter+1}");
-                continueButton.SetActive(match.Phase!=MatchPhase.FullTime);resultRestartButton.SetActive(match.Phase==MatchPhase.FullTime);
+                bool hub=Hub.HubMatchBridge.Active;
+                continueButton.SetActive(match.Phase!=MatchPhase.FullTime || hub);resultRestartButton.SetActive(match.Phase==MatchPhase.FullTime && !hub);
+                var nextLabel=continueButton.GetComponentInChildren<TMP_Text>();
+                if(nextLabel!=null)nextLabel.text=hub && match.Phase==MatchPhase.FullTime?"REWARDS & LOBBY":"CONTINUE MATCH";
                 Show(MatchMenuPage.Transition);
             }
             else Show(MatchMenuPage.None);
@@ -68,16 +71,27 @@ namespace ToduStudios.WaterPolo
         public void Resume(){preferences.Save();match.SetPaused(false);}
         public void OpenSettings(){returnPage=Page;Show(MatchMenuPage.Settings);}
         public void AskRestart(){returnPage=Page;confirmationTitle.text="RESTART MATCH?";confirmationBody.text="Score, clocks and player states will reset.\nYour settings will be kept.";Show(MatchMenuPage.RestartConfirmation);}
-        public void AskExit(){returnPage=Page;confirmationTitle.text="EXIT MATCH?";confirmationBody.text="Return to the prototype menu.\nCurrent match progress will be lost.";Show(MatchMenuPage.ExitConfirmation);}
+        public void AskExit(){returnPage=Page;confirmationTitle.text="EXIT MATCH?";confirmationBody.text=Hub.HubMatchBridge.Active?"Return to the lobby.\nAbandoned matches earn no rewards.":"Return to the prototype menu.\nCurrent match progress will be lost.";Show(MatchMenuPage.ExitConfirmation);}
         public void Cancel(){preferences.Save();Show(returnPage);}
         public void Confirm()
         {
             var request=Page;preferences.Save();
             if(request==MatchMenuPage.RestartConfirmation)match.RestartMatch();
-            else if(request==MatchMenuPage.ExitConfirmation)match.ReturnToPrototype();
+            else if(request==MatchMenuPage.ExitConfirmation)
+            {
+                if(Hub.HubMatchBridge.Active){if(!SaveHubResult())return;match.SetPaused(false);Hub.HubApplication.Instance.ReturnToLobby(true);}
+                else match.ReturnToPrototype();
+            }
         }
         public void StartMatch(){preferences.Save();match.RestartMatch();}
-        public void Continue(){preferences.Save();match.ContinueMatch();}
+        private bool SaveHubResult()
+        {
+            if(match.Phase!=MatchPhase.FullTime)return true;
+            var bridge=match.GetComponent<Hub.HubMatchBridge>();
+            if(bridge!=null && bridge.TrySaveResult())return true;
+            transitionBody.text="Rewards could not be saved. Restore storage access and retry REWARDS & LOBBY.";Show(MatchMenuPage.Transition);return false;
+        }
+        public void Continue(){preferences.Save();if(Hub.HubMatchBridge.Active && match.Phase==MatchPhase.FullTime){if(SaveHubResult())Hub.HubApplication.Instance.ReturnToLobby(false);}else match.ContinueMatch();}
         public void Back()
         {
             if(Page==MatchMenuPage.Settings || Page==MatchMenuPage.RestartConfirmation || Page==MatchMenuPage.ExitConfirmation)Cancel();

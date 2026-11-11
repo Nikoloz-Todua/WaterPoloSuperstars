@@ -1,7 +1,96 @@
-﻿# Water Polo Superstars — Project Plan and Handoff
+# Water Polo Superstars — Project Plan and Handoff
 
-Last updated: 2026-11-10.
+Last updated: 2026-11-11.
 
+## Current handoff — M12 offline hub implemented; runtime acceptance pending
+
+The developer explicitly authorized Milestone 12, superseding the older M11 stop instruction. Stop after M12. All changes are **unstaged and uncommitted**. Human-only Git writes remain permanent. Pre-existing `old-plan.md`, `tatus` and `ProjectSettings/Packages/com.unity.pipeline/` are untouched.
+
+### Delivery status and critical verification boundary
+
+The offline hub source, catalog, Boot/MainLobby scenes and additive match wiring exist. Unity **6000.6.7f1** compiled the first complete implementation without errors; focused Core and repeat-safe Setup checks passed in the connected Editor. **Do not call M12 fully verified or visually accepted yet.** The first runtime navigation test was mistakenly returned through synchronous `script eval`; Pipeline serialized its Task.Result on the main thread and stalled Unity. The saved scenes were clean before Play. That test Editor was stopped to recover; subsequent sandbox launches could not finish licensing/package-manager startup. Scene recovery dialogs were handled with **Keep Backups**, and failed recovery launches were closed. The developer was asked to reopen through Unity Hub. No unsaved intended Edit Mode changes were discarded.
+
+Latest runtime and Editor C# sources, including subsequent save-validation/retry/typography corrections, compile with the pinned Editor's Roslyn compiler and the project's generated reference/define response files, writing only to ignored `Logs/M12/`. **This is compilation, not a fresh Unity runtime test of those corrections.** The first Core pass predates the final deep-content backup validation/schema-refusal changes. No successful Game view capture, completed pointer test, match-loop run or gameplay regression is claimed for M12. Prior M11 evidence below remains historical.
+
+### Scenes and entry flow
+
+- **Assets/Scenes/Boot.unity**: saved loading Canvas, aquatic geometric theme, title/ToduStudios, animated indicator and status. Loads preferences and local catalog/profile; transitions asynchronously with no artificial long delay. Error state retains saves and offers retry.
+- **Assets/Scenes/MainLobby.unity**: saved uGUI shell, one Canvas/EventSystem/InputSystemUIInputModule, safe-area root, profile/currency bar, nine navigation entries, page container, modal confirmation and feedback. Runtime fills profile-driven pages; only page transitions/actions rebuild bounded content, never every frame.
+- **Assets/Scenes/PrototypePool.unity**: existing scene retained. Only one HubMatchBridge component added to PrototypeMatch. Existing fourteen athletes, authorities, physics, clocks, referee, mobile controls, camera and pause behavior remain.
+- Shared build scene list: Boot, MainLobby, PrototypePool, then preserved SampleScene. Existing Android Build Profile has `m_OverrideGlobalSceneList: 0`, so it uses this shared list. Scene loads use names, never numeric indices. No device build was made.
+- Editor `playModeStartScene` was set to Boot. **Tools > Water Polo > Play Hub Entry** launches normal entry. **Tools > Water Polo > Play PrototypePool Directly** clears that override for isolated tests. **Tools > Water Polo > Use Boot as Editor Play Entry** restores it. **Set Up Milestone 12 Hub** is saved-scene/Edit-Mode-only, additive, preserves catalog tuning and existing hub scene GUIDs, repairs old typography and restores the original open-scene setup.
+
+### Navigation and real offline functionality
+
+Lobby -> Play -> Quick Match or Training; Online and Career/Tournament are disabled previews. Lobby also opens Shop, Collection -> Details, Tactics, Season Pass, Trophies, Profile, Clubs, Friends and Settings. Secondary pages have Lobby/Back; Escape/gamepad East returns to Lobby or cancels the modal. Confirmations block underlying pointer input. Buttons have hover/press/disabled colors; pages fade using unscaled time. No added UI sound clip/framework.
+
+- Lobby: local name/level/XP/trophies/currencies, original procedural athlete portrait, saved color preview, squad/tactic summary, Play, free-season preview and configurable pack slots.
+- Collection: twelve fictional stable athlete IDs across five rarity definitions, owned/unowned states, role, OVR/level/shards, details and core stats. Nine starting owned athletes include one reserve field and a reserve goalkeeper. Upgrades spend rarity-configured coins and level*5 shards, max level 10, and use expected-level idempotency. **Collection ratings do not change live movement/shot/keeper skill.**
+- Tactics: top-down pool, goalkeeper plus six field slots, bench/eligible selector, tap slot then athlete to swap/replace, no duplicates and role/ownership validation. Press/Zone persists and applies through the existing Blue PrototypeTeamTactics.SetDefense. Formation remains Classic Six; no new AI strategies or drag framework. The bridge maps lineup IDs to `SwimmerIdentity.CollectionDefinitionId` while retaining existing scene PlayerId/team/role identities.
+- Profile: editable plain-text 2–18-character display name, four named local avatar choices, curated cap/suit/accent palettes, level/career/collection summary and Save. Lobby portrait previews cap/suit/accent. **Live match materials and unique avatar icon artwork are not integrated; the selected avatar is shown as a local badge label.** Team identity stays data-based.
+- Trophies: Ripple/Surge/Deepwater starter ranks, trophy/next-rank and career summaries, six stable achievement IDs with validated once-only coin claims.
+- Clubs/Friends: integrated informational previews, local identity and disabled future actions. No fake friends, sent invitations, real clubs or online status. Settings modifies/persists master volume and directs to the preserved match settings for camera/SFX/graphics.
+
+### Economy, rewards and persistence
+
+`HubProgression` is one local economy/progression authority implementing small service interfaces. UI gets detached Snapshot copies. Transactions mutate a copy, validate, save then publish. Integer balances, affordability checks, overflow-checked grants, duplicate IDs and expected upgrade levels prevent accidental repeated grants/spending. No generic UI balance setter exists.
+
+Placeholder catalog defaults: introductory **600 coins / 20 gems**, existing nine-athlete ownership and one free waiting pack created **only on first run**. Quick Match rewards: win 120 coins, draw 85, defeat 60; 40 account XP and 35 season XP on each eligible completion; +12 win trophies, 0 draw, defeat removes up to 3 without going negative. One free pack per completed Quick Match if a slot is available. Training and abandoned sessions grant no progression. Values are editable in Assets/Resources/HubCatalog.asset.
+
+`HubMatchBridge` observes actual PrototypeMatch.FullTime and scores, never scoreboard text. It records one durable receipt for the active session UUID, consumes that session, and leaves a pending result for the lobby. Results show score, coins/XP/trophies and pack/overflow feedback; Continue acknowledges the result. Full-time menu offers REWARDS & LOBBY. If reward save fails, the button retries the authoritative result transaction before leaving. Confirmed match Exit abandons the session and returns to lobby, releasing pause. Restart keeps training classified as training and starts a fresh session. Actual end-to-end behavior still needs the pending runtime check.
+
+Four pack slots by default; 45-second configurable sample unlock. Waiting -> unlocking -> ready are derived from persisted instance/start/duration; claim and reward grant/slot removal are atomic. Fixed outcome generated at acquisition prevents rerolls during reveal/reload. Free odds: 60% 80 coins + 8 Niko Reef shards; 30% 120 coins + Noa Crest + 5 shards; 10% 160 coins + Eli Deep + 5 shards + 3 gems. UI displays odds before unlock/open. Claim uses a lightweight confirmation/reveal panel. **No elaborate reveal animation.** Full slots refuse an additional pack and report that on the result; existing packs are retained. Backward clock changes clamp remaining time to original duration; forward changes can unlock early. Fully offline device time is not tamper-proof.
+
+Shop tabs: Featured, Player Cards, Upgrade Materials, Coins, Gems, Special Offers. Five known-content offers use coins/gems: Reef shards, Crest acquisition/shards, Surge acquisition/shards, keeper shards and a 250-coin bundle. Each has fixed contents, price, confirmation, insufficient-balance/success feedback and saved transaction ID. Empty future tabs explain availability. Ads and real-money store controls are disabled; no SDK/provider or fake success.
+
+Season 01: twenty free reward tiers, 60 cumulative season XP per tier, coins (80 + tier*10), plus 3 gems each fifth tier. Eligible claims are once-only under stable season/tier keys. Horizontal scroll, premium locked preview. No local-date expiry or automatic progress wipe.
+
+Save: `Application.persistentDataPath/profile-v1.json` (normally `%USERPROFILE%/AppData/LocalLow/ToduStudios/Water Polo Superstars/profile-v1.json` on Windows). Schema 1 stores UUID, owned IDs/levels/shards, lineup, cosmetics, pack records, season XP/claims, counters, last twenty receipts, pending/active match and revision/transaction journal. No art/stat catalog duplication. Atomic validated temp replacement, .bak recovery, content validation before selecting snapshots. Unsupported schemas halt rather than downgrade. Unrecoverable existing saves halt initialization with retry; they are not overwritten with defaults. Important transactions save immediately, so there is no dirty economy buffer awaiting lifecycle callbacks. Existing preferences remain separate in GamePreferences' PlayerPrefs record.
+
+### Firebase readiness
+
+See **docs/FUTURE_BACKEND_AND_ECONOMY.md** for compact records, schema/catalog migrations, unknown IDs, explicit local-to-account linking, two-device conflicts, operation IDs/outbox/revisions, server transaction deduplication and verified store entitlements. ICloudSyncAdapter and IPurchaseProvider are future boundaries only. Current status is Local only. Client JSON is not fraud-resistant. Never apply whole-profile last-write-wins to currencies or entitlements. Acquired pack outcome indices currently depend on preserving table order; migrate to stable versioned outcome IDs before changing that meaning.
+
+### Files
+
+New runtime files (all with Unity meta files) in **Assets/Scripts/Hub/**: HubCatalog.cs, LocalProfile.cs, JsonProfileRepository.cs, HubProgression.cs, HubApplication.cs, HubMatchBridge.cs, HubWidgets.cs, BootScreen.cs, HubView.cs, HubCollectionViews.cs, HubRewardViews.cs. New Editor files: **Milestone12HubSetup.cs, HubVerification.cs** plus metas. New **Resources/HubCatalog.asset**, Resources folder meta, Boot/MainLobby scenes plus metas, **Tools/Verification/Milestone12Run.cs**, **docs/FUTURE_BACKEND_AND_ECONOMY.md**. Modified **PrototypePool.unity, MatchMenuController.cs, SwimmerIdentity.cs, ProjectSettings/EditorBuildSettings.asset, AGENTS.md, README.md, plan.md**. No changes to BallController, PrototypeMatch, MatchRules, camera, AI or input implementations.
+
+### Tests actually run and remaining steps
+
+| Check | Actual status |
+| --- | --- |
+| Unity Editor compilation | PASS on first complete implementation, after correcting an Average double-to-float conversion. |
+| HubVerification.Core | PASS in Editor: first-run identity, fixed purchase, insufficient balance, duplicate purchase/result/achievement/upgrade/season/pack claims, role/ownership/lineup, training reward exclusion, profile/tactics/upgrade reload, pack persisted timer/backward-time bounds, overflow, failed-write rollback, compact save, corrupt-primary backup and unrecoverable-file preservation. Predates final validation/schema refinements. |
+| HubVerification.Setup | PASS in Editor, repeated: hub scene GUIDs retained, shared Boot-first list, fourteen athletes, one bridge. |
+| Latest source compilation | PASS: pinned Unity Roslyn with generated runtime and Editor response files; no diagnostics. Compilation artifacts stay in ignored Logs/M12. |
+| Boot runtime | Entered Boot at frame 2; not sufficient evidence of completed lobby flow. |
+| Navigation/pointer | NOT COMPLETE. Synchronous eval misuse stalled Editor; use script run below. |
+| ActualLayouts | NOT RUN. Contains 36 Game view captures at 1920/2340/2400 x1080 with simulated safe insets, panel mesh and text-overflow assertions. Must capture and inspect images. |
+| MatchLoop | NOT RUN. Isolated memory profile, real shot/goal, 14-athlete mapping, pause, four periods/one end swap, receipt once, result/lobby, reload and training abandonment. Production save restored in finally. |
+| GameplayRealismVerification.Integration | NOT RUN this session. Run once in direct match for consolidated physical/AI regression. |
+| Android/iOS/device performance/touch | NOT TESTED; no compatibility/performance claim. |
+
+Historical compile error was corrected. First boot produced TMP ellipsis-glyph warnings; new widgets, saved scenes and repeat-safe repair now use Truncate, but the runtime correction has not been rechecked. Recovery failed on licensing/package-manager startup within sandbox. No fresh clean-runtime Console result is available. Do not conflate historical captured errors with current compile errors.
+
+After reopening through Unity Hub, save intended scenes and use **Tools > Water Polo > Set Up Milestone 12 Hub** if restoring Editor entry. Press Play and focus Game view. Run asynchronous checks using **script run**, never `return Task` from script eval:
+
+- `unity command script eval 'return ToduStudios.WaterPolo.Editor.HubVerification.Core();' --format json` (synchronous core is safe).
+- `unity command script run --file Tools/Verification/Milestone12Run.cs --entry Milestone12Run.Navigation --format json --timeout 45`
+- Same file, entry **Milestone12Run.Layouts**, timeout 60; inspect actual PNGs under Logs/M12 and resolve any overflow before declaring visual acceptance.
+- Same file, entry **Milestone12Run.MatchLoop**, timeout 60; profile fixtures are isolated.
+- Stop Play, use **Play PrototypePool Directly**, then `unity command script run --file Tools/Verification/GameplayRealismVerification.cs --entry GameplayRealismVerification.Integration --format json --timeout 60`. Restore Boot entry afterwards.
+
+### Developer manual review
+
+1. Open project through Unity Hub, keep recovery backups if prompted. Use **Play Hub Entry**. Verify loading -> lobby, balances/collection and one local profile after stop/restart. Test 16:9, 19.5:9, 20:9 and safe areas.
+2. Visit every nav section and Back/Escape. Shop -> Player Cards -> buy Reef shards -> confirm balance/resources; attempt unaffordable purchases. Collection -> details -> upgrade. Tactics -> tap a field slot -> reserve/starter; try keeper slot. Season XP/rewards become available after eligible matches. Profile -> name/avatar/colors -> Save -> restart and compare.
+3. Start the free pack, stop Play/reopen after 45 seconds, open once and inspect balance/shards/acquisition; ensure slot clears and repeated opening is unavailable. Review odds.
+4. Lobby PLAY -> Quick Match -> START. Play four periods, Continue at breaks/halftime. At full time choose **REWARDS & LOBBY**, review saved reward screen, Continue. Reopen app and confirm balances, XP, trophies, pack and career counters persist without another grant. Pause -> Exit -> Confirm on an unfinished match must return without rewards. Training must not grant progression.
+5. Confirm preserved joystick/actions/keyboard, rules, goals, keepers, halftime and pause feel. Inspect Console. Subjective visual quality and actual phone input/performance remain developer/device review.
+
+Next action is **finish M12 runtime verification and polish**, not start M13. A later authorized milestone can connect live cosmetic/stat presentation and then implement authenticated backend/verified entitlements using the architecture document.
+
+---
 ## Current handoff — M11 UI visibility, mobile controls and centre-pass correction
 
 This is the explicitly authorized corrective implementation following the developer's M11 manual test. All prior uncommitted M11 changes are preserved. **Do not perform Git write operations.** The saved PrototypePool scene is now configured through the Editor; this delivery must include actual scene wiring and Game view evidence, not source compilation alone. No new milestone, project, gameplay scene or authority was created.
