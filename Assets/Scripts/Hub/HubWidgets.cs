@@ -26,7 +26,8 @@ namespace ToduStudios.WaterPolo.Hub
             var b=r.gameObject.AddComponent<UnityEngine.UI.Button>();b.targetGraphic=g;b.interactable=enabled;
             var colors=b.colors;colors.highlightedColor=new Color(1.15f,1.15f,1.15f);colors.pressedColor=new Color(.6f,.8f,.9f);colors.disabledColor=new Color(.45f,.5f,.58f);colors.fadeDuration=.08f;b.colors=colors;
             b.navigation=new Navigation{mode=Navigation.Mode.Automatic};if(action!=null)b.onClick.AddListener(()=>action());
-            Text(r,"Label",caption,.05f,.05f,.9f,.9f,24,Color.white,TextAlignmentOptions.Center).fontStyle=FontStyles.Bold;return b;
+            var label=Text(r,"Label",caption,.05f,.05f,.9f,.9f,24,Color.white,TextAlignmentOptions.Center);label.fontStyle=FontStyles.Bold;
+            r.gameObject.AddComponent<MenuButtonFeedback>().artwork=label.transform;return b;
         }
         public static void Clear(Transform parent)
         {

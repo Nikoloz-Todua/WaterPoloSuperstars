@@ -2,6 +2,163 @@
 
 Last updated: 2026-11-15.
 
+## Current handoff — unified frontend, Game Modes and four divisions
+
+The developer explicitly authorized this **frontend UI/UX milestone** after accepting the asset-driven home. The home artwork/layout is retained; secondary presentation and navigation are now unified. This supersedes the older home-only scope below. Stop after this milestone. No Git write commands, downloads, replacement artwork, networking, Firebase, billing, advertising or new arena/gameplay systems were introduced. Existing unrelated local changes/untracked files remain intact.
+
+### Saved scene, commands and recovery
+
+Production UI remains **Assets/Scenes/MainLobby.unity**, with its original GUID. Run **Tools > Water Polo > Main Lobby > Set Up Unified Frontend** outside Play Mode with intended scene edits saved. Setup creates the missing shell/import wiring once, then validates/opens the tuned existing scene without rebuilding it. **Tools > Water Polo > Main Lobby > Open MainLobby** opens it; **Tools > Water Polo > Play Hub Entry** starts normal Boot entry. The older **Set Up Asset Home Screen** command also preserves the configured home.
+
+Exact pre-milestone scene recovery: **Assets/Scenes/Recovery/MainLobby_PreUnifiedFrontend.unity**, outside the build list. The earlier PreAssetHome recovery is also retained. These are scene/layout snapshots; scripts remain shared project code. SHA256 verification confirms **Boot, OlympicMatchArena, HubCatalog, EditorBuildSettings and every supplied PNG** are byte-identical to this milestone's baseline; scene/source asset GUIDs are preserved. No arena regeneration or primary PrototypePool routing was introduced.
+
+### Unified navigation and hierarchy
+
+`HubView` remains the **single navigation authority**. `Show` closes stale modals and pushes the previous page; `ShowSibling` changes Team tabs without adding history; `Back` closes the current modal first, otherwise pops the page history. Lobby clears history. Pending results load the Result route; closing Result acknowledges its saved receipt without granting rewards again. Input System Escape and gamepad East call the same Back path; Android Back's Escape mapping and physical touch still require device verification.
+
+The cause of the prior inconsistency was `HubView.Render` re-enabling the legacy header/sidebar on secondary pages, coupled with Back always targeting Lobby. The production scene now removes those obsolete **Navigation/ProfileBar visual objects** and their Nav_* button paths. Their services and functional page actions remain. The old text-only four-mode and social-preview builders are removed. There is one Canvas, GraphicRaycaster, InputSystemUIInputModule, EventSystem and HubView; no second active UI controller.
+
+Hierarchy: **LobbyCanvas / MainMenuBackdrop + FrontendBackdrop / SafeArea**. SafeArea retains `SafeAreaLayout`, `HubView`, `GamePreferences`, existing **MainMenuHome**, reusable **Page** content, **UnifiedFrontend/Header**, Feedback and the last-sibling blocking Modal. `FrontendShell` owns presentation references only: shared top-left X, title, profile summary and actual coin/diamond balances. Navy surfaces, cyan accents and common panel/button factories wrap functional secondary content. `FrontendControls.Back` supplies reusable large X controls for the shell and dialogs. `MenuButtonFeedback` scales artwork/labels only, preserving hit regions; Unity Button colors supply hover/selected/press states. PNG lettering is never duplicated.
+
+| Route | Function retained / return |
+| --- | --- |
+| Home PLAY | New six-card **Game Mode** page; X → home. |
+| Unlocked division / Training | Details page; X/Escape → Game Modes; launch → OlympicMatchArena. |
+| Locked division | Clickable explanatory modal naming the required preceding championship; X/Escape → unchanged modes page. |
+| Shop | Six existing local offer tabs, real confirmations, currency spend and inventory grants. X → home. |
+| Team | Lineup & Tactics / Collection tabs; role-valid GK + six fields, Press/Zone, owned athletes, player details and existing upgrades. Details X → Collection; Team X → home. |
+| Ranking | Actual local trophies/rank/counters and achievements; no online leaderboard. |
+| Missions | Existing six achievements, real incomplete/claimable/claimed states and once-only coin claims. |
+| Battle Pass | Existing Season XP/free rewards in the purple page, scrollable tiers, distinct free/premium tracks; premium locked preview only. |
+| Profile / Settings | Existing editable name/avatar/palette and local volume/preferences; profile uses supplied default artwork in place of the procedural portrait. |
+| Packs / confirmations | Original transaction/timer/odds/reveal actions, modal X/Cancel and previous page retained. Empty slots now say “Earn in matches.” |
+| Friends / Clubs / Messages / World Tournament / Lucky Shot | Informational Coming Soon modal; no fake service or rewards. World Tournament explicitly describes future country competition, separate from World Champions League. |
+
+Home still uses its 21 original sprites, open centre, top bar, four real pack slots and large PLAY. No owned pack, balance, timer or profile was reset. Secondary page content remains deliberately simpler than final illustrated artwork, using the same header, navy foundation and buttons. Athlete placeholders reuse profile_default; no new character illustration/rig was generated.
+
+### Imported Game Mode / Battle Pass artwork
+
+Inspected **docs/UIReferences/reference_game_mode_layout.png** and all eight runtime PNGs. **Assets/UI/MainMenu/FrontendArt.asset** holds serialized Sprite references: `mode_division_1`, `mode_premium_league`, `mode_continental_cup`, `mode_world_champions_league`, `mode_lucky_shot`, `mode_training`, `bg_game_modes`, `bg_battle_pass_purple`. Zero missing sprites; no external assets/licenses were added. Source files are developer-provided.
+
+Actual card sizes: Division 1 1115×1410, Premium 951×1653, Continental 1331×1181, World Champions 1331×1182, Lucky Shot 1372×1147, Training 1254×1254. Backgrounds: modes 1672×941, purple pass 1846×852. These eight sources are **opaque**, including their baked corner/background pixels; source pixels were preserved, not destructively cropped or made transparent. Importers: Sprite Single, Full Rect, source alpha retained, sRGB, Clamp/Bilinear, no mip/read-write/NPOT rescaling, cards max1024/backgrounds2048, Desktop BC7, Android/iOS ASTC4×4.
+
+The mode composition uses two large tall cards on the left and a 2×2 group on the right, matching the reference's relative roles. Normalized safe-area anchors and `Image.preserveAspect` fit source proportions at all three tested ratios. Lock badges occupy the upper artwork region, leaving baked titles visible. Selected/hover/press tint and bounded scale feedback remain lightweight. Supplied background fills by cover aspect fitting; purple is selected **only for Battle Pass**. No added energy meter, flags or fake currency. Flags already present inside supplied card/background artwork were preserved as source pixels.
+
+### Four-division offline foundation and save compatibility
+
+Static configuration: **Assets/Resources/DivisionCatalog.asset**, separate from HubCatalog and save state. Required stable order: **division_1 → premium_league → continental_cup → world_champions_league**. Initially only Division 1 is unlocked. Default format **two_wins_in_three_v1**: two victories within at most three completed official matches. Draws/losses consume attempts; an attempt ends early when the win target is unreachable. A failed/completed attempt can be restarted. One current championship attempt is retained; starting a different division explicitly confirms replacing an unfinished attempt. Completed unlocks/inventory remain.
+
+`HubProgression` plus its `HubDivisionProgression` partial is still the sole transaction authority. An official session stores a stable division ID, championship UUID and next round ordinal. `HubMatchBridge` only submits at authoritative FullTime; it retains division context when restarting the arena. Result processing verifies the active session/run/round, updates wins/matches, records the completion ID and grants the **existing per-match economy** in the same atomic transaction. Only reaching the configured win target marks a division complete and opens the next. There is no extra unlock bonus to replay. Existing `match:<sessionId>` keys prevent duplicate result grants/progress. Replay of an already won division retains ordinary match rewards; unlock IDs remain unique.
+
+This is a small offline championship, **not a simulated club season**: the current opponent roster/AI and match rules are reused at every tier, without scheduling, different club rosters or tier-specific difficulty. Training is the existing playable four-period practice match with movement/passing/shooting and **zero coins, XP, packs, trophies or league advancement**. Lucky Shot is deferred to avoid changing match mechanics in this UI milestone. World Tournament is a separate country-based future feature; Premium League is a progression name, not a purchase entitlement.
+
+Save schema is now **2**, at the existing **profile-v1.json** location. `LocalProfileCodec` explicitly migrates schema1→2 in memory after base validation, initializes only empty division history/current attempt, and preserves economy, collection, lineup, transactions, claims, pack timers, active Quick/Training session and pending receipts. Loading does not rewrite files. The next successful atomic save retains the schema-1 primary as `.bak`. Fully empty inline session/result/championship records normalize to null; non-empty records are retained. Unknown future schemas are refused without silently loading an older backup. The current format ID/config must remain compatible with in-progress attempts; changing a shipped format requires retaining its definition or an explicit migration. Do not casually retune wins/matches under an unchanged format ID after release. These are trusted local saves, not anti-cheat or server proof; future cloud synchronization must validate compact IDs/receipts server-side (see backend document).
+
+### Files added / modified in this milestone
+
+- New runtime: `DivisionCatalog.cs`, `HubDivisionProgression.cs`, `FrontendArt.cs`, `FrontendShell.cs`, `FrontendControls.cs`, `HubModeViews.cs` under **Assets/Scripts/Hub/**.
+- Changed runtime: `HubView`, `HubWidgets`, `HubCollectionViews`, `HubRewardViews`, `HubApplication`, `HubMatchBridge`, `HubProgression`, `LocalProfile`, `LocalProfileCodec`, `JsonProfileRepository`, `MainMenuPackSlot`.
+- Setup/assets: **Assets/Editor/UnifiedFrontendSetup.cs**, small empty-slot copy change in MainMenuSetup, FrontendArt/DivisionCatalog assets, eight new sprite importer settings, saved MainLobby and exact recovery scene, associated Unity metas.
+- Verification: **Tools/Verification/FrontendVerification.cs**; reports/captures in ignored **Logs/Frontend/**. Documentation: plan, README, AGENTS and docs/FUTURE_BACKEND_AND_ECONOMY.md.
+
+### Fresh focused verification and limitations
+
+Windows Unity **6000.6.7f1 / URP / D3D12**, actual advancing Game view, using Pipeline **script run** for asynchronous checks. No historical full-game suites repeated. Fixtures use isolated memory repositories or unique disk folders under Logs; user profile hashes were checked unchanged.
+
+| Check | Actual result |
+| --- | --- |
+| Setup | PASS: eight new serialized sprites, same scene/source GUIDs, exact recovery copy, untouched Boot/arena/catalog/build/PNG bytes, one Canvas/EventSystem/controller, required CanvasRenderers, no missing scripts, repeat-safe saved setup, Boot entry and registered OlympicMatchArena. |
+| Progression | PASS: initial locks/order, reject locked launch and unrelated result, persist in-progress attempt, official win threshold, duplicate result refusal, Training/abandonment exclusions, failed attempt retry, all four IDs/unlocks through reload, atomic failure, schema1 migration including old session/pending result, original backup retention and future-schema refusal. |
+| Pointer/keyboard transactions | PASS: six actual card images, press feedback, locked explanation, nested X/Escape, modal blocking/close, every home route, Team tabs/detail history/GK assignment/Press tactic, actual Shop purchase, Season/Mission claim-once, profile save, four real pack states, timer update, unlock/claim/reload. |
+| Collection upgrade / scroll | PASS additional focused real pointer check: upgrade confirmation/transaction, vertical swipe to the final collection card, disabled upgrade for unowned athlete and correct nested Back. |
+| Final details smoke | PASS after final label refinement: Training is identified as practice under MODE DETAILS, Division details retain their format, both nested pointer returns reach home; final home/Training/Division Game views captured and inspected. |
+| Landscape | PASS actual **1920×1080, 2340×1080, 2400×1080**, simulated70px horizontal/24px vertical insets: six cards/header inside safe bounds with no overlap, retained aspect, all page X controls usable, header text fits, actual screenshots of home/modes/details/secondary pages/dialogs, horizontal Battle Pass swipe, one Input System simulated touch close. |
+| Full loop | PASS two controlled actual arena matches launched through home→mode→details: 14 athletes and lineup mapping, physical goal each, four accelerated periods with one halftime switch, official restart context, once-only bridge receipts/rewards, reward/Continue returns, Premium unlock visible/persisted. A real Training completion grants no economy/league progress and returns home. |
+| Console/compile | Source compiles; current Console ground truth after fresh runtime checks has no errors/warnings. Recompilation retains an existing **UAC0009 DEVELOPMENT_BUILD deprecation warning in ArenaDeveloperCamera.cs**; that arena file was not changed. Historical Pipeline buffers include older unrelated entries, not current runtime failures. |
+
+Actual captures: **Logs/Frontend/GameModes-{1920,2340,2400}.png**, **SeasonPass-*.png**, **BattlePass-Scrolled-*.png**, **Home-*.png**, other page names by width, **Official-Arena.png**, **Official-Result-1/2.png**, **Premium-Unlocked.png**, **Final-Training-Details.png**, **Final-Division-Details.png** and **Final-Home.png**. These are actual Unity Game-view screenshots. Test input-focus settings were temporarily relaxed inside fixtures and restored; no production input-setting change. Device Back/touch, phone performance, memory/texture quality and real full-length matches remain manual/device testing. Existing collection stat/cosmetic limits and offline device-clock pack timing remain unchanged. Source/docs whitespace checks are clean; Git's full diff check reports Unity-serialized trailing spaces on empty YAML values, which were not hand-edited.
+
+Manual review: Play Hub Entry; browse every page and X/Escape, swipe the season track, open Team Collection/details, test an affordable Shop confirmation and claimable reward, then PLAY→Division1→Start Championship. Win two official matches to see Premium unlock; quit/relaunch to check persistence. Test Training without rewards. Stop here; no further gameplay/backend milestone is authorized.
+
+## Previous handoff — asset-driven mobile MainLobby implemented and verified
+
+This is the developer's explicitly authorized **home-screen visual replacement**, using their existing 21 PNGs. It does not redesign the arena, athletes, backend, economy or all secondary pages. Stop at this completed scope. All changes are **uncommitted**; Git was used read-only. Pre-existing Art files, Pipeline settings, `old-plan.md` and `tatus` were preserved. No downloaded/replacement artwork, network SDK, fake inventory or new economy was added.
+
+### Scene, commands and recovery
+
+**Assets/Scenes/MainLobby.unity** is configured and saved with its original scene GUID and existing single Canvas/EventSystem/InputSystemUIInputModule. Normal startup remains **Boot → MainLobby → PLAY → Quick Match → OlympicMatchArena → rewards → MainLobby**. **OlympicMatchArena, Boot, HubCatalog and EditorBuildSettings bytes are unchanged from this session's baseline**, verified by SHA256. The original lobby has an exact independent recovery copy at **Assets/Scenes/Recovery/MainLobby_PreAssetHome.unity**, outside the build list. No existing scene was overwritten with a newly generated scene.
+
+Use **Tools > Water Polo > Main Lobby > Open MainLobby** to open the saved home, or **Set Up Asset Home Screen** in the same submenu. Setup refuses unsaved scenes/Play Mode, configures missing content once and opens an already configured lobby without rebuilding tuned layout/imports or duplicating objects. Normal Play entry is **Boot**; **Tools > Water Polo > Play Hub Entry** runs the complete startup. Source builder: **Assets/Editor/MainMenuSetup.cs**. Mobile autorotation now permits both landscape directions and disables both portrait orientations; only those two PlayerSettings flags changed. This is persisted configuration, not a device-rotation test.
+
+### Assets and importer settings
+
+All **21 supplied PNGs** under **Assets/Art/UI/MainMenu/** were inspected for dimensions, alpha/padding and appearance. There are **zero missing sprites**. Catalog **Assets/UI/MainMenu/MainMenuArt.asset** holds serialized references directly to their imported Sprite subassets; there are no scattered art Resources.Load calls.
+
+| Group | Assets and use |
+| --- | --- |
+| Buttons (9) | btn_ranking, btn_shop, btn_team on left; btn_friends, btn_clubs, btn_world_tournament on right; btn_battle_pass/btn_missions bottom left; btn_play bottom right. |
+| Icons (5) | icon_coin/icon_diamond with actual balances; icon_plus for each shop shortcut; icon_settings/icon_messages beside profile. |
+| Cards (4) | card_common/card_rare/card_epic/card_legendary selected from each stored pack's rarity; never displayed as owned when empty. |
+| Brand / Profile / Background (3) | One small logo_mascot in the top bar, profile_default for the profile entry and bg_main_menu across the viewport. |
+
+Source widths are **500–1842 px**, heights **408–1273 px**; background **1672×941**. Background is opaque; the other 20 have alpha. Some assets have excessive transparent padding, especially Common/Rare cards. Sprite metadata uses one Full Rect sprite per PNG (Sprite Mode Multiple) with a non-destructive visible-art rect: alpha≥64 bounds plus a safety margin. Source PNG hashes and original asset GUIDs are unchanged. Embedded PNG lettering/icons are not redrawn or duplicated. **World Tournament's actual supplied image is a trophy without lettering**, so a small caption sits below its art, outside the button image.
+
+Import: Sprite (2D/UI), source alpha/transparency for non-background images, sRGB, no mipmaps/read-write/NPOT rescaling, Clamp/Bilinear, no fallback physics shapes. Max size: buttons 1024, icons/cards/profile/mascot 512, background 2048. Desktop BC7; Android/iOS ASTC 4×4 overrides. These are sensible UI budgets; mobile decoding/memory/image quality were not profiled on devices. Repeat setup preserves authored Sprite/layout tuning. When replacing artwork later, review its Sprite rect; do not destructively crop original PNGs.
+
+### Hierarchy and responsive home layout
+
+The existing **LobbyCanvas** retains its CanvasScaler (1920×1080, Scale With Screen Size, match=.5), GraphicRaycaster and one EventSystem. **MainMenuBackdrop** sits under SafeArea: supplied image with cover aspect fitting plus restrained navy tint. Existing **SafeArea** retains SafeAreaLayout, HubView and GamePreferences. It now contains **MainMenuHome**, existing Feedback and the existing Modal drawn last.
+
+**MainMenuHome** contains **TopBar** (profile/name/live level and fractional XP, Settings/Messages, small brand, diamonds/coins and plus controls), **LeftNavigation**, **RightNavigation**, **BottomLeft**, **RewardPackSlots/PackSlot0–3**, and **Play**. Home occupies normalized safe-area bounds: top bar ~13% height; left/right rails ~17%/19% width; bottom pack row ~36.5% width; PLAY ~24.7% width. The centre is intentionally clear—no player model, giant portrait/logo or additional banner. There is no energy meter or added country-flag widget. Background banner details are the supplied image itself.
+
+PNG Images preserve aspect inside generous independent hit rectangles. All interactive bounds fit simulated safe areas without overlapping. Larger PLAY art remains dominant; Battle Pass preserves its wide banner proportions. Common text uses TMP autosizing; pack state labels were enlarged after Game-view review. XP bar width is the actual XP fraction, including zero; it does not show a false full bar. Reusable factories build image buttons, currency groups and badges. Four reusable MainMenuPackSlot components and MenuButtonFeedback provide consistent behavior. Press feedback scales only artwork to .95, hover to 1.025, uses unscaled time, resets on cancel/disable and stops transform writes after settling. No per-frame home hierarchy rebuilds; pack text updates once a second through the existing hub timer.
+
+The old ProfileBar/Navigation/Page objects remain available for secondary screens and are hidden on home. Opening another page hides home/backdrop and reveals the existing shell. Back/Escape returns to home. The original large procedural lobby portrait is never shown in the new home; existing Profile/Collection detail visuals remain on those secondary pages. The provided default profile icon stays fixed; name/cosmetic editing remains in the existing Profile system.
+
+### Navigation and pack integration
+
+`HubView.Show(...)` remains the central route API; its existing dialogs and pack actions are reused. `MainMenuHomeView` reads detached HubProgression snapshots and requests actions through HubView. **HubProgression, JsonProfileRepository, LocalProfileCodec, HubCatalog and all match scripts were not changed.**
+
+| Home control | Destination |
+| --- | --- |
+| Ranking | Existing Trophies/local rank and achievements; no fake online ranking. |
+| Shop | Existing Shop. |
+| Team | Existing Tactics; Collection remains reachable in the preserved secondary navigation. |
+| Battle Pass | Existing Season Pass. |
+| Missions | Existing six achievement definitions/counters/claims, reused through a shared list; no new daily-mission backend. |
+| Profile / Settings | Existing editable Profile / local Settings. |
+| Diamond plus / Coin plus | Existing Shop Gems / Coins tabs; the premium-store preview remains unavailable. No purchase is triggered just by opening it. |
+| PLAY | Existing mode selection with Quick Match/Training and preserved arena routing. |
+| Friends / Clubs / Messages / World Tournament | Reusable informational popup with exact feature title, Coming Soon and Close; Escape closes it and underlying buttons are blocked. Original social preview pages remain available in the old secondary navigation. |
+
+Four slots render the real compact pack list: **Empty** shows no card image and cannot claim; **Waiting** opens the existing unlock confirmation/odds; **Unlocking** displays service.Remaining countdown; **Ready** opens the existing once-only claim/reveal. Actions pass stable pack IDs back to the original PackPanel/StartPack/ClaimPack flow. Inventory removal, grants, timers, recovery writes and deduplication stay authoritative. No pack instances are created by UI. Known stored rarities map to four supplied sprites; unknown rarities use a generic reward label, never fabricated rarity art. Current catalog normally awards Common Tide packs; the other sprites are prepared for actual stored rarities, not added to drop tables. Battle Pass/Missions badges show only real unclaimed eligible reward counts, hiding at zero.
+
+### Fresh focused verification and screenshots
+
+Windows **Unity 6000.6.7f1 / URP 17.6 / D3D12**, actual advancing Play Mode. Verification source **Tools/Verification/MainMenuVerification.cs**, using **script run** for Task-returning methods. No broad historical gameplay suite was repeated. Reports/captures: ignored **Logs/MainMenu/**. Inspection utility **Tools/Verification/InspectMainMenuAssets.ps1** writes a diagnostic contact sheet/alpha report outside Assets; it does not edit artwork.
+
+| Check | Fresh result |
+| --- | --- |
+| Setup | PASS: 21 assigned Sprite references / zero missing; all source PNG bytes/GUIDs preserved; same MainLobby GUID; exact original recovery copy; arena/Boot/catalog/build list unchanged; one Canvas/EventSystem/GraphicRaycaster, required CanvasRenderers, no missing scripts, repeat-safe scene bytes. |
+| Interactions | PASS real Input System mouse/key events: home routes, press scale, existing editable profile form plus pointer Save, live balances/XP, all four pack states, rarity mapping, countdown changes/completion, unlock/claim persistence, claim-once refusal, inventory reload, actual achievement badges, four popup titles/modal blocking/Close/Escape. |
+| Layouts | PASS actual **1920×1080, 2340×1080, 2400×1080** (16:9/19.5:9/20:9), simulated 70px side / 24px vertical safe insets. All touch targets visible/in bounds, no control overlap, text fits, PNG proportions retained, pointer Shop/Back and popup close work at each size. Home and popup Game views inspected at all three ratios. |
+| Match/rewards loop | PASS existing ArenaVerification.HubFlow once through the new PLAY button: Boot/lobby, actual Quick Match pointer, 14 roster/collection mappings, physical goal, 4 periods with one halftime reversal, one receipt, reward reload, pointer rewards/Continue return to new home; training abandonment grants nothing. Period completion is accelerated through existing live-time API; no full-length manual/device match claim. |
+| Final feedback smoke | PASS after idle feedback optimization: real pointer scale/route, live profile/currency values, correct XP geometry. |
+| Data safety | Interaction/pack/form tests and full match rewards used isolated in-memory profiles; production profile SHA256 unchanged during each fixture. Catalog/economy/save implementations and persisted user inventory were not reset. |
+| Compilation/Console | Latest Editor/runtime source compiles; final current Console ground truth **0 errors / 0 warnings**. Historical Pipeline buffers retain resolved prior-session entries. |
+
+Commands: `unity command script run --file Tools/Verification/MainMenuVerification.cs --entry MainMenuVerification.Setup --caller plugin --skill unity-pipeline --format json` in saved Edit Mode; **Interactions**, **Layouts**, **FeedbackSmoke** in Boot/lobby Play Mode. Use `--timeout 60` for Interactions, 45 for Layouts. The match-loop CLI result is **Logs/MainMenu/MatchFlow-cli.json**; its actual result/reward captures remain in Logs/Arena. Never return Task objects through synchronous eval.
+
+Actual-profile home screenshots: **Logs/MainMenu/Home-1920.png, Home-2340.png, Home-2400.png**. Also **ComingSoon-1920/2340/2400.png**, **Shop-1920/2340/2400.png** and **Popup-FRIENDS/CLUBS/MESSAGES/WORLDTOURNAMENT.png**. **Fixture-Pack-States.png** deliberately uses isolated waiting/unlocking/ready/empty test records and test balances; it is not the developer's inventory. Final home screenshots use the unchanged real profile (one owned Common pack and three empty slots in this run).
+
+### Files, limits and next step
+
+New runtime classes under **Assets/Scripts/Hub/**: **MainMenuArt.cs, MainMenuHomeView.cs, MainMenuPackSlot.cs, MenuButtonFeedback.cs**. New **Assets/Editor/MainMenuSetup.cs**, **Assets/UI/MainMenu/MainMenuArt.asset**, recovery MainLobby scene and metas; **Tools/Verification/MainMenuVerification.cs, InspectMainMenuAssets.ps1**. Modified **MainLobby.unity**, the 21 imported PNG `.meta` settings, **HubView.cs** (home switching/routes/popup/events), **HubRewardViews.cs** (home timer adapter), **HubCollectionViews.cs** (shared achievement list for Missions), **ProjectSettings.asset** (two portrait flags), **AGENTS.md, README.md, plan.md**. No source PNG, arena, Boot, build-list, economy catalog, persistence or gameplay-source changes. Imported Art folders/files were pre-existing untracked developer work and remain present.
+
+Remaining limits: no Android/iOS build, hardware touch/multitouch/rotation, safe-area hardware or performance profiling. Only the main home has the new art; secondary screens deliberately retain the existing functional style. Friends/Clubs/Messages/World Tournament and original online/career previews remain unavailable. Sprite text is baked English; localization would need appropriate supplied variants. Future secondary-screen polish can use the same art catalog/components under a separate explicit scope. No future milestone was started.
+
+Editor is left outside Play with saved **MainLobby** open, **Boot** as Play entry and auto-tick enabled as found. Next action is developer visual/touch review: use Play Hub Entry, try navigation/Back and the Coming Soon close, optionally unlock/claim an owned pack and complete a Quick Match to review rewards/return. Actual phone touch/rotation/performance remains a future hardware check. Stop here.
+
 ## Current handoff — OlympicMatchArena is the verified production match destination
 
 The developer explicitly authorized a major arena replacement based on **the complete WaterVisualTest appearance**, beyond the earlier additive water-only integration. This environment scope is complete in the Windows Editor; it is not a later gameplay/backend milestone. All changes remain **uncommitted**. No Git write operation or automatic checkpoint was performed. Existing unrelated local files/changes, including `old-plan.md`, `tatus`, Resources meta and Pipeline settings, were preserved. Read this handoff before the historical water/M12 acceptance notes below.

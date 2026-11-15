@@ -27,7 +27,12 @@ namespace ToduStudios.WaterPolo.Hub
         public static void Validate(LocalProfile p)
         {
             // A newer valid schema must never be silently downgraded to an older backup.
-            if(p!=null&&p.schemaVersion!=1)throw new NotSupportedException("This profile requires a compatible save migration.");
+            if(p!=null&&p.schemaVersion!=2)throw new NotSupportedException("This profile requires a compatible save migration.");
+            ValidateLegacy(p);
+            if(p.completedDivisions==null)throw new InvalidDataException("Missing division progress.");
+        }
+        internal static void ValidateLegacy(LocalProfile p)
+        {
             if(p==null || string.IsNullOrWhiteSpace(p.profileId) || p.coins<0 || p.gems<0 || p.xp<0 || p.seasonXp<0 || p.revision<0 || p.collection==null || p.lineup==null || p.packs==null || p.transactions==null || p.claimedRewards==null || p.history==null)
                 throw new InvalidDataException("Unsupported or invalid profile schema.");
         }

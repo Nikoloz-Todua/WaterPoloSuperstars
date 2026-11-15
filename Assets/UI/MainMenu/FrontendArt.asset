@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c5ad18360831bad47a75a6e987456a1e, type: 3}
+  m_Name: FrontendArt
+  m_EditorClassIdentifier: Assembly-CSharp::ToduStudios.WaterPolo.Hub.FrontendArt
+  division1: {fileID: 21300000, guid: 35830789bdfe70a479ce0c17e1db9369, type: 3}
+  premiumLeague: {fileID: 21300000, guid: ed65b515d0a6d6a42af488a32e0c92c7, type: 3}
+  continentalCup: {fileID: 21300000, guid: 02f0d8c121fbcab458892dad4847dc58, type: 3}
+  worldChampionsLeague: {fileID: 21300000, guid: 808db44184420e54395e9aa6b257dbae, type: 3}
+  luckyShot: {fileID: 21300000, guid: fb2ee534b87af8c469d74bc3052e1411, type: 3}
+  training: {fileID: 21300000, guid: 6f3d2c1d9cad4cd48a282e1fef24edc1, type: 3}
+  gameModesBackground: {fileID: 21300000, guid: 69ea10a7897ef4e4d9a63ba25f9df915, type: 3}
+  battlePassBackground: {fileID: 21300000, guid: 55fdc2fb938a8274f9a76c0e21be84b9, type: 3}

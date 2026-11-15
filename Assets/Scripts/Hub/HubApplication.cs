@@ -46,6 +46,11 @@ namespace ToduStudios.WaterPolo.Hub
             if(Busy||Progression==null)return;
             if(Progression.BeginMatch(mode,out var message))StartCoroutine(Load(Match));else Error=message;
         }
+        public void LaunchDivision(string id)
+        {
+            if(Busy||Progression==null)return;
+            if(Progression.BeginDivisionMatch(id,out var message))StartCoroutine(Load(Match));else Error=message;
+        }
         public void ReturnToLobby(bool abandon)
         {
             if(Busy)return;if(abandon&&!Progression.LeaveMatch(out var message)){Error=message;return;}StartCoroutine(Load(Lobby));

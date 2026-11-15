@@ -6,15 +6,15 @@ using UnityEngine;
 namespace ToduStudios.WaterPolo.Hub
 {
     /// <summary>Single local transaction authority. Mutate a copy, validate, persist, then publish it.</summary>
-    public sealed class HubProgression : IEconomyService,IProgressionService,IPlayerCollectionRepository,IRewardService
+    public sealed partial class HubProgression : IEconomyService,IProgressionService,IPlayerCollectionRepository,IRewardService
     {
         readonly IProfileRepository repository; readonly Func<long> utc; LocalProfile profile;
         public HubCatalog Catalog {get;} public event Action Changed;
         public LocalProfile Snapshot=>Copy(profile);
         static LocalProfile Copy(LocalProfile p)=>LocalProfileCodec.Copy(p);
-        public HubProgression(HubCatalog catalog,IProfileRepository repository,Func<long> clock=null)
+        public HubProgression(HubCatalog catalog,IProfileRepository repository,Func<long> clock=null,DivisionCatalog divisions=null)
         {
-            Catalog=catalog;this.repository=repository;utc=clock??(()=>DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+            Catalog=catalog;Divisions=divisions??Resources.Load<DivisionCatalog>("DivisionCatalog");this.repository=repository;utc=clock??(()=>DateTimeOffset.UtcNow.ToUnixTimeSeconds());
             if(repository is JsonProfileRepository disk)disk.SetContentValidation(Validate);
             profile=LocalProfileCodec.Normalize(repository.Load());
             if(profile==null)
@@ -30,6 +30,7 @@ namespace ToduStudios.WaterPolo.Hub
         void Validate(LocalProfile p)
         {
             JsonProfileRepository.Validate(p);
+            ValidateDivisions(p);
             if(p.capColor<0||p.capColor>3||p.swimwearColor<0||p.swimwearColor>3||p.accentColor<0||p.accentColor>3||string.IsNullOrWhiteSpace(p.displayName)||p.displayName.Length>18||!new[]{"wave","anchor","sun","reef"}.Contains(p.avatarId)||p.played<0||p.wins<0||p.draws<0||p.goals<0||p.upgrades<0||p.packsOpened<0||p.transactions.Any(string.IsNullOrWhiteSpace)||p.claimedRewards.Any(string.IsNullOrWhiteSpace))throw new InvalidDataException("Invalid profile values; progress retained.");
             if(p.level<1 || p.trophies<0 || p.collection.Any(x=>x==null || x.level<1 || x.level>Catalog.maxLevel || x.shards<0) || p.collection.Select(x=>x.playerId).Distinct().Count()!=p.collection.Count || p.packs.Any(x=>x==null || string.IsNullOrEmpty(x.instanceId) || x.duration<1 || x.startUtc<0 || x.outcome<0 || x.outcome>=Catalog.packOutcomes.Length) || p.packs.Select(x=>x.instanceId).Distinct().Count()!=p.packs.Count)throw new InvalidDataException("Invalid collection or pack state; progress retained.");
             if(p.lineup.Count!=7 || p.lineup.Distinct().Count()!=7 || p.lineup.Any(id=>Catalog.Player(id)==null || !p.collection.Any(x=>x.playerId==id)) || !Catalog.Player(p.lineup[0]).goalkeeper || p.lineup.Skip(1).Any(id=>Catalog.Player(id).goalkeeper))throw new InvalidDataException("Invalid starting lineup; progress retained.");
@@ -97,7 +98,8 @@ namespace ToduStudios.WaterPolo.Hub
         public bool CompleteMatch(string sessionId,int blue,int white,out string message)=>Transaction("match:"+sessionId,p=>
         {
             if(p.activeMatch==null||p.activeMatch.id!=sessionId||blue<0||white<0)throw new InvalidOperationException("No eligible active match.");
-            bool eligible=p.activeMatch.mode=="quick";var receipt=new MatchReceipt{id=sessionId,blue=blue,white=white,result=blue==white?"DRAW":blue>white?"VICTORY":"DEFEAT"};
+            bool eligible=p.activeMatch.mode=="quick"||p.activeMatch.mode=="division";var receipt=new MatchReceipt{id=sessionId,blue=blue,white=white,result=blue==white?"DRAW":blue>white?"VICTORY":"DEFEAT"};
+            if(p.activeMatch.mode=="division")ApplyDivisionResult(p,receipt,blue>white);
             if(eligible)
             {
                 receipt.coins=blue>white?Catalog.winCoins:blue==white?Catalog.drawCoins:Catalog.lossCoins;receipt.xp=Catalog.matchXp;receipt.trophies=blue>white?Catalog.winTrophies:blue==white?0:-Math.Min(p.trophies,Catalog.lossTrophies);

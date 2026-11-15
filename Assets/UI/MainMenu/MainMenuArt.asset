@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 557656f7c11dd344fb18bd51a27f21d7, type: 3}
+  m_Name: MainMenuArt
+  m_EditorClassIdentifier: Assembly-CSharp::ToduStudios.WaterPolo.Hub.MainMenuArt
+  ranking: {fileID: 451516319, guid: 8abc868f002684249a85cec821151ef9, type: 3}
+  shop: {fileID: -284355357, guid: c41a2977e9049fe46bbf8006edf27618, type: 3}
+  team: {fileID: -1606591349, guid: f112449b2e94083458fe5c66df27ef5f, type: 3}
+  battlePass: {fileID: 1159874191, guid: 362164c0d77c66c4585ae454e7b014c8, type: 3}
+  missions: {fileID: 1920767915, guid: 877e3332206036847905c38930e454cd, type: 3}
+  worldTournament: {fileID: 1758259087, guid: 1bc3c78522f9e834687b2f1c66134f6a, type: 3}
+  friends: {fileID: 1039108319, guid: 114bbaaf80a0e1f4da432d12e806f021, type: 3}
+  clubs: {fileID: 1632852752, guid: 5fb68aace24ab5b4799794b1b3a93472, type: 3}
+  play: {fileID: 263323509, guid: 9512895f03cc5764e87b640e6e900d84, type: 3}
+  coin: {fileID: 1494452134, guid: 2183c4f0fe8a634428b63b3b1ba52cb9, type: 3}
+  diamond: {fileID: -793230205, guid: 91faed4fdcf91224d989cdc7672adaa5, type: 3}
+  settings: {fileID: 319592666, guid: 787cf60d7087ea84e9a5554143d343e7, type: 3}
+  messages: {fileID: -153427962, guid: dcd92206572f65f4386fa7827e47a9db, type: 3}
+  plus: {fileID: 1384916743, guid: 37033d4624f169648902e28219bccd6f, type: 3}
+  commonPack: {fileID: -372534448, guid: a2273b917c17a5e4a8d62fc74321fc29, type: 3}
+  rarePack: {fileID: 2113538831, guid: 838f28aded5e40b49937491b67386e9f, type: 3}
+  epicPack: {fileID: -704288423, guid: c8fd55a004da41f4ab786cb2adc78faa, type: 3}
+  legendaryPack: {fileID: 391254891, guid: ba97425e5293409438ae1cc63b880e7d, type: 3}
+  mascot: {fileID: 364157966, guid: 60260d8855e3a45449cca72675162221, type: 3}
+  profile: {fileID: -2080017840, guid: 6110a7214575f70418e5f7dc4ec25245, type: 3}
+  background: {fileID: 479627093, guid: 4ae2afa4b8baa2d46bf9aa13fb976633, type: 3}

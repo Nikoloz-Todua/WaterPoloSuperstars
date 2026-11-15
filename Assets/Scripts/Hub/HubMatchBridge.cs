@@ -6,13 +6,13 @@ namespace ToduStudios.WaterPolo.Hub
     /// <summary>Observes the existing phase authority. Direct scene tests never initialize hub progress.</summary>
     public sealed class HubMatchBridge : MonoBehaviour
     {
-        PrototypeMatch match;string sessionId,mode;bool completed;
+        PrototypeMatch match;string sessionId,mode,divisionId;bool completed;
         public static bool Active=>HubApplication.Instance!=null&&HubApplication.Instance.Progression!=null;
         void Start()
         {
             if(!Active){enabled=false;return;}
             match=GetComponent<PrototypeMatch>();var p=HubApplication.Instance.Progression.Snapshot;
-            if(p.activeMatch==null){enabled=false;return;}sessionId=p.activeMatch.id;mode=p.activeMatch.mode;
+            if(p.activeMatch==null){enabled=false;return;}sessionId=p.activeMatch.id;mode=p.activeMatch.mode;divisionId=p.activeMatch.divisionId;
             var roster=FindAnyObjectByType<PrototypeRoster>();var blue=roster.Members.Where(x=>x.Team==PrototypeTeam.Blue).OrderBy(x=>x.IsFieldPlayer?1:0).ThenBy(x=>(int)x.FieldPosition).ToArray();
             for(int i=0;i<blue.Length&&i<p.activeMatch.lineup.Count;i++)blue[i].SetCollectionDefinition(p.activeMatch.lineup[i]);
             foreach(var tactics in FindObjectsByType<PrototypeTeamTactics>())if(tactics.Team==PrototypeTeam.Blue)tactics.SetDefense(p.tactics=="Press"?DefenseStrategy.Press:DefenseStrategy.Zone);
@@ -21,7 +21,8 @@ namespace ToduStudios.WaterPolo.Hub
         void Restarted()
         {
             var service=HubApplication.Instance.Progression;
-            if(service.BeginMatch(mode,out var message)){sessionId=service.Snapshot.activeMatch.id;completed=false;}else Debug.LogError(message);
+            string message;bool ok=mode=="division"?service.BeginDivisionMatch(divisionId,out message):service.BeginMatch(mode,out message);
+            if(ok){sessionId=service.Snapshot.activeMatch.id;completed=false;}else Debug.LogError(message);
         }
         void Observe()
         {

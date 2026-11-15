@@ -9,7 +9,7 @@ namespace ToduStudios.WaterPolo.Hub
     {
         void Collection(LocalProfile p)
         {
-            var scroll=HubWidgets.Scroll(content,"CollectionScroll");int rows=(service.Catalog.players.Length+3)/4;scroll.sizeDelta=new Vector2(0,rows*290);
+            var area=HubWidgets.Rect(content,"CollectionArea",0,0,1,.99f);var scroll=HubWidgets.Scroll(area,"CollectionScroll");int rows=(service.Catalog.players.Length+3)/4;scroll.sizeDelta=new Vector2(0,rows*290);
             for(int i=0;i<service.Catalog.players.Length;i++)
             {
                 var def=service.Catalog.players[i];var owned=p.collection.FirstOrDefault(x=>x.playerId==def.id);float height=1f/rows;
@@ -23,7 +23,7 @@ namespace ToduStudios.WaterPolo.Hub
         void Details(LocalProfile p)
         {
             var def=service.Catalog.Player(selectedPlayer??p.lineup[1]);var owned=p.collection.FirstOrDefault(x=>x.playerId==def.id);int level=owned?.level??1;
-            var art=HubWidgets.Panel(content,"Portrait",.02f,.13f,.32f,.7f,service.Catalog.Rarity(def.rarity).color*.6f);HubWidgets.Athlete(art,service.Catalog.Rarity(def.rarity).color,HubWidgets.Palette[p.swimwearColor]);
+            var art=HubWidgets.Panel(content,"Portrait",.02f,.13f,.32f,.7f,service.Catalog.Rarity(def.rarity).color*.6f);FrontendControls.Picture(art,"PlayerPlaceholder",home.art.profile,.14f,.2f,.72f,.66f);
             HubWidgets.Text(content,"Player",def.name+"\n"+def.rarity+" • "+def.role+" • OVR "+def.Overall(level),.39f,.63f,.59f,.22f,36);
             int bonus=2*(level-1);
             HubWidgets.Text(content,"StatTable",$"SWIM {def.swim+bonus}      STAMINA {def.stamina+bonus}\nSHOT {def.shot+bonus}      PASS {def.pass+bonus}\nDEFENSE {def.defense+bonus}      HANDLING {def.handling+bonus}"+(def.goalkeeper?$"\nKEEPING {def.keeping+bonus}":""),.39f,.3f,.59f,.32f,29);
@@ -54,7 +54,7 @@ namespace ToduStudios.WaterPolo.Hub
         }
         void Profile(LocalProfile p)
         {
-            var preview=HubWidgets.Panel(content,"AppearancePreview",.01f,.08f,.29f,.76f,HubWidgets.Card);HubWidgets.Athlete(preview,HubWidgets.Palette[p.capColor],HubWidgets.Palette[p.swimwearColor]);
+            var preview=HubWidgets.Panel(content,"AppearancePreview",.01f,.08f,.29f,.76f,HubWidgets.Card);FrontendControls.Picture(preview,"ProfileArtwork",home.art.profile,.14f,.2f,.72f,.66f);
             HubWidgets.Text(preview,"Avatar",p.avatarId.ToUpperInvariant()+" / "+p.displayName,.05f,.01f,.9f,.12f,25,HubWidgets.Cyan,TextAlignmentOptions.Center);
             HubWidgets.Text(content,"Progress",$"LEVEL {p.level}  •  {p.xp%100}/100 XP\n{p.trophies} trophies • {p.wins} wins / {p.played} matches\n{p.collection.Count}/{service.Catalog.players.Length} athletes • LOCAL ONLY",.34f,.65f,.64f,.2f,28);
             var inputRect=HubWidgets.Panel(content,"NameInput",.34f,.53f,.64f,.09f,HubWidgets.Card);var field=inputRect.gameObject.AddComponent<TMP_InputField>();
@@ -75,7 +75,11 @@ namespace ToduStudios.WaterPolo.Hub
         {
             string rank=p.trophies>=300?"DEEPWATER":p.trophies>=100?"SURGE":"RIPPLE";
             HubWidgets.Text(content,"Rank",$"{rank} RANK  •  {p.trophies} TROPHIES\nNext rank: {(p.trophies<100?100:p.trophies<300?300:600)} trophies • {p.wins} wins • {p.played} matches • {p.goals} goals",.02f,.7f,.96f,.16f,31,HubWidgets.Gold);
-            var area=HubWidgets.Rect(content,"AchievementArea",0,0,1,.68f);var list=HubWidgets.Scroll(area,"Achievements");var defs=service.Catalog.achievements;list.sizeDelta=new Vector2(0,defs.Length*100);
+            Achievements(p,.68f);
+        }
+        void Achievements(LocalProfile p,float height)
+        {
+            var area=HubWidgets.Rect(content,"AchievementArea",0,0,1,height);var list=HubWidgets.Scroll(area,"Achievements");var defs=service.Catalog.achievements;list.sizeDelta=new Vector2(0,defs.Length*100);
             for(int i=0;i<defs.Length;i++)
             {
                 var a=defs[i];bool claimed=p.claimedRewards.Contains("achievement:"+a.id);var row=HubWidgets.Panel(list,a.id,0,1-(i+1f)/defs.Length,1,.9f/defs.Length,HubWidgets.Card);

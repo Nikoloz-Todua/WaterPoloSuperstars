@@ -22,6 +22,7 @@ namespace ToduStudios.WaterPolo.Hub
         void UpdatePackTimers()
         {
             if(page!="Lobby")return;var p=service.Snapshot;
+            if(home!=null){home.RefreshPacks(p);return;}
             foreach(var pack in p.packs){var t=content.Find("PackSlot"+p.packs.IndexOf(pack)+"/PackTimer_"+pack.instanceId);if(t!=null)t.GetComponent<TMP_Text>().text=PackText(pack);}
         }
         void PackPanel(string id)
@@ -54,24 +55,30 @@ namespace ToduStudios.WaterPolo.Hub
                 },HubWidgets.Palette[0]);
             }
             if(offers.Length==0)HubWidgets.Text(content,"FutureStore",shopTab=="Gems"?"PREMIUM STORE PREVIEW\nReal-money gem purchases are coming later.\nNo billing provider is connected.":"SPECIAL OFFERS\nFuture curated offers will appear here.\nNo paid random packs.",.08f,.28f,.84f,.4f,34,HubWidgets.Muted);
-            HubWidgets.Button(content,"Ads","WATCH AD — COMING LATER",.01f,.025f,.47f,.1f,null,null,false);
-            HubWidgets.Button(content,"Payments","REAL-MONEY STORE — COMING LATER",.51f,.025f,.48f,.1f,null,null,false);
+            HubWidgets.Text(content,"LocalStoreNote","LOCAL SHOP  •  Fixed contents, saved transactions. Premium purchases and ads are unavailable.",.01f,.025f,.98f,.1f,23,HubWidgets.Muted,TextAlignmentOptions.Center);
         }
         void Season(LocalProfile p)
         {
             int level=Math.Min(service.Catalog.seasonLevels,p.seasonXp/service.Catalog.seasonXpPerLevel);
-            HubWidgets.Text(content,"SeasonHeader",$"{service.Catalog.seasonTitle}\nLEVEL {level} • {p.seasonXp} XP • NEXT {Math.Min(service.Catalog.seasonLevels,level+1)*service.Catalog.seasonXpPerLevel} XP",.02f,.67f,.96f,.2f,30,HubWidgets.Gold);
-            var area=HubWidgets.Rect(content,"SeasonTrack",0,.03f,1,.64f);var track=HubWidgets.Scroll(area,"HorizontalTrack",true);
-            track.anchorMin=track.anchorMax=new Vector2(0,1);track.sizeDelta=new Vector2(service.Catalog.seasonLevels*240,480);
+            var summary=HubWidgets.Panel(content,"SeasonSummary",0,.79f,1,.20f,new Color(.055f,.02f,.15f,.94f));
+            HubWidgets.Text(summary,"SeasonHeader",service.Catalog.seasonTitle,.025f,.48f,.70f,.46f,32,HubWidgets.Gold);
+            HubWidgets.Text(summary,"SeasonProgress",$"LEVEL {level}  •  {p.seasonXp} XP  •  NEXT {Math.Min(service.Catalog.seasonLevels,level+1)*service.Catalog.seasonXpPerLevel} XP",.025f,.08f,.70f,.36f,24);
+            var progress=HubWidgets.Panel(summary,"ProgressTrack",.77f,.25f,.20f,.20f,new Color(.12f,.055f,.24f));HubWidgets.Panel(progress,"Earned",0,0,Mathf.Clamp01(p.seasonXp/(float)(service.Catalog.seasonLevels*service.Catalog.seasonXpPerLevel)),1,HubWidgets.Cyan);
+            var area=HubWidgets.Rect(content,"SeasonTrack",0,.055f,1,.71f);var track=HubWidgets.Scroll(area,"HorizontalTrack",true);
+            track.parent.parent.GetComponent<RectTransform>().anchorMax=Vector2.one;
+            track.anchorMin=new Vector2(0,0);track.anchorMax=new Vector2(0,1);track.sizeDelta=new Vector2(service.Catalog.seasonLevels*260,0);track.anchoredPosition=Vector2.zero;
             for(int i=1;i<=service.Catalog.seasonLevels;i++)
             {
                 int tier=i;bool claimed=p.claimedRewards.Contains("season:"+service.Catalog.seasonId+":"+tier);var reward=service.Catalog.SeasonReward(tier);
-                var card=HubWidgets.Panel(track,"Tier"+tier,(i-1f)/service.Catalog.seasonLevels,.02f,.95f/service.Catalog.seasonLevels,.96f,HubWidgets.Card);
-                HubWidgets.Text(card,"Level","TIER "+tier,.08f,.81f,.84f,.15f,30,HubWidgets.Cyan);
-                HubWidgets.Text(card,"Free",$"FREE\n{reward.coins} coins"+(reward.gems>0?$"\n{reward.gems} gems":""),.08f,.47f,.84f,.32f,26);
-                HubWidgets.Button(card,"ClaimTier"+tier,claimed?"CLAIMED":level>=tier?"CLAIM":"LOCKED",.06f,.31f,.88f,.14f,()=>{bool ok=service.ClaimSeason(tier,out var m);Feedback(ok,m);},HubWidgets.Palette[0],!claimed&&level>=tier);
-                HubWidgets.Text(card,"Premium","PREMIUM\nLocked preview\nComing later",.08f,.03f,.84f,.25f,22,HubWidgets.Muted);
+                var card=HubWidgets.Panel(track,"Tier"+tier,(i-1f)/service.Catalog.seasonLevels,.02f,.95f/service.Catalog.seasonLevels,.96f,new Color(.075f,.035f,.18f,.94f));
+                HubWidgets.Text(card,"Level","TIER "+tier,.08f,.86f,.84f,.11f,30,HubWidgets.Cyan);
+                var free=HubWidgets.Panel(card,"FreeTrack",.05f,.43f,.90f,.39f,new Color(.035f,.13f,.24f));
+                HubWidgets.Text(free,"Free",$"FREE TRACK\n{reward.coins} coins"+(reward.gems>0?$"\n{reward.gems} gems":""),.08f,.34f,.84f,.60f,25);
+                HubWidgets.Button(free,"ClaimTier"+tier,claimed?"CLAIMED":level>=tier?"CLAIM":"LOCKED",.06f,.055f,.88f,.25f,()=>{bool ok=service.ClaimSeason(tier,out var m);Feedback(ok,m);},HubWidgets.Palette[0],!claimed&&level>=tier);
+                var premium=HubWidgets.Panel(card,"PremiumTrack",.05f,.045f,.90f,.34f,new Color(.16f,.065f,.28f));
+                HubWidgets.Text(premium,"Premium","PREMIUM TRACK\nLocked • Coming Soon\nNo entitlement granted",.08f,.08f,.84f,.84f,22,HubWidgets.Muted);
             }
+            HubWidgets.Text(content,"TrackHint","SWIPE TO EXPLORE ALL TIERS  •  Free rewards require Season XP. Premium is a preview.",.02f,0,.96f,.045f,22,HubWidgets.Muted,TextAlignmentOptions.Center);
         }
     }
 }
