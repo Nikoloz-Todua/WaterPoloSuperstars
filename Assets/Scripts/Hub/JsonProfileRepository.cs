@@ -18,7 +18,7 @@ namespace ToduStudios.WaterPolo.Hub
             foreach(string file in new[]{Path,Path+".bak",Path+".tmp"})
             {
                 if(!File.Exists(file))continue;found=true;
-                try {var p=JsonUtility.FromJson<LocalProfile>(File.ReadAllText(file));ValidateSnapshot(p);return p;}
+                try {var p=LocalProfileCodec.FromJson(File.ReadAllText(file));ValidateSnapshot(p);return p;}
                 catch(Exception e) when(e is IOException || e is ArgumentException || e is InvalidDataException){Debug.LogWarning("Local profile snapshot could not be loaded ("+e.GetType().Name+"). Trying recovery.");}
             }
             if(found)throw new IOException("Existing progress could not be recovered. Original files retained; retry loading or restore a backup.");
@@ -36,11 +36,11 @@ namespace ToduStudios.WaterPolo.Hub
             ValidateSnapshot(p);Directory.CreateDirectory(System.IO.Path.GetDirectoryName(Path));
             string json=JsonUtility.ToJson(p);File.WriteAllText(Path+".tmp",json);
             // Validate the exact snapshot before replacing the primary.
-            ValidateSnapshot(JsonUtility.FromJson<LocalProfile>(File.ReadAllText(Path+".tmp")));
+            ValidateSnapshot(LocalProfileCodec.FromJson(File.ReadAllText(Path+".tmp")));
             if(File.Exists(Path))
             {
                 // Only a known-valid primary may replace the recovery backup.
-                bool valid=false;try{ValidateSnapshot(JsonUtility.FromJson<LocalProfile>(File.ReadAllText(Path)));valid=true;}catch(ArgumentException){}catch(InvalidDataException){}
+                bool valid=false;try{ValidateSnapshot(LocalProfileCodec.FromJson(File.ReadAllText(Path)));valid=true;}catch(ArgumentException){}catch(InvalidDataException){}
                 if(valid)File.Replace(Path+".tmp",Path,Path+".bak");
                 else {File.Copy(Path+".tmp",Path,true);File.Delete(Path+".tmp");}
             }

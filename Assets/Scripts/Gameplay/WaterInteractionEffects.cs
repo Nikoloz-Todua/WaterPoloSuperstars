@@ -64,7 +64,7 @@ namespace ToduStudios.WaterPolo
             Vector3 point=e.Position;point.y=pool.Waterline+0.018f;
             r.root.position=point;r.root.rotation=Quaternion.identity;r.age=0f;r.strength=Mathf.Max(0.12f,e.Intensity);
             r.size=e.Kind==BallImpactKind.Skip?1.2f:e.Kind==BallImpactKind.Save?0.8f:0.65f;
-            r.splash.gameObject.SetActive(e.Kind==BallImpactKind.Skip || e.Kind==BallImpactKind.Save || e.Kind==BallImpactKind.Frame);
+            r.splash.gameObject.SetActive(e.Kind==BallImpactKind.Water || e.Kind==BallImpactKind.Skip || e.Kind==BallImpactKind.Save || e.Kind==BallImpactKind.Frame);
             r.root.gameObject.SetActive(true);
         }
         private void LateUpdate()

@@ -8,7 +8,15 @@ namespace ToduStudios.WaterPolo.Hub
 {
     public sealed class HubApplication : MonoBehaviour
     {
-        public const string Boot="Boot", Lobby="MainLobby", Match="PrototypePool";
+        public const string Boot="Boot", Lobby="MainLobby";
+        public static string Match
+        {
+            get
+            {
+                var destination=Resources.Load<HubMatchDestination>("HubMatchDestination");
+                return destination!=null && !string.IsNullOrWhiteSpace(destination.sceneName)?destination.sceneName:"PrototypePool";
+            }
+        }
         public static HubApplication Instance {get;private set;}
         public HubProgression Progression {get;private set;}
         public string Error {get;private set;} public bool Busy {get;private set;}

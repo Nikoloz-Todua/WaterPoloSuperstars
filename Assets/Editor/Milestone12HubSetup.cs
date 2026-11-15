@@ -27,10 +27,11 @@ namespace ToduStudios.WaterPolo.Editor
                 var catalog=AssetDatabase.LoadAssetAtPath<HubCatalog>("Assets/Resources/HubCatalog.asset");
                 if(catalog==null){catalog=ScriptableObject.CreateInstance<HubCatalog>();catalog.Seed();AssetDatabase.CreateAsset(catalog,"Assets/Resources/HubCatalog.asset");}
                 CreateBoot();CreateLobby();
-                var matchScene=EditorSceneManager.OpenScene(MatchPath,OpenSceneMode.Single);var match=UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+                string productionMatchPath="Assets/Scenes/"+HubApplication.Match+".unity";
+                var matchScene=EditorSceneManager.OpenScene(productionMatchPath,OpenSceneMode.Single);var match=UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
                 if(match==null||UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>().Members.Count!=14)throw new InvalidOperationException("Existing full-team match required.");
                 if(match.GetComponent<HubMatchBridge>()==null){match.gameObject.AddComponent<HubMatchBridge>();EditorSceneManager.MarkSceneDirty(matchScene);EditorSceneManager.SaveScene(matchScene);}
-                var paths=new[]{BootPath,LobbyPath,MatchPath};var extras=EditorBuildSettings.scenes.Where(x=>!paths.Contains(x.path)).ToArray();
+                var paths=new[]{BootPath,LobbyPath,productionMatchPath};var extras=EditorBuildSettings.scenes.Where(x=>!paths.Contains(x.path) && (productionMatchPath==MatchPath || x.path!=MatchPath)).ToArray();
                 EditorBuildSettings.scenes=paths.Select(x=>new EditorBuildSettingsScene(x,true)).Concat(extras).ToArray();
                 EditorSceneManager.playModeStartScene=AssetDatabase.LoadAssetAtPath<SceneAsset>(BootPath);
                 AssetDatabase.SaveAssets();Debug.Log("M12 hub configured. Boot is Editor entry; direct match testing remains available from Tools > Water Polo > Play PrototypePool Directly.");

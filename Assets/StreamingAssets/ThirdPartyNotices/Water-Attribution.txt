@@ -1,0 +1,21 @@
+Water Polo Superstars — water graphics acknowledgements
+
+Uber Stylized Water by MatrixRex
+https://github.com/MatrixRex/Uber-Stylized-Water
+Copyright (c) 2025 MatrixRex — MIT
+See Uber-Stylized-Water-MIT.txt for the full license.
+
+Shader Graph Custom Lighting by Cyanilux
+https://github.com/Cyanilux/URP_ShaderGraphCustomLighting
+Copyright (c) 2020 Cyanilux — MIT
+See Cyanilux-CustomLighting-MIT.txt for the full license.
+
+Upstream texture references include:
+Caustics node by Oneleven — CC0
+https://www.materialmaker.org/material?id=913
+Caustic textures submitted by Calinou — CC0
+https://opengameart.org/content/caustic-textures
+
+Original upstream acknowledgements are preserved in
+Uber-Stylized-Water-Upstream-Credits.md. Some resources named there are not
+included in this game's selected asset subset.

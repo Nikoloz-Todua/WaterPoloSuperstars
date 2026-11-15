@@ -30,6 +30,8 @@ namespace ToduStudios.WaterPolo
         [SerializeField, Min(0.1f)] private float setupSeconds = 0.8f;
         [SerializeField, Min(1f)] private float maximumThrowWait = 6f;
         [SerializeField, Min(1f)] private float clearance = 2.2f;
+        [Tooltip("Park excluded athletes inside the marked water area behind their current defended goal. Original prototype keeps its legacy waiting positions.")]
+        [SerializeField] private bool useCompetitionReentryArea;
         private Collider[] colliders;
         private bool[] colliderEnabled;
         private float readyAt, throwAt, flightUntil;
@@ -292,6 +294,11 @@ namespace ToduStudios.WaterPolo
             player.Motor.StopMotion(); player.GetComponent<ShotCharge>()?.CancelCharge();
             Vector3 point = Team(player.Team).DefendedGoal.transform.position;
             point.x = pool.transform.position.x + pool.Width * 0.5f + 1.5f + player.CapNumber * 0.45f;
+            if (useCompetitionReentryArea)
+            {
+                point.x = pool.transform.position.x + pool.Width * .5f - .35f - (player.CapNumber % 3) * .6f;
+                point += Team(player.Team).DefendedGoal.transform.forward * (.5f + (player.CapNumber / 3 % 2) * .3f);
+            }
             point.y = pool.Waterline;
             player.GetComponent<Rigidbody>().position = point; player.transform.position = point;
             var collider = player.GetComponent<Collider>(); if (collider != null) collider.enabled = false;

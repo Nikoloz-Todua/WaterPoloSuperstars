@@ -17,6 +17,8 @@ Primary writes use a validated `.tmp` plus atomic `File.Replace` and `.bak` wher
 
 ## Versioning and catalog evolution
 
+Schema-1 optional records: Unity's inline serializer materializes null `activeMatch` and `pendingResult` references as fully empty objects. `LocalProfileCodec` treats only those exact empty records as absence on copy/load; non-empty records are retained. This prevents first-run or dismissed results from reopening a blank Result page. The schema, reward values, recovery order, transaction authority and receipt keys are unchanged. Production scene routing is the separate `Resources/HubMatchDestination` asset, never user profile data.
+
 Schema 1 is explicit. An unsupported schema is retained and refused; it is never silently downgraded. Introduce explicit sequential migrations (1 → 2, etc.) before changing fields; migrate a validated copy and retain the original backup until successful save. Version catalog changes separately. Stable IDs must not change when names/art change. Retain tombstone/alias definitions for removed content. Unknown collection records can remain in the compact save and are hidden from selection; an unknown starting lineup ID currently stops loading to prevent silent roster replacement. Production migration should repair this through an explicit, documented replacement policy.
 
 Pack outcomes currently reference a table index. Preserve existing table ordering/meaning when tuning this catalog. Before changing rewards for acquired packs, migrate to a versioned reward-table ID plus stable outcome ID; never reroll already-earned packs.

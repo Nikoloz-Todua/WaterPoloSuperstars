@@ -11,12 +11,12 @@ namespace ToduStudios.WaterPolo.Hub
         readonly IProfileRepository repository; readonly Func<long> utc; LocalProfile profile;
         public HubCatalog Catalog {get;} public event Action Changed;
         public LocalProfile Snapshot=>Copy(profile);
-        static LocalProfile Copy(LocalProfile p)=>JsonUtility.FromJson<LocalProfile>(JsonUtility.ToJson(p));
+        static LocalProfile Copy(LocalProfile p)=>LocalProfileCodec.Copy(p);
         public HubProgression(HubCatalog catalog,IProfileRepository repository,Func<long> clock=null)
         {
             Catalog=catalog;this.repository=repository;utc=clock??(()=>DateTimeOffset.UtcNow.ToUnixTimeSeconds());
             if(repository is JsonProfileRepository disk)disk.SetContentValidation(Validate);
-            profile=repository.Load();
+            profile=LocalProfileCodec.Normalize(repository.Load());
             if(profile==null)
             {
                 profile=new LocalProfile{profileId=Guid.NewGuid().ToString("N"),seasonId=catalog.seasonId};

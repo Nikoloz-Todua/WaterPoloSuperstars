@@ -41,6 +41,7 @@ namespace ToduStudios.WaterPolo
                 var crowdObject=new GameObject("CrowdAudio");crowdObject.transform.SetParent(transform,false);
                 crowdSource=crowdObject.AddComponent<AudioSource>();crowdSource.playOnAwake=false;crowdSource.spatialBlend=0f;
                 crowdSource.outputAudioMixerGroup=output;crowdSource.volume=crowdLevel;
+                crowdSource.clip=crowd;crowdSource.loop=true;crowdSource.Play();
             }
             // Generated once; no downloads, streaming, per-frame synthesis or gameplay-dependent audio timing.
             whistleCue = Cue("Original whistle", 1800f, 0.22f, 0.18f);

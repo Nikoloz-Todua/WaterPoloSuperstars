@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0269196cd105b3a49a2ab879f276160e, type: 3}
+  m_Name: WaterQuality_High
+  m_EditorClassIdentifier: Assembly-CSharp::ToduStudios.WaterPolo.WaterVisuals.PoolWaterQualityProfile
+  waterMaterial: {fileID: 2100000, guid: 6aaba47d902e7b545a9904288635bc89, type: 2}
+  testPipeline: {fileID: 11400000, guid: da051827e3a2e2242825e2e6d0983784, type: 2}
+  planarReflections: 1
+  reflectionScale: 0.4
+  costNotes: 'Editor visual reference: full-resolution opaque copy, 4x MSAA, refraction, caustics and 0.4-scale planar reflection (second scene render every frame). Not a phone performance claim.'

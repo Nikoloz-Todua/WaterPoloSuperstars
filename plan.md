@@ -1,6 +1,133 @@
 # Water Polo Superstars — Project Plan and Handoff
 
-Last updated: 2026-11-11.
+Last updated: 2026-11-15.
+
+## Current handoff — OlympicMatchArena is the verified production match destination
+
+The developer explicitly authorized a major arena replacement based on **the complete WaterVisualTest appearance**, beyond the earlier additive water-only integration. This environment scope is complete in the Windows Editor; it is not a later gameplay/backend milestone. All changes remain **uncommitted**. No Git write operation or automatic checkpoint was performed. Existing unrelated local files/changes, including `old-plan.md`, `tatus`, Resources meta and Pipeline settings, were preserved. Read this handoff before the historical water/M12 acceptance notes below.
+
+### Production scene, safety and entry
+
+**Assets/Scenes/OlympicMatchArena.unity** is saved and registered. Normal Editor Play entry is **Boot**, with **MainLobby → PLAY → Quick Match → OlympicMatchArena → full-time rewards → MainLobby** freshly verified. `Assets/Resources/HubMatchDestination.asset` selects the arena; HubApplication retains PrototypePool as fallback when no destination asset exists. M12 hub setup now respects the selected destination and does not re-add PrototypePool to production builds.
+
+**PrototypePool.unity and WaterVisualTest.unity are byte-identical to this session's start.** A separate exact recovery scene is **Assets/Scenes/Recovery/PrototypePool_PreArena.unity**. Original camera/gameplay tuning remains available in both old gameplay scenes. WaterVisualTest stays an independent graphics fixture. Old/test/recovery scenes are outside the production build list; existing SampleScene entry/config objects were preserved. No old scripts, prefabs or references were deleted. The new arena has one physical tiled shell/water surface; its retired original pool/floor/marking/deck render geometry was removed, rather than overlaid.
+
+Menu paths:
+
+- **Tools > Water Polo > Arena > Open Olympic Match Arena** — open saved production scene.
+- **Tools > Water Polo > Arena > Set Up Olympic Match Arena** — create once; existing complete arena opens without rebuilding or changing tuning.
+- **Tools > Water Polo > Arena > Play Olympic Match Arena Directly** — isolated match. Restore normal entry with **Tools > Water Polo > Use Boot as Editor Play Entry** or **Play Hub Entry**.
+- **F8** in Editor/development builds cycles five inspection views then returns to the same adaptive broadcast camera.
+- **Tools > Water Polo > Arena > Apply Configured Field Dimensions** — explicit generated-environment/formation rebuild using **Assets/Arena/Settings/CompetitionDimensions.asset**. Save intended edits and stop Play first. Prefab/material/profile and broadcast tuning/scene identity are preserved; reverify altered dimensions.
+- **Activate Verified Arena for Lobby**, in the Arena submenu, requires the integration PASS report. It was used only after direct integration passed, then the real-pointer hub flow was checked.
+
+### Confirmed visual and gameplay architecture
+
+Inspection reports for both original scenes are in ignored **Logs/Arena/Inspect-*.json**. WaterVisualTest looked better because of the complete 2.05 m tiled shell, metre UVs, inward-facing walls, coping/waterline detail, warm directional daylight/trilight fill, recognizable hall reflections, Forward URP budgets, perspective and complete submerged bodies. The prior match's additive water change retained flat ambience, old decks and shallow anatomy.
+
+The new scene copies the proven match authorities/references, then reconstructs that fixture architecture using its same ceramic/enamel/steel/daylight/water materials. It adds a wide non-slip tiled deck/drainage, clear referee paths, Blue/White benches/coaches/equipment, officials table, ten reusable six-tier seating blocks, railings, original bounded audience, tiled concourses, hall walls/windows/ceiling/trusses/emissive fixtures and original game/studio banners. No Olympic logos/event/team branding or extra third-party art was imported. One directional light; roof geometry avoids heavy shadow bands. Full architecture, source/licenses and replacement details: **docs/WATER_VISUALS.md**.
+
+Default field is **25 × 20 m**, goals at **Z=±12.5, Y=0**. Physical water shell is **28.6 × 22.5 m**, depth **2.05 m**; deck **7 m wide**, top **Y=0.18**. PoolBounds, existing physical goal views/barriers, fourteen start markers/poses, six-role formations and referee offsets are configured together. Targets preserve role distances from current goals; no global athlete/ball scaling. Goal openings remain 3 × 0.9 m, depth 1 m, posts 0.08 m. World Aquatics February 2026 Part Six Articles 20/21 were inspected for field dimensions, 2/5/6 m markers, colored ropes, goal-area indicators and substitution/re-entry zones. This does not replace the existing simplified gameplay rule profile or add actual substitutes.
+
+Referees remain presentation observers, moving at **X=±12.65, Y=0.18**, with benches/stands beyond their paths. MatchRules has an arena-only `useCompetitionReentryArea` option to park excluded bodies in water behind the **current defended goal**, keeping them out of the new deck/benches; halftime still uses authoritative goal references. Original scene default parking is unchanged. Decisions, clocks, foul history and collider ownership remain with existing systems.
+
+All fourteen real athletes retain original identity/motor/AI/physics/stamina/selection/ball anchors. Their old mesh renderers are disabled; reusable visual-only field/keeper prefabs add opaque submerged anatomy at local Y=-0.42, team caps/suits and red keeper caps. Keeper arm-lift references point to the replacement pivots. `ArenaAthleteVisual` documents skin/cap/swimwear slots and supplies only temporary pose movement. Blender replacement must replace that child, preserve gameplay roots/anchors, use opaque depth-writing URP materials and animation-inclusive bounds, and replace the primitive pose adapter with an Animator. No heavyweight rig was generated. Collection ratings/cosmetics retain their prior lobby/collection scope.
+
+PrototypeMatch/BallController/selection/tactical authority boundaries and ball (-140), keeper (-120), scoring (-100) ordering are unchanged. GameplayCamera remains the adaptive broadcast authority (arena base tuning 14.4 m height, 10.8 m distance, 53° pitch, 52° FOV), retaining ball/goal prediction, keeper/set-piece modes and preferences. F8 positions the same camera at viewpoints and returns through its snap API; there is one AudioListener.
+
+### Quality budgets, effects and hub correction
+
+ArenaQualityController observes existing GamePreferences and owns scene-only pipeline/water/audience/prop budgets, restoring the prior pipeline on unload. Low: 0.85 scale/2× MSAA, depth/normals/baked 128px reflection, no refraction/caustics/planar/audience/fine props. Medium: 1.0/2×, half opaque copy/refraction/caustics/baked reflection, 160 audience. High: 1.0/4×, full opaque copy, 0.3-scale planar reflection, 320 audience, 2048 directional shadows. Existing preference policy keeps camera shadows off below High. All preserve visible submerged bodies/floor; no ocean displacement or basic blue replacement water. High still has a second render and upstream CPU/allocation costs. Android/iOS performance is **not measured**.
+
+Existing wakes/ripples remain bounded; normal water contacts now activate the existing splash mesh too (capacity 16). Original generated eight-second mono crowd ambience is assigned, looped by MatchAtmosphere and controlled by the existing crowd slider. Static floats/seating/rails/props/roof/audience are combined by material; audience uses 54-vertex ellipsoids. Final Edit Mode inventory: **456 renderer components / 166,801 referenced mesh vertices**, including disabled/repeated references; about 6.3 MB arena source assets. These are not runtime memory/draw-call/device measurements.
+
+The first real hub run exposed a pre-existing M12 blocker: Unity serializes null nested `activeMatch`/`pendingResult` records as empty objects, and Snapshot's JSON copy reopened a blank Result page instead of PLAY. **LocalProfileCodec** normalizes only fully empty optional records on copy/load. Schema 1, transaction authority, atomic replacement/recovery, receipt keys, reward values, catalog and existing saves are preserved. No default progress reset or migration was added. Fresh core/recovery checks and the actual launch/result loop passed after this correction. See **docs/FUTURE_BACKEND_AND_ECONOMY.md**.
+
+### Fresh verification — Windows Unity 6000.6.7f1 / URP 17.6 / D3D12
+
+New focused script: **Tools/Verification/ArenaVerification.cs**. All Task entries use **script run**, never synchronous eval. Reports/screenshots: ignored **Logs/Arena/**. Historical suites were not repeatedly rerun; Hub Core/Navigation were run once after the actual optional-record correction. Goal fixtures deliberately clear lanes/disable keepers; keeper resolution has its own controlled check.
+
+| Check | Fresh result |
+| --- | --- |
+| Independent fixture first | WaterVisualVerification.Rendering PASS, frame 4512→4932; three quality variants, animation/effect A/B and wholly submerged anatomy visible. Original fixture retained. |
+| Setup | PASS final: original bytes and exact recovery, 14 distinct original IDs/anchors, 6 fields + 1 keeper/team, single water, no demo swimmers/scenery colliders/missing scripts, one Canvas/EventSystem, CanvasRenderers and repeat-safe scene GUID/bytes. |
+| Arena Integration | PASS, frame 246→2339: AI bounds/referee paths, 3 water variants; actual W/Shift/C; pointer joystick/Pause/charged Shoot; physical pass reception, airborne lob, goal/conceding restart; exclusion/waiting water area/stopped rule clocks; 4 periods/one halftime reversal. |
+| Appearance | PASS final: actual opposite attacking goals after halftime at viewport Y≈0.687 / 0.283; six fully submerged real-athlete meshes contribute **2,996 pixels**, with shadow contributions excluded. Final Game views inspected. |
+| ScreenSizes | PASS: actual 1920/2340/2400 ×1080 plus simulated safe insets. Controls in bounds, pointer Pause/Settings at every size; real graphics preset clicks switch pipeline/water/crowd/reflections; injected F8 works. Images inspected. |
+| WaterImpact | PASS: physical lob landing emits water contact and active pooled splash, capacity 16. |
+| Keepers | PASS both relocated goals: physical swept catch, one owner/no score, human Blue keeper selection. Test probabilities=1/reaction=0 and 80 m/s shot; original tuning restored. Not a natural save-balance claim. |
+| HubFlow | PASS Boot→lobby→real PLAY/Quick Match pointer→arena; 14 collection mappings, physical goal/4 periods/one reversal, one receipt, reload, real rewards/lobby pointers; training abandonment no reward/stuck pause. Isolated profile; production profile hash unchanged during fixture. |
+| Hub Core | PASS 18 economy/persistence/recovery groups, including once-only claims/failed-write rollback/corrupt recovery. No economy values changed. |
+| M12 Navigation | PASS fresh: real pointer Shop, 12 populated pages, keyboard Back, profile identity stable. Full historical 36-page layout matrix not repeated. |
+| Compilation/Console | Current compilation passes, final ground truth zero errors/warnings. Historical Pipeline buffers retain resolved earlier messages. |
+
+Game-view PNGs: **Final-Arena-Overview.png, Final-Broadcast.png, Final-Reflections.png, Final-Team-Benches.png, Real-Athlete-Underwater.png, Verified-North-Attack.png, Verified-South-Attack.png, Screen-1920-Broadcast.png, Screen-2340-Settings.png, Full-Time.png, Rewards.png, Returned-Lobby.png**. Earlier First-* captures predate refinements. Actual match/underwater/reflection/both-end/overview, screen-size broadcast/settings and full-time/reward captures were visually inspected.
+
+### Changed files, limits and next step
+
+New: **Assets/Editor/OlympicArenaSetup.cs**; **Assets/Scenes/OlympicMatchArena.unity**, **Scenes/Recovery/PrototypePool_PreArena.unity**; **Assets/Arena/** generated prefabs/meshes/materials/pipelines/profiles/reflection/audio/dimensions; **ArenaDimensions, ArenaQualityController, ArenaDeveloperCamera, ArenaAthleteVisual, ArenaHudReadability** under Scripts/WaterVisuals; **HubMatchDestination, LocalProfileCodec** under Scripts/Hub; **Resources/HubMatchDestination.asset**; **Tools/Verification/ArenaInspection.cs, ArenaVerification.cs**, associated Unity metas. Modified: **Milestone12HubSetup.cs, HubApplication.cs, HubProgression.cs, JsonProfileRepository.cs, MatchRules.cs, MatchAtmosphere.cs, WaterInteractionEffects.cs, EditorBuildSettings.asset, README.md, docs/WATER_VISUALS.md, docs/FUTURE_BACKEND_AND_ECONOMY.md, plan.md**. Unity also normalized `URPProjectSettings.asset` by adding its default project-setting-folder field; original pipeline assets/QualitySettings/packages/Editor version are unchanged. Prior-session water files/PrototypePool changes remain as found; this session did not modify their scene bytes.
+
+Limitations: no Android/iOS build/device profiling/real multitouch, no Blender import, no detailed athlete/audience/substitute animation or complete substitution/rule implementation. Screen-space refraction/caustic/transparent-object/underwater-camera and High planar-reflection limitations remain. No claim that every historical gameplay edge or every hub page/resolution is certified. Existing backend/billing/ads/social previews are unchanged; no online services added. All original third-party notices remain, no new third-party art licenses required.
+
+Editor is left outside Play with saved OlympicMatchArena open and Boot as normal Play entry; auto-tick remains enabled as found. Evidence/references/recovery working files outside Assets stay in ignored Logs/Arena and Temp/ArenaRecovery/Temp/ArenaReference. Next step is developer visual review using normal PLAY or F8; later mobile profiling/Blender character work requires its own scope. No later milestone is started.
+
+## Current handoff — transparent pool water verified and applied additively to PrototypePool
+
+The developer explicitly authorized this isolated major water-graphics investigation/integration alongside the existing M12 boundary. This is **not M13**, and does not complete the pending M12 hub acceptance below. No Git write operation was performed. Existing `old-plan.md`, `tatus`, Resources meta and Pipeline settings were preserved. The pre-existing `EditorBuildSettings.asset` working change was not overwritten.
+
+### Delivered graphics and scene isolation
+
+**Assets/Scenes/WaterVisualTest.unity** is saved and configured: 14m × 25m tiled competition pool, real floor at Y=-2.05m, inward-facing tiled walls, lane markings/coping/waterline band, reflection landmarks and three opaque test swimmers (surface, upright partly submerged, fully submerged). The 112-transform fixture has no gameplay colliders or match authorities. It is absent from the game build list and Boot/lobby navigation. **After this isolated water passed verification, the presentation was applied additively to PrototypePool**, preserving its existing gameplay components and physics.
+
+Use **Tools > Water Polo > Water Visuals > Set Up WaterVisualTest**, outside Play on saved scenes. Repeating setup opens the existing scene and preserves GUID/layout/material/profile tuning. **Tools > Water Polo > Water Visuals > Play WaterVisualTest** temporarily bypasses Boot for this scene and restores the exact prior Editor entry on stop (the developer had direct entry/null at this session's start). Keys **1/2/3** select quality; **V** cycles anatomy detail/overview/reflection angle. No new UI/Canvas/EventSystem or pointer controls.
+
+`PoolWaterVisuals` is presentation only, owns a runtime material copy, explicitly requests camera depth/opaque textures and applies/restores a test-only pipeline override. Dedicated Forward renderer/pipelines and three materials/profiles live under **Assets/WaterVisuals/**; gameplay PC/Mobile assets and Quality settings are untouched. Slow animated ripple normals, depth tint, Fresnel reflection, restrained refraction and animated parallax caustics keep opaque submerged limbs and tiles visible. Ocean displacement, shoreline/foam and underwater foam are off. A baked 128px hall reflection is assigned; High can also render a bounded-resolution planar reflection.
+
+| Quality | Configuration / scope |
+| --- | --- |
+| Low | Depth, ripple normals, baked reflection; 0.85 render scale, 2× MSAA; no opaque copy/refraction/caustics/second camera. |
+| Balanced | Depth, half-resolution opaque copy/refraction, caustics, baked reflection; 1.0 scale, 2× MSAA, no second camera. |
+| High | Full-resolution opaque copy, refraction/caustics, 4× MSAA and 0.4-scale planar reflection every frame; Editor visual reference. |
+
+These are editable mobile-budget candidates, **not hardware performance results**. The table's render scale/MSAA/pipeline overrides apply to the fixture only. Runtime test-quality changes never edit the persistent profile/material assets; no per-frame content rebuilds in the new controller/rigs. Upstream planar reflection still has a second render and CPU/allocation costs in fixture High only.
+
+**PrototypePool integration:** **Tools > Water Polo > Water Visuals > Apply Verified Water to PrototypePool** is saved-scene/Edit-Mode-only and repeat-safe. It adds `Environment/Verified Pool Water Presentation`: transparent surface at the authoritative PoolBounds waterline, tiled floor/walls at 2.05m depth, floor copies of the three existing cross-pool lines, a baked actual-match reflection and presentation/preference observers. Original WaterSurface, PoolFloor and three shallow line renderers are retained but hidden. Only those five original renderer enabled flags and Environment's new child reference change; no original components are removed. Normalized YAML comparison confirmed **all original MonoBehaviours, athlete transforms, rigidbodies and colliders unchanged** (43 additive YAML objects).
+
+`PoolWaterPreferenceBridge` observes the existing GamePreferences.Changed event and maps Low/Medium/High to the three water material variants, without adding UI or intercepting gameplay input. Match use of `PoolWaterVisuals` has **useIsolatedTestPipeline=false**, keyboard shortcuts off, and no planar manager/volume; even High uses the baked match cubemap and the original single GameplayCamera. Depth/opaque texture camera overrides make refraction work on the original Mobile pipeline without changing its global asset/settings. The existing match retains its own render scale/MSAA. To inspect the prior presentation manually, disable the new presentation root and re-enable the five retained original renderers; do not alter physics.
+
+### Imported source and licensing
+
+GitHub download/import succeeded through approved network access after the initial sandbox connection failure. Imported source revision **1fdd16c6312611fef7fb248dee86cdd3fd456a1e** (2026-10-04), confirmed by archive comment. ZIP SHA256 **9473DC7AF3BF8D864384A854A8221D0A0689BB77EFFADF77564866BEC585CD22**. Source: https://github.com/MatrixRex/Uber-Stylized-Water . Upstream supports Unity 6000.0.30+ / URP / Shader Graph 17.0.3+; current **6000.6.7f1 / URP 17.6.0** retained.
+
+Selected prebuilt shader, CubeMap/CustomLighting includes, material Inspector, planar scripts, Normal 1/2, Noise 1, Caustic 1 and Guide imported under **Assets/Shaders/Uber Stylized Water/** with original `.meta` identities. No demo/project settings/package manifest, RexTools, source graph or ShaderGraphVariables extension was installed; no global graph variant limits were raised. `UPSTREAM.md` records provenance/subset/local changes. `UPSTREAM-CREDITS.md` preserves original special thanks/source links.
+
+**MIT Copyright (c) 2025 MatrixRex** and dependency **MIT Copyright (c) 2020 Cyanilux** are preserved in the vendor folder and **docs/Licenses/**. Full license copies and attribution/credits are also under **Assets/StreamingAssets/ThirdPartyNotices/** so player distributions retain notices. Upstream's cited Material Maker/Calinou caustic sources are CC0; another optional caustic source is CC-BY-SA 3.0. **Optional Caustic 2/3 maps are excluded**; do not assume every linked upstream art source is MIT.
+
+Only reflection C# needed local compatibility fixes: Unity 6.6 GetEntityId/unsorted FindObjectsByType, explicit SingleCameraRequest destination required by URP 17.6, and try/finally restoration of temporary render state. The generated shader and HLSL includes remain unchanged. Follow **docs/WATER_VISUALS.md** for exact installation/reinstall links, properties, profile costs, commands and future integration.
+
+### Fresh verification — focused Windows Editor runs
+
+**Tools/Verification/WaterVisualVerification.cs**, always via **script run** for Task methods. No repeated historical verification suites. Actual Game view PNGs and machine results: ignored **Logs/WaterVisuals/**.
+
+| Entry / evidence | Fresh result |
+| --- | --- |
+| Setup | PASS: repeat-safe 112 transforms, same scene GUID/profile tuning, three test swimmers, zero colliders, assigned baked cubemap, PrototypePool bytes retained. |
+| Rendering | PASS D3D12: advancing frame 388 → 950, real Input System 1/2/3/V events, supported/rendered Low/Balanced/High shader variants, no shader errors. |
+| Submersion A/B | PASS: only wholly underwater meshes hidden, with shadows excluded as a false-positive source. Upright/surface/submerged rigs contribute 3,056 / 2,091 / 1,793 visible pixels (6 / 5 / 8 meshes). |
+| Effect A/B | PASS: water 330,568 changed pixels; refraction distortion 46,213; caustics 331,136; reflections 166,788. Frozen character poses plus advancing water change 38,080 pixels. Visibility evidence, not quality/performance scores. |
+| Actual Game view | High detail/overview/reflection-angle captures `Final-0/1/2.png`, all three quality captures, dry/hidden-mesh/effect comparisons. High detail/reflection angle, Low/Balanced and dry baseline visually inspected. Approximate current Game view 1031×518; no phone-layout claim. |
+| GameplaySetup | PASS after additive integration: 301 transforms, fourteen athletes, no new colliders/planar manager, repeated setup leaves saved scene byte-identical and preserves tuning. |
+| GameplayPresentation | PASS after integration: frames 29,329 → 29,818, Low/Medium/High via existing GamePreferences API, rendered water variants and original Mobile_RPAsset throughout; one camera, fourteen athletes/one ball, real injected W movement, authoritative collection and airborne physical shot. User preference record restored. `Match-Quality-0/1/2.png` and `Match-Final.png`; High/final actual match views visually inspected with the existing HUD/controls. Focused smoke, not a historical regression-suite claim. |
+| Console/compilation | Final ground truth 0 errors / 0 warnings, compilationFailed false. Historical Pipeline buffer retains earlier resolved import messages. |
+| File preservation | Prior to applying presentation, PrototypePool was byte-identical to session start. Final SampleScene, PC_RPAsset, Mobile_RPAsset, QualitySettings and EditorBuildSettings remain byte-identical to session start; final PrototypePool has only the additive presentation/renderer changes detailed above. No existing gameplay scripts changed. |
+
+### Limitations, Blender and next step
+
+Clear pool appearance is established in the isolated Editor fixture and the actual match Game view. Screen-space refraction/parallax caustics are approximations, not volumetric water or physical light transport. Underwater cameras/meniscus, overlapping transparent hair/particles, split-screen/XR/camera stacking, multiple water heights and seamless additive scene overlap remain unverified. No Android/iOS build, device profiling or Blender/model-generation session. Existing placeholder gameplay swimmers lack full submerged anatomy; a shader cannot create it.
+
+Future Blender athletes: closed full bodies in metres with actual arms/legs, valid normals/tangents and animation-inclusive skinned bounds, opaque URP Lit skin/suit depth passes before transparent queue 3000. First replace only the fixture's visual child; test animated limbs crossing Y=0 and distant broadcast readability. Transparent hair/eyewear need separate rendering review. Keep gameplay identity, collider/motor, release poses, waterline, ball/selection/match authorities unchanged. Detailed handoff: **docs/WATER_VISUALS.md**.
+
+New files: **Assets/Editor/WaterVisualTestSetup.cs, PoolWaterGameplaySetup.cs**; five runtime classes under **Assets/Scripts/WaterVisuals/**; **Assets/WaterVisuals/** generated materials/textures/cubemaps/meshes/pipelines/profiles; **WaterVisualTest.unity**; selected vendor assets; **StreamingAssets/ThirdPartyNotices/**; **Tools/Verification/WaterVisualVerification.cs**; **docs/WATER_VISUALS.md**, **docs/Licenses/** and associated metas. Modified **PrototypePool.unity** presentation and **plan.md**. Editor left outside Play with saved PrototypePool open, original PC pipeline and previous direct-scene/null Play entry restored; auto-tick remains enabled as found. Temporary downloads/source and the pre-integration scene copy are in ignored Temp/WaterImport; evidence is outside Assets in ignored Logs/WaterVisuals. Next step is developer visual review and eventual Android profiling/Blender visual rig integration. No later milestone is authorized; M12 runtime acceptance remains pending below.
 
 ## Current handoff — M12 offline hub implemented; runtime acceptance pending
 
