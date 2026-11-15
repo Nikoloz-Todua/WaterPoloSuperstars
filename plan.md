@@ -2,7 +2,80 @@
 
 Last updated: 2026-11-15.
 
-## Current handoff — Milestone 14 rigged swimmers and interactive water
+## Current handoff — Championship Night premium arena overhaul
+
+**2026-11-15: major environment-only overhaul implemented in the existing OlympicMatchArena.** The developer explicitly authorized this pass after M14. The same scene/GUID, Boot/MainLobby/PLAY flow, 14 rigged swimmers, current audience, pool/water, HUD, controls and gameplay authorities remain. No external art/package import or Git write occurred. Unrelated local Pipeline configuration, SourceAssets, old-plan.md and tatus remain intact. Stop after this arena pass. Full guide: **docs/PREMIUM_ARENA.md**.
+
+### Visual direction and implementation
+
+Target: a **dark navy/cobalt indoor championship at night**, with a bright readable competition pool, darker spectator bowl, metallic framing and restrained ice-blue accents. Initial inspection/captures confirmed the previous light ambient, pale deck and luminous daylight panels caused a flat, bright presentation. Actual before/after Game views guided a second art pass for bench readability, controlled LED output and original end-wall water motifs.
+
+- **Architecture:** retained hall shell/roof with dark acoustic glazing/panels, structural fins/piers, large end portals, upper-bowl ribbons, section plaques, hanging championship banners, original three-ribbon water signatures and perimeter broadcast trusses. Old bright venue finish is replaced rather than overlapped.
+- **Deck/referees:** honed basalt-style ceramic and fine rubber event aprons, white/metal pool trim, drain-grate detail, cyan separation, subtle competition graphics, clear **1.75 m official lanes** centered on existing referee paths. Field distances/floats/bounds remain in place; distance text is lighter and duplicate old access lettering is retired.
+- **Teams/officials:** padded chamfered seven-seat reserve zones, armrests/stripes, technical backwalls, coach consoles, task fixtures, cooler/flight-case/towel/bottle clusters and marked access. West timing desk, terminals/chairs and sideline digital barriers sit behind clear referee lanes. Fine props retain existing Medium/High budgeting.
+- **Seating:** ten reusable six-tier blocks with sculpted seats, rails/armrests, tier edges and stair nosings. Original spectator meshes/materials/positions and density groups are unchanged; new seats retain their row/seat coordinates.
+- **Displays:** larger four-face end-hung jumbotron plus two deck timing screens and six static sideline branding barriers. Six live score/clock faces use existing **ArenaEventDisplay**. No additional scoring authority, video feed, UI Canvas or render texture.
+- **Water:** original shader/materials/profiles, transparent surface, caustics, field geometry, M14 animations/effects and underwater visibility are preserved. A new **128 px HDR reflection bake** and lighting/grading integrate the pool with the darker hall; no water experiment/replacement was introduced.
+
+New prefab **Assets/Arena/ChampionshipNight/Prefabs/ChampionshipNightVenue.prefab** is under the original foundation, organized into Competition Deck and Clear Official Lanes; Blue and White Team Technical Areas; Match Operations and Protected Sidelines; Grandstand Portals and Championship Architecture; Perimeter Broadcast Rigging and Pool Light Banks; Championship Scoreboards and Presentation Screens; Fine Operations Props; Technical Area Washlights. Reusable **ChampionshipSeatBlock.prefab** sits under retained Spectator Stands. New source assets: combined meshes, **14 shared materials**, three small authored finish textures, reflection, three URP copies and three Volume profiles. About **7 MB including metas**; no imported environment package.
+
+The previous Championship Venue Finish instance, old bench/equipment/official-table objects and old seat-block instances are retired where replaced. Source prefab assets/recovery scenes remain, but retired venue and bench prefabs are **not production scene dependencies**. One pool and one water surface remain. No presentation collider was added.
+
+### Lighting, rendering and performance boundaries
+
+Existing main directional: cool tint, intensity **0.78**, elevation 66°, shadow strength 0.76. Dark trilight sky/equator/ground **#344767 / #1B2D49 / #0B1628**, reflection intensity 0.72, deep navy camera clear instead of bright skybox. Camera movement/lens/framing/controller data are unchanged; background/post flags are intentional rendering changes.
+
+**ChampionshipPresentation** observes preferences and selects the local Volume/light budget. ArenaQualityController retains pipeline/water/crowd/prop ownership, pointing to new isolated pipeline copies and the new fine-prop group. Generic GamePreferences is unchanged. Its older Medium/Low rule disables all post, so the scene-specific observer keeps cheap Neutral grading enabled on all tiers and disables Bloom on Low through the profile. No other scenes' preferences/looks are changed.
+
+| Tier | Pool spots | Bench washes | Bloom | Preserved budgets |
+| --- | ---: | ---: | --- | --- |
+| Low | 2 | 0 | Off | Existing Low water/crowd/props/shadow behavior |
+| Medium | 4 | 2 | 0.12 | Existing Medium water/crowd/props |
+| High | 4 | 2 | 0.22 | Existing High including planar water reflection |
+
+One existing directional is additional: **3 total active lights Low / 7 Medium-High**, with **no additional-light shadows**, four additional lights per object. Neutral tone, exposure +0.05, contrast +12, saturation −6, vignette 0.13. HDR on; bloom threshold 1.1, scatter 0.5, quarter-resolution Dual filter, max four iterations, HQ filtering off. No SSAO, volumetric fog, DoF, grain or motion blur. World-space text remains separate; geometry is combined by material/zone. Main venue: **120 renderers / 34,852 referenced vertices** including text. Ten seating instances: **40 renderers / 144,960 referenced vertices**, sharing a four-mesh block. Content counts do not establish draw calls/frame rate/device performance.
+
+### Safety, files and exact commands
+
+Production: **Assets/Scenes/OlympicMatchArena.unity**, same GUID. Exact native pre-pass recovery: **Assets/Scenes/Recovery/OlympicMatchArena_PreChampionshipNight.unity**, outside builds. Original scenes and prior recovery assets remain. Recovery is a scene snapshot with shared scripts, not a Git checkpoint.
+
+- **Tools > Water Polo > Arena > Open Olympic Match Arena** / **Play Olympic Match Arena Directly**; **F8** retains the existing five inspection views.
+- **Tools > Water Polo > Arena > Apply Championship Night Overhaul** creates once, then opens/preserves authored tuning; intended scene edits must be saved and Play stopped.
+- **Tools > Water Polo > Arena > Refresh Championship Night Reflection** rebakes intentionally without regenerating geometry/materials.
+- Old **Polish Existing Championship Venue** now guards against adding legacy scenery over the newer venue. **Refresh Venue Reflection** delegates safely to the new bake when installed.
+- **Tools > Water Polo > Play Hub Entry** / normal Boot entry retains the frontend. **Use Boot as Editor Play Entry** restores Boot after direct testing. **Boot entry and original Game-view size are restored at delivery; scene saved and Play stopped.**
+- Older **Apply Configured Field Dimensions** explicitly rebuilds the base environment and is not a review tool; reinstall/reverify the presentation after a deliberate regeneration.
+
+Modified **Assets/Scenes/OlympicMatchArena.unity**, **Assets/Editor/ArenaVenuePolishSetup.cs** (legacy tool guards), **plan.md**, **README.md**, **docs/WATER_VISUALS.md**. Added **Assets/Editor/PremiumArenaSetup.cs**, **Assets/Scripts/WaterVisuals/ChampionshipPresentation.cs**, **Assets/Arena/ChampionshipNight/** prefabs/meshes/materials/textures/settings/metas, pre-pass recovery scene/meta, **Tools/Verification/PremiumArenaVerification.cs**, **docs/PREMIUM_ARENA.md**. No swimmer, crowd, gameplay, menu, economy, build-entry or water shader source/asset edits.
+
+### Fresh focused verification and evidence
+
+Windows Unity **6000.6.7f1 / URP 17.6**. Actual advancing Play Mode and Game view, native setup/save/reload, async Pipeline **script run** checks. Source **Tools/Verification/PremiumArenaVerification.cs**; reports/captures in ignored **Logs/PremiumArena/**. No historical full-game suites repeated.
+
+| Check | Actual result |
+| --- | --- |
+| Structure | PASS **1,854 protected records**: original gameplay/HUD/referee scripts, rig hierarchy/renderers, physics, audience data and camera movement/lens tuning. Rendering/visual-only references intentionally differ. Exact recovery hash and same production GUID. |
+| Assets | PASS byte hashes unchanged for Boot, MainLobby, build settings, match destination, hub catalog, all swimmer model/clip/material/controller assets and water materials. No missing scripts/materials, no new venue colliders; replaced venue/bench prefab dependencies retired. |
+| Setup | PASS new and legacy setup commands preserve saved authored scene on repeat/reload. |
+| Gameplay | PASS actual W/Shift swim/sprint, pointer Pause/Escape and stopped clock, pickup/pass/physical reception/selection, shot/real goal, six live score faces, AI bounds, referee positions, 14 rigged athletes and existing HUD. Controlled goal fixture temporarily disables/restores keeper components; no gameplay tuning persists. |
+| Camera/lanes | PASS triangle sightlines for **35 visible athlete/goal targets** across three action positions against new venue/seating; both referee lanes free of new props. Focused samples, not exhaustive camera-path proof. |
+| Rendering | PASS HDR, camera Volume mask/post flag, three local profiles/light budgets, actual resolved Volume stack and original supported water variants. Grade on/off captures use a frozen same Game view; nonzero image difference confirms it is active. |
+| Normal entry | PASS real pointer **PLAY → Game Modes → Training → Launch → upgraded arena → Pause/Exit → original lobby**. In-memory fixture, user profile file hash unchanged; no menu edits. |
+| Game-view review | PASS actual **1920×1080** before/after broadcast, overview, benches, reverse end and hall; white team, officials, jumbotron/waterline detail and **2400×1080 (20:9)** with existing visible HUD buttons in bounds. One labeled architectural inspection capture temporarily hides/restores Canvas; playable comparisons retain HUD. |
+| Compilation/Console | PASS fresh compilation; final current Unity Console ground truth **0 errors / 0 warnings**. Historical Pipeline buffers contain resolved older entries. |
+
+Reports: **Structure-PASS, Gameplay-PASS, Sightlines-PASS, Presets-PASS, HubEntry-PASS, FinalDetails-PASS, Grade-AB, Console-Final**. Images: **Before/After-Broadcast / Overview / Benches / Reverse / Hall**, **Verified-Scoring**, **Preset-0/1/2**, **Grade-On/Off**, **Framing-South/Centre/North**, **Final-White-Team-Area / Officials-and-Deck / Jumbotron-Detail / Clear-Water / Wide-2400**, **Hub-Launched-Arena**, **Returned-Lobby**, **Final-Venue-Inspection-NoHUD**.
+
+### Licenses, limits and next step
+
+**No external assets imported.** New geometry/material textures/graphics are original project assets. Existing MIT water and CC0 swimmer notices remain unchanged; no protected event/team branding. The authored three-ribbon water motif is original, not an Olympic logo. Supporting engine references and scoped visual scorecard are in docs/PREMIUM_ARENA.md.
+
+This remains a procedural venue with simple underlying shell/crowd art, static banners, terminal placeholders and text displays, not photoreal final architecture/video. Current M14 athletes/animations are retained as requested. Android/iOS GPU/CPU/thermal performance, real phone touch/notches and full-length match/rewards return were not tested in this pass. Six shadowless local lights, HDR/bloom, seating and existing High planar reflection need device profiling. Scoped view samples are not exhaustive camera verification.
+
+Manual next review: normal MainLobby launch; swim/sprint/switch/pass/lob/charge/shoot; inspect ball/ring/goals and submerged limbs, both ends/benches/official lanes with F8, all presets/pause/settings; finish once through results/rewards/lobby. Recommended next milestone **after separate authorization**: Android profiling and selective authored environment/prop meshes/textures guided by measured budgets. Stop after this arena pass; no later milestone started. All changes uncommitted; human-only Git writes remain permanent.
+
+
+## Previous handoff — Milestone 14 rigged swimmers and interactive water
 
 **2026-11-15: M14 implemented in the existing OlympicMatchArena.** This explicit authorization supersedes the older milestone stop points below. The improved arena, water shader, frontend, economy, match authorities and physics were preserved. Git inspection remained read-only; all work is uncommitted. Stop after this animation/water prototype. Full guide, licensing, exact commands and limitations: **docs/SWIMMER_ANIMATION.md**.
 

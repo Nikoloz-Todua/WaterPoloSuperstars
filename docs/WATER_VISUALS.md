@@ -1,6 +1,12 @@
 # Production arena and clear pool water
 
-## Latest venue polish — same production scene
+## Latest presentation — Championship Night
+
+**2026-11-15:** the same production OlympicMatchArena now has a dark navy championship treatment, rebuilt deck/technical areas/seating, perimeter light banks, a larger live jumbotron and a scene-local HDR grade. The pool shell, water shader/materials/profiles, dimensions, 14 rigged athletes, audience data and interactive-water systems are unchanged. A new 128 px reflection bake belongs to **Assets/Arena/ChampionshipNight/**. No external art/package import was needed.
+
+Use **Tools > Water Polo > Arena > Apply Championship Night Overhaul** on saved Edit Mode scenes, or **Refresh Championship Night Reflection** after deliberate lighting edits. The older polish command preserves the newer venue and the older reflection command delegates safely. New scene-local presets retain neutral grading at every level, budget bloom/lights separately and preserve the existing water/crowd/prop tiers. Exact pre-pass recovery: **Assets/Scenes/Recovery/OlympicMatchArena_PreChampionshipNight.unity**, outside builds. Read [the premium arena guide](PREMIUM_ARENA.md) for hierarchy, budgets, sources, fresh checks, actual screenshots and limitations. Current Boot entry is restored.
+
+## Previous venue polish — same production scene
 
 **2026-11-15:** OlympicMatchArena was enhanced in place with cobalt/white event aprons, neutral 0.6 m ceramic decking, protected referee lanes, technical-area props, grandstand aisle/section framing, full-height upper enclosure/clerestory treatment, lighting trusses and original Superstars venue signage. Existing pool, fourteen athletes, fans, physics, field dimensions, camera and HUD remain. **Championship Venue Finish** is a reusable child prefab under the existing foundation; assets are in **Assets/Arena/VenuePolish/**. No external art/licensing import was required.
 
