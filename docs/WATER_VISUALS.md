@@ -1,5 +1,15 @@
 # Production arena and clear pool water
 
+## Latest venue polish — same production scene
+
+**2026-11-15:** OlympicMatchArena was enhanced in place with cobalt/white event aprons, neutral 0.6 m ceramic decking, protected referee lanes, technical-area props, grandstand aisle/section framing, full-height upper enclosure/clerestory treatment, lighting trusses and original Superstars venue signage. Existing pool, fourteen athletes, fans, physics, field dimensions, camera and HUD remain. **Championship Venue Finish** is a reusable child prefab under the existing foundation; assets are in **Assets/Arena/VenuePolish/**. No external art/licensing import was required.
+
+The existing directional light uses 68° pitch, 1.65 neutral intensity and 0.48 shadow strength with balanced trilight fill. Emissive rig surfaces and a new 128 px HDR reflection bake improve presentation without adding real-time lights or GI lightmaps. Water shaders/materials and existing Low/Medium/High behavior remain intact. End-hung and poolside displays read real match scores/clocks through presentation-only ArenaEventDisplay; they add no match authority, video feed or UI canvas.
+
+Use **Tools > Water Polo > Arena > Polish Existing Championship Venue** on saved Edit Mode scenes; repeating it preserves tuning. **Refresh Venue Reflection** explicitly rebakes after lighting edits. Existing Open/Play Direct/F8 remain; Boot entry is restored for normal use. Exact pre-polish scene recovery is **Assets/Scenes/Recovery/OlympicMatchArena_PreVenuePolish.unity**, outside builds. The older field-dimension regeneration command rebuilds the foundation: reapply the polish afterward.
+
+Fresh focused verification confirms 664 unchanged original component records, valid references, no new colliders/light budget, real swimming/pass/scoring, HUD Pause/Escape, six live score faces, clear sampled broadcast sightlines, three quality presets and existing menu launch/return without user-profile writes. Actual1920×1080 paired views and lighting/waterline captures are in **Logs/ArenaPolish/**; details/limits are in the newest [plan handoff](../plan.md). Added source content is 86 renderers / 14,088 referenced vertices, approximately 2.5 MB including metas; these are not mobile performance measurements. Geometry remains procedural, displays are text only, and device profiling is deferred.
+
 ## Current production environment — OlympicMatchArena
 
 **2026-11-15:** the explicitly authorized arena replacement promotes WaterVisualTest's visual architecture into **Assets/Scenes/OlympicMatchArena.unity**. The new scene retains the existing fourteen-athlete gameplay authorities and serialized references. The original **PrototypePool** and **WaterVisualTest** scene bytes remain unchanged from session start. **Assets/Scenes/Recovery/PrototypePool_PreArena.unity** is an additional exact gameplay recovery copy. None of those three scenes is included in the production build list.

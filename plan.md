@@ -2,7 +2,122 @@
 
 Last updated: 2026-11-15.
 
-## Current handoff — unified frontend, Game Modes and four divisions
+## Current handoff — Milestone 14 rigged swimmers and interactive water
+
+**2026-11-15: M14 implemented in the existing OlympicMatchArena.** This explicit authorization supersedes the older milestone stop points below. The improved arena, water shader, frontend, economy, match authorities and physics were preserved. Git inspection remained read-only; all work is uncommitted. Stop after this animation/water prototype. Full guide, licensing, exact commands and limitations: **docs/SWIMMER_ANIMATION.md**.
+
+### Delivered visual architecture
+
+Initial inspection found **no usable skeleton, SkinnedMeshRenderer or Animator**: current ArenaAthleteVisual prefabs were primitive meshes with small sinusoidal limb motions. SwimmerMotor, PlayerSelection, AI, stamina, BallController release/contact/possession events, goalkeeper references, waterline, PoolBounds and quality routing were inspected before integration.
+
+The new **Assets/SwimmerAnimationPrototype/Prefabs/AnimatedWaterPoloAthlete.prefab** contains a visual alignment wrapper, a 66-bone skinned Humanoid model, cap/ear guards and swimwear, Animator/controller/mask and RiggedSwimmerVisual. It uses shared skin/Blue/White/keeper-red materials. The reduced imported model totals approximately **6.6k vertices / 9.9k triangles** across four skinned renderers. All 14 real athlete roots now use it, following successful lab, one-athlete and then 14-athlete checks. Original primitive visual objects/prefabs survive as inactive fallback; no demonstration swimmers replace roster entries.
+
+Gameplay root → Animated Athlete Visual (visual Y alignment only) → WaterPoloAthlete (Animator + RiggedSwimmerVisual) → Armature, body, cap and ear guards. Valid Humanoid Avatar maps 22 core body joints; skeleton retains 66 bones. No new Rigidbody/collider, carry/release anchor or decision authority. Existing keeper arm references are retained on fallback pivots; the new visual observes save attempts separately. Physics and original gameplay component serialized records remain unchanged.
+
+Base blend tree: **TreadWater → HeadUpSwim → Sprint**, actual motor velocity and stamina drive it. Treading uses alternating bent-leg circular motion and sculling; swimming has alternating arm strokes, submerged kicks and torso roll. A masked upper-body layer provides possession, pass, shoot, block and save poses. Free arms fade the layer out so prior actions cannot suppress the crawl. Pass/lob/shoot hooks observe the real Released event once and never delay/reissue it. Keeper block observes ThreateningShot; save pose observes SaveAttempts, not guaranteed catches. Turn follows the existing motor's smooth rotation; no dedicated turn clip. Head alignment holds the head bone about **0.26 m above the configured waterline** while motor Y remains unchanged. Root motion is disabled; imported motion/root channels are baked in place. PreserveHierarchy is required on model and separate animation FBXs for correct Humanoid retargeting.
+
+These are functional **stylized prototype** motions, not final naturalistic water polo mocap. Art remains a jointed mannequin; recovery strokes, eggbeater mechanics, exact hand/ball contact and throw follow-through need authored refinement. No directional dives, advanced catches, contact/foul reactions, facial animation or final cap numbers are claimed.
+
+### Actual sources and licenses
+
+Downloaded from KinemIQ: Quaternius **CC0** mannequin plus **swim_idle_loop.glb / swim_fwd_loop.glb**. The original swim is paired-arm motion with travel; it is a reference, not a falsely labeled head-up freestyle. Converted **one model FBX + two reference animation FBXs**, and authored/adapted **eight project clip FBXs**. Only those eight project clips drive the production controller. Source pose data contributes to the treading foundation. No enormous pack or glTF package was installed.
+
+Original files, exact URLs, SHA256s and CC0 text: **SourceAssets/SwimmerAnimation/**. Source/license declarations: kinemiq.app/sources, animations/move-swimming, animations/idle-in-water and quaternius.com/packs/universalanimationlibrary.html. **Assets/SwimmerAnimationPrototype/NOTICE.md** and **Assets/StreamingAssets/ThirdPartyNotices/Swimmer-Attribution.md / Quaternius-CC0-1.0.txt** preserve distributable notices.
+
+The requested Asset Store **Basic Character Animations FREE 409552** listing was investigated (Standard Asset Store EULA / Extension Asset, Unity 6000.3.6, listed URP support), but **no actual package was downloaded or imported**. Its rig/clip quality remains unverified; optional manual acquisition is Asset Store account → Package Manager > My Assets. The obtained CC0 sources were sufficient for this milestone. Blender MCP was not connected; local **Blender 5.2.3 in headless mode** converted/reduced/fitted the assets without opening a user document. Reproducible script: **Tools/Art/PrepareAnimatedSwimmer.py**.
+
+### Interactive water and mobile budgets
+
+Existing **WaterInteractionEffects** remains presentation-only. It now preallocates **48** shared-mesh ring/splash entries: **16 ball-reserved / 32 athlete** at Standard; Low effect detail uses 8 / 12. The shared ripple mesh contains two concentric rings. Real ball contacts and throw releases remain authoritative event sources. Existing V wakes gain bounded sprint width and camera/range checks.
+
+RiggedSwimmerVisual samples animated hands after alignment: downward surface crossings emit local splashes with a per-hand cooldown; stationary athletes emit small staggered rings roughly every 2.4 seconds; moving submerged hands/feet emit short microbubbles. **One native ParticleSystem, max 128**, manual pooled emission, about 0.4-second life, no collisions or per-stroke GameObjects. Particle simulation starts on demand and respects pause/clear. High surface range 65 m, Medium 45 m; bubbles Standard-only within 32 m; offscreen emissions are rejected. Existing graphics mapping is preserved: **Low effects Off**, Medium Low, High Standard. Main water materials/shader/clear-water visibility are unchanged.
+
+Animators currently always tick and skinned bounds remain enabled offscreen to keep waterline and hand sampling reliable. Device profiling, animation culling and material/skinning batching are future optimization tasks; desktop evidence is not Android/iOS performance evidence.
+
+### Scene safety, files and exact review commands
+
+- Production scene remains **Assets/Scenes/OlympicMatchArena.unity**, original GUID/entry flow retained. Exact pre-animation scene recovery: **Assets/Scenes/Recovery/OlympicMatchArena_PreAnimatedAthlete.unity**, outside builds. Recoveries share updated scripts; the older pre-venue recovery also remains.
+- Isolated **Assets/Scenes/AnimatedSwimmerLab.unity**, outside builds, uses existing transparent water/ceramic and the one rig prefab. It has no match controller, physics or economy. **Tools > Water Polo > Animated Athletes > Play Isolated Swimmer Lab**; keys **1 tread, 2 swim, 3 sprint, 4 possession, 5 pass, 6 shoot, 7 block, 8 save**. Stopping restores previous Editor entry.
+- Same submenu: **Set Up Prototype and Lab**, **Apply to One Match Athlete**, **Apply to All 14 Match Athletes**, **Restore Original Match Visuals**, **Reimport Prototype Source FBXs**. First setup creates missing assets; repeated ordinary setup preserves tuned assets. Apply is additive/repeat-safe; One does not undo other opt-ins. Fallback changes visuals only. Explicit reimport reapplies importer settings after deliberate source regeneration. Require saved Edit Mode scenes.
+- Existing **Tools > Water Polo > Arena > Play Olympic Match Arena Directly** and **F8** inspect the actual match. **Use Boot as Editor Play Entry** restores normal startup; **Boot entry is restored at delivery**. No build-list or lobby/destination changes.
+- Modified: **Assets/Scenes/OlympicMatchArena.unity**, **Assets/Scripts/Gameplay/WaterInteractionEffects.cs**, **README.md**, **plan.md**. Added: **Assets/Editor/AnimatedAthleteImport.cs**, **AnimatedAthleteSetup.cs**, **Assets/Scripts/WaterVisuals/RiggedSwimmerVisual.cs**, prototype model/clips/materials/controller/mask/prefab/metas, lab/recovery scenes, CC0 source/notices, conversion script, **Tools/Verification/AnimatedAthleteVerification.cs**, **docs/SWIMMER_ANIMATION.md**. Previous venue polish changes and unrelated untracked files were preserved.
+
+### Fresh focused verification
+
+Windows Unity **6000.6.7f1**, actual advancing Game views captured and inspected, including 1920×1080 lab/production close views and broadcast. Source: **Tools/Verification/AnimatedAthleteVerification.cs**, asynchronous Pipeline script run entries; reports/captures in ignored **Logs/SwimmerAnimation/**. No historical full-game suites were rerun.
+
+| Check | Actual result |
+| --- | --- |
+| Source compilation / Console | PASS fresh compile; final current Console ground truth **0 errors / 0 warnings**. Historical Pipeline retained buffers include older entries. |
+| Lab rig/poses | PASS valid Humanoid, all eight preview states, head/waterline, submerged feet, bounded visual offsets, no XZ visual drift. After action-layer correction: about **0.51 m / 0.60 m** sampled hand travel over 0.25 s for swim/sprint. Actual Game captures inspected. |
+| One-athlete integration | PASS actual W/Shift movement, sprint, idle ring, animated hand-entry emissions, pickup/pass/reception, one pass hook, one shot hook and real goal; pause, AI bounds, original HUD and presets preserved. |
+| All 14 | PASS same focused gameplay check after rollout, including original HUD pointer Pause / Escape resume; 14 real athletes, no new visual collisions, correct waterline, three graphics presets and Low clearing. |
+| Structure / persistence | PASS **518 original protected component records**, exact recovery hash, unchanged Boot/MainLobby/build/destination/catalog/water-material hashes. Repeat setup and saved scene reload retain exactly 14 active rigged visuals with valid references; originals inactive. |
+| Keeper hook | PASS one real physical swept catch and one observed animation in the existing controlled endpoint fixture: **80 m/s, zero reaction delay, 100% save/catch temporarily in Play Mode**, restored afterward. Default 16 m/s fixture shots did not establish representative save animation coverage; production success rates were not measured. |
+| Ball water / pooling | PASS real unreceived lob water impact, active local feedback, fixed effect-object counts and bounded buffers. Separate final particle check confirms simulation starts and microbubbles expire; max 128. |
+| Final visual audit | PASS 14 valid Avatars/skin bone/material references, no root motion, correct physics/visual waterline. Cap-fit and actual broadcast captures reviewed after source regeneration. |
+
+Reports: **M14-Lab-PASS**, **M14-Match-1-PASS**, **M14-Match-14-PASS**, **M14-Structure-PASS**, **M14-Keeper-PASS**, **M14-Water-PASS**, **M14-Particle-PASS**, **M14-Final-PASS**. Screens: **Lab-0..7**, **Match-Idle/Swim/Sprint/Possession/Throw-14**, **Match-Keeper**, **Match-Quality-0/1/2-14**, **Match-Ball-Water**, **Final-Cap-and-Waterline / Final-Cap-Rear / Final-Broadcast**.
+
+Full-time rewards, complete menu round trips and division/save-economy suites were not repeated; those systems/entry files are untouched and their prior evidence remains below. No Android/iOS device performance, touch, long-session soak or comprehensive directional keeper-animation test is claimed.
+
+Read-only `git diff --check` flags native Unity scene serialization whitespace on empty `value:` entries and line-ending notices; native generated formatting was retained. This is separate from the fresh zero-error/warning Unity Console result.
+
+### Blender replacement and next step
+
+Replace only the visual model child with a valid Humanoid athlete and compatible rest pose, hands/feet/head mapping; keep identity, motor, physics, carry/release anchors, AI and match authorities on existing athlete roots. Reuse Animator/controller/event observer and wrapper, adapt the skin/cap/swimwear slots in Theme, then retune visual head height/bounds. Reverify one lab athlete and one match athlete before all 14. Core mapping supports future retargeting; final finger mapping, per-athlete art, cap numbers and directional saves remain future work.
+
+Manual review: preview 1–8 in the lab, then launch a normal hub match, swim/sprint/switch, pass/lob/charge/shoot, inspect both keepers and underwater limbs, pause/resume, compare presets/F8, finish once through rewards/lobby. Recommended next milestone **after separate authorization**: authored water-polo athlete, recovery/eggbeater/keeper refinement and Android profiling. No later milestone was started.
+
+
+## Previous handoff — existing match arena venue polish
+
+**2026-11-15: arena-only enhancement implemented in the existing Assets/Scenes/OlympicMatchArena.unity.** This new explicit authorization supersedes the earlier frontend-only scope below. No new playable destination, menu screen, match flow, athlete design or crowd system was created. Stop after this venue polish. Git was used read-only; changes are uncommitted. Existing Pipeline configuration, old-plan.md and tatus were preserved.
+
+### Environment changes
+
+- **Competition deck:** cobalt event aprons, white perimeter accents, restrained vermilion details and original SUPERSTARS AQUATIC CENTER floor branding. Existing deck/concourse surfaces use neutral non-slip ceramic, with metre UVs and approximately 0.6 m tiles. An original deterministic 128×128 grain/grout texture replaces the pool-blue tile appearance on the deck. Existing 7 m deck width,20×25m field, pool shell/depth, drainage and coping remain.
+- **Officials/team areas:** protected 1.65 m referee lane finish and edge markings, preserving X=±12.65/Y=0.18 paths. Original benches/coaches stay in place, with technical-zone outlines, fascia/top rails and presentation strips. Added cooler/rack/towel placeholders, access signs, officials' chairs, terminal props and timing-desk fascia. No new colliders or characters.
+- **Hall/seating:** existing ten seating blocks and all fans remain. Added aisle treads/nosings between blocks, section boards, structural piers reaching the existing 30 m roof, upper acoustic closure/clerestory ribbons, cornice edges, original championship banners and venue identity signage. Existing roof stays; broadcast trusses/luminaires sit below it. No protected Olympic/event logos, flags or licensed team identities were copied.
+- **Lighting/reflections:** existing single directional light now has 68° overhead pitch, 1.65 intensity, near-neutral color, 0.48 shadow strength and balanced trilight fill. Fixture housings/louvres and emissive diffusers supply the visible rig. No extra real-time lights, new post-processing or GI lightmap bake. Emission is visible/reflective rather than a simulated spotlight contribution. A new 128 px HDR hall reflection bake includes the venue; water shaders/materials, quality profiles, caustics/refraction and High planar behavior remain unchanged.
+- **Event presentation:** an end-hung four-face jumbotron beyond the north field and two low poolside boards use dark unlit LED faces with real score/period/display-time/shot-clock values. New `ArenaEventDisplay` observes PrototypeMatch. It subscribes to Changed, polls at 0.15 s intervals and rebuilds strings only when displayed values change. It cannot alter gameplay, clocks, rewards, input or HUD. Six faces share the same authority; no fake video feed or extra render texture.
+
+### Hierarchy, assets and review commands
+
+Original **Olympic Arena — WaterVisualTest Foundation** now contains prefab instance **Championship Venue Finish**, organized into Competition Deck and Protected Official Lanes; Team Technical Areas and Event Operations; Grandstand Framing and Arena Identity; Broadcast Lighting Trusses; Live Venue Displays. Geometry is combined by material/zone; world-space TMP remains separate. Existing pool/goals/referees/athletes/camera/HUD remain in place; no new Canvas/EventSystem.
+
+Reusable prefab: **Assets/Arena/VenuePolish/Prefabs/ChampionshipVenue.prefab**. Its external match reference is assigned on the scene instance. **Assets/Arena/VenuePolish/** holds original meshes, ten independent URP materials, **NeutralCeramic.png** and **ChampionshipReflection.exr**. No downloads/new license obligations; prior water shader notices still apply. Uploaded pool-reference images were not available among project files, so the design follows the actual venue and written brief rather than claiming an exact reference match.
+
+- **Tools > Water Polo > Arena > Polish Existing Championship Venue**: setup on saved Edit Mode scenes; repeated calls open/preserve tuned content without duplicating or regenerating it.
+- **Tools > Water Polo > Arena > Refresh Venue Reflection**: explicitly rebake after intentional lighting/environment edits; does not reset lighting or rebuild geometry.
+- Existing **Open Olympic Match Arena / Play Olympic Match Arena Directly** remain the inspection commands. **F8** retains all five original viewpoints and return to broadcast. Normal Editor Play entry was restored to **Boot**; **Play Hub Entry** uses the unchanged frontend.
+- Exact recovery: **Assets/Scenes/Recovery/OlympicMatchArena_PreVenuePolish.unity**, outside builds. It shares project scripts; production scene GUID stays unchanged. The older **Apply Configured Field Dimensions** command explicitly regenerates the original foundation and removes the finish instance: reapply polish and reverify afterward. Do not regenerate merely to review the scene.
+
+### Fresh focused verification
+
+Source **Tools/Verification/ArenaPolishVerification.cs**, using Pipeline **script run** for async checks; reports/captures in ignored **Logs/ArenaPolish/**. No historical full-game suite or season/reward simulation was repeated.
+
+| Check | Actual result |
+| --- | --- |
+| Structure | PASS **664** protected original records compared against recovery: existing scripts, colliders/poses, rigidbodies, camera/settings/pose, athlete visual transforms, audience meshes/renderers. No missing scripts/materials; 14 athletes, unchanged 20×25 field, six wired faces, no new colliders, one real-time light, exact recovery, repeat-safe setup. |
+| Flow preservation | Boot, MainLobby, EditorBuildSettings, HubMatchDestination and HubCatalog byte hashes unchanged; same production scene GUID; Boot Editor entry restored. |
+| Gameplay smoke | PASS advancing actual Game view, real keyboard swimming, pointer HUD Pause/Escape, physical pickup/pass/reception/selection, physical shot/goal, live score on all six venue faces, valid referee positions and Low/Medium/High water variants. |
+| Camera | PASS new-venue triangle intersection checks for visible athlete/goal sightlines at near/centre/far action positions. Original camera/controller/viewpoint data unchanged. Focused checks, not exhaustive camera-path proof. |
+| Existing app entry | PASS real pointer PLAY→Training→Launch enters upgraded OlympicMatchArena with 14 athletes; existing Pause/Exit returns to the same lobby. Isolated memory profile; user profile SHA256 unchanged; no menu edits. |
+| Game-view evidence | Captured/inspected 1920×1080 before/after using identical broadcast, overview and bench viewpoints, plus waterline and lighting/roof views. Other captures cover action at both ends/centre, scoring and three presets. Paired stills freeze simulation only for composition without Pause UI; advancing gameplay was verified separately. |
+| Console | Runtime/editor source compiles; fresh Console ground truth: 0 errors / 0 warnings. Existing ArenaDeveloperCamera DEVELOPMENT_BUILD/UAC0009 deprecation warning can appear on recompilation; that file is unchanged. Historical Pipeline buffers contain older entries. |
+
+Added venue: **86 renderer components  / 14,088 referenced mesh vertices**, including world text; approximately 2.5 MB source assets including metas. These are content counts, not measured draw calls, GPU memory or device performance. New static geometry remains on all presets; prior water/crowd/prop budgets stay authoritative. No Android/iOS hardware profiling or full-length manual match was performed.
+
+Evidence: **Compare-Before/After-Broadcast.png**, **Compare-Before/After-Overview.png**, **Compare-Before/After-Benches.png**, **Final-Lighting-and-Structure.png**, **Final-Waterline.png**, **Final-Broadcast-South/Center/North.png**, **Final-Scoring.png**, **Final-Preset-0/1/2.png**. Reports: **Structure-PASS.json**, **GameplaySmoke-PASS.json**, **ExistingEntry-PASS.json**, **PairedViews-PASS.json** under Logs/ArenaPolish.
+
+### Files, limitations and next step
+
+Modified **Assets/Scenes/OlympicMatchArena.unity**, **plan.md**, **README.md**, **docs/WATER_VISUALS.md**. Added **Assets/Editor/ArenaVenuePolishSetup.cs**, **Assets/Scripts/WaterVisuals/ArenaEventDisplay.cs**, venue prefab/materials/meshes/textures/metas, pre-polish recovery scene/meta and focused verification source. No gameplay, hub, input, HUD, economy, quality-pipeline assets, saved profile or original player/fan design changed.
+
+This remains a coherent procedural venue, not a photoreal architectural replacement. Benches, coolers, terminals, seating and audience retain placeholder geometry; banners are rigid and jumbotron content is text rather than video. Broadcast prioritizes play; upper architecture is best inspected with F8/Scene view. Device performance/touch and full-match feel remain manual tests. Next recommended milestone **after separate authorization**: Android venue profiling and selective authored architecture/bench materials/meshes while retaining the proven field/camera and current fan/player scope. No next milestone was started.
+
+## Previous handoff — unified frontend, Game Modes and four divisions
 
 The developer explicitly authorized this **frontend UI/UX milestone** after accepting the asset-driven home. The home artwork/layout is retained; secondary presentation and navigation are now unified. This supersedes the older home-only scope below. Stop after this milestone. No Git write commands, downloads, replacement artwork, networking, Firebase, billing, advertising or new arena/gameplay systems were introduced. Existing unrelated local changes/untracked files remain intact.
 
