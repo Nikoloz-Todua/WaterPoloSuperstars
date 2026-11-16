@@ -1,5 +1,12 @@
 # Championship Night — premium arena presentation
 
+> The subsequent [poolside redevelopment](ARENA_REDEVELOPMENT.md) is now applied: end-corner white chairs, layered boards, pool-edge detail, wider referee colors and a ceiling-centred existing jumbotron. It preserves the field, cameras, crowd, water and lighting budgets. The historical padded sideline benches/end-hung display described below have their replaced renderers retired in the current scene.
+
+> M19 adds the west-wall live board, two gameplay views and bounded light-gallery sightlines. See [MATCH_BROADCAST_AND_CAMERAS.md](MATCH_BROADCAST_AND_CAMERAS.md) for current assets, images and checks. Existing venue lighting and clear water remain.
+
+> M18 refinement is documented in [SPRINT_POLISH.md](SPRINT_POLISH.md); the sections below retain the original milestone architecture and evidence. Use the latest plan.md handoff for current authorization.
+
+
 The production scene is still **Assets/Scenes/OlympicMatchArena.unity**, with the same GUID and game entry. This pass replaces the previous bright venue finish with a darker indoor championship presentation. The existing pool, dimensions, clear water, 14 rigged swimmers, spectators, referees, controls, HUD and hub/gameplay authorities remain.
 
 ## Art direction

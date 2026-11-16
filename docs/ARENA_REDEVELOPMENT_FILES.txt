@@ -1,0 +1,205 @@
+CHAMPIONSHIP POOLSIDE ARENA REDEVELOPMENT - 2026-11-17
+
+MODIFIED IN THIS ARENA PASS
+Assets/Scenes/OlympicMatchArena.unity
+Assets/Scripts/Gameplay/BallController.cs
+README.md
+plan.md
+docs/PREMIUM_ARENA.md
+docs/FIELD_AND_SPRINT.md
+docs/WATER_VISUALS.md
+docs/MATCH_BROADCAST_AND_CAMERAS.md
+
+CREATED IN THIS ARENA PASS
+Assets/Editor/ArenaRedevelopmentSetup.cs
+Assets/Editor/ArenaRedevelopmentSetup.cs.meta
+Assets/Arena/PoolsideRedevelopment.meta
+Assets/Scenes/Recovery/OlympicMatchArena_PreArenaRedevelopment.unity
+Assets/Scenes/Recovery/OlympicMatchArena_PreArenaRedevelopment.unity.meta
+Tools/Verification/ArenaRedevelopmentVerification.cs
+docs/ARENA_REDEVELOPMENT.md
+docs/ARENA_REDEVELOPMENT_FILES.txt
+Assets/Arena/PoolsideRedevelopment/Materials.meta
+Assets/Arena/PoolsideRedevelopment/Materials/Architectural Ice LED.mat
+Assets/Arena/PoolsideRedevelopment/Materials/Architectural Ice LED.mat.meta
+Assets/Arena/PoolsideRedevelopment/Materials/Championship Cobalt.mat
+Assets/Arena/PoolsideRedevelopment/Materials/Championship Cobalt.mat.meta
+Assets/Arena/PoolsideRedevelopment/Materials/Graphite Goal Cord.mat
+Assets/Arena/PoolsideRedevelopment/Materials/Graphite Goal Cord.mat.meta
+Assets/Arena/PoolsideRedevelopment/Materials/Marine Alloy.mat
+Assets/Arena/PoolsideRedevelopment/Materials/Marine Alloy.mat.meta
+Assets/Arena/PoolsideRedevelopment/Materials/Marine Enamel.mat
+Assets/Arena/PoolsideRedevelopment/Materials/Marine Enamel.mat.meta
+Assets/Arena/PoolsideRedevelopment/Materials/Moulded Competition Polymer.mat
+Assets/Arena/PoolsideRedevelopment/Materials/Moulded Competition Polymer.mat.meta
+Assets/Arena/PoolsideRedevelopment/Materials/Non Slip Event Rubber.mat
+Assets/Arena/PoolsideRedevelopment/Materials/Non Slip Event Rubber.mat.meta
+Assets/Arena/PoolsideRedevelopment/Materials/Ribbon LED Midnight.mat
+Assets/Arena/PoolsideRedevelopment/Materials/Ribbon LED Midnight.mat.meta
+Assets/Arena/PoolsideRedevelopment/Meshes.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/00 Sloped Competition Skirt and Overflow Edge Non Slip Event Rubber.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/00 Sloped Competition Skirt and Overflow Edge Non Slip Event Rubber.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/01 Sloped Competition Skirt and Overflow Edge Moulded Competition Polymer.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/01 Sloped Competition Skirt and Overflow Edge Moulded Competition Polymer.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/02 Sloped Competition Skirt and Overflow Edge Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/02 Sloped Competition Skirt and Overflow Edge Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/03 Sloped Competition Skirt and Overflow Edge Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/03 Sloped Competition Skirt and Overflow Edge Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/04 Official Lane Support and Access Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/04 Official Lane Support and Access Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/05 Official Lane Support and Access Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/05 Official Lane Support and Access Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/06 Official Lane Support and Access Non Slip Event Rubber.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/06 Official Lane Support and Access Non Slip Event Rubber.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/07 West Perimeter Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/07 West Perimeter Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/08 West Perimeter Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/08 West Perimeter Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/09 West Perimeter Architectural Ice LED.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/09 West Perimeter Architectural Ice LED.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/10 West Perimeter Ribbon LED Midnight.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/10 West Perimeter Ribbon LED Midnight.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/11 West Perimeter Championship Cobalt.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/11 West Perimeter Championship Cobalt.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/12 East Perimeter Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/12 East Perimeter Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/13 East Perimeter Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/13 East Perimeter Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/14 East Perimeter Architectural Ice LED.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/14 East Perimeter Architectural Ice LED.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/15 East Perimeter Ribbon LED Midnight.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/15 East Perimeter Ribbon LED Midnight.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/16 East Perimeter Championship Cobalt.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/16 East Perimeter Championship Cobalt.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/17 South Goal Backdrop Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/17 South Goal Backdrop Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/18 South Goal Backdrop Ribbon LED Midnight.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/18 South Goal Backdrop Ribbon LED Midnight.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/19 South Goal Backdrop Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/19 South Goal Backdrop Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/20 North Goal Backdrop Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/20 North Goal Backdrop Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/21 North Goal Backdrop Ribbon LED Midnight.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/21 North Goal Backdrop Ribbon LED Midnight.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/22 North Goal Backdrop Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/22 North Goal Backdrop Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/23 Blue End Corner Bench Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/23 Blue End Corner Bench Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/24 Blue End Corner Bench Non Slip Event Rubber.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/24 Blue End Corner Bench Non Slip Event Rubber.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/25 Blue End Corner Bench Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/25 Blue End Corner Bench Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/26 Blue End Corner Bench Championship Cobalt.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/26 Blue End Corner Bench Championship Cobalt.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/27 Blue End Corner Bench Moulded Competition Polymer.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/27 Blue End Corner Bench Moulded Competition Polymer.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/28 Blue Bench Equipment Moulded Competition Polymer.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/28 Blue Bench Equipment Moulded Competition Polymer.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/29 Blue Bench Equipment Championship Cobalt.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/29 Blue Bench Equipment Championship Cobalt.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/30 Blue Bench Equipment Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/30 Blue Bench Equipment Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/31 Blue Bench Equipment Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/31 Blue Bench Equipment Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/32 Blue Bench Equipment Ribbon LED Midnight.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/32 Blue Bench Equipment Ribbon LED Midnight.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/33 Blue Bench Equipment Non Slip Event Rubber.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/33 Blue Bench Equipment Non Slip Event Rubber.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/34 White End Corner Bench Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/34 White End Corner Bench Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/35 White End Corner Bench Non Slip Event Rubber.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/35 White End Corner Bench Non Slip Event Rubber.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/36 White End Corner Bench Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/36 White End Corner Bench Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/37 White End Corner Bench Championship Cobalt.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/37 White End Corner Bench Championship Cobalt.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/38 White End Corner Bench Moulded Competition Polymer.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/38 White End Corner Bench Moulded Competition Polymer.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/39 White Bench Equipment Moulded Competition Polymer.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/39 White Bench Equipment Moulded Competition Polymer.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/40 White Bench Equipment Championship Cobalt.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/40 White Bench Equipment Championship Cobalt.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/41 White Bench Equipment Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/41 White Bench Equipment Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/42 White Bench Equipment Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/42 White Bench Equipment Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/43 White Bench Equipment Ribbon LED Midnight.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/43 White Bench Equipment Ribbon LED Midnight.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/44 White Bench Equipment Non Slip Event Rubber.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/44 White Bench Equipment Non Slip Event Rubber.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/45 West Broadcast Platform Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/45 West Broadcast Platform Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/46 West Broadcast Platform Non Slip Event Rubber.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/46 West Broadcast Platform Non Slip Event Rubber.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/47 West Broadcast Platform Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/47 West Broadcast Platform Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/48 West Broadcast Rig Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/48 West Broadcast Rig Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/49 West Broadcast Rig Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/49 West Broadcast Rig Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/50 West Broadcast Rig Ribbon LED Midnight.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/50 West Broadcast Rig Ribbon LED Midnight.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/51 West Broadcast Rig Non Slip Event Rubber.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/51 West Broadcast Rig Non Slip Event Rubber.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/52 West Broadcast Rig Moulded Competition Polymer.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/52 West Broadcast Rig Moulded Competition Polymer.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/53 East Broadcast Platform Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/53 East Broadcast Platform Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/54 East Broadcast Platform Non Slip Event Rubber.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/54 East Broadcast Platform Non Slip Event Rubber.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/55 East Broadcast Platform Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/55 East Broadcast Platform Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/56 East Broadcast Rig Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/56 East Broadcast Rig Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/57 East Broadcast Rig Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/57 East Broadcast Rig Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/58 East Broadcast Rig Ribbon LED Midnight.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/58 East Broadcast Rig Ribbon LED Midnight.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/59 East Broadcast Rig Non Slip Event Rubber.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/59 East Broadcast Rig Non Slip Event Rubber.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/60 East Broadcast Rig Moulded Competition Polymer.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/60 East Broadcast Rig Moulded Competition Polymer.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/61 Grandstand Tier Access and Soffits Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/61 Grandstand Tier Access and Soffits Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/62 Grandstand Tier Access and Soffits Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/62 Grandstand Tier Access and Soffits Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/63 Grandstand Tier Access and Soffits Architectural Ice LED.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/63 Grandstand Tier Access and Soffits Architectural Ice LED.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/64 Grandstand Tier Access and Soffits Championship Cobalt.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/64 Grandstand Tier Access and Soffits Championship Cobalt.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/65 Ceiling Display Housing and Suspension Marine Enamel.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/65 Ceiling Display Housing and Suspension Marine Enamel.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/66 Ceiling Display Housing and Suspension Ribbon LED Midnight.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/66 Ceiling Display Housing and Suspension Ribbon LED Midnight.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/67 Ceiling Display Housing and Suspension Architectural Ice LED.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/67 Ceiling Display Housing and Suspension Architectural Ice LED.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/68 Ceiling Display Housing and Suspension Marine Alloy.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/68 Ceiling Display Housing and Suspension Marine Alloy.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/East Platform Markers Competition Green Full Width.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/East Platform Markers Competition Green Full Width.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/East Platform Markers Competition Red Full Width.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/East Platform Markers Competition Red Full Width.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/East Platform Markers Competition Yellow Full Width.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/East Platform Markers Competition Yellow Full Width.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/West Platform Markers Competition Green Full Width.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/West Platform Markers Competition Green Full Width.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/West Platform Markers Competition Red Full Width.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/West Platform Markers Competition Red Full Width.asset.meta
+Assets/Arena/PoolsideRedevelopment/Meshes/West Platform Markers Competition Yellow Full Width.asset
+Assets/Arena/PoolsideRedevelopment/Meshes/West Platform Markers Competition Yellow Full Width.asset.meta
+Assets/Arena/PoolsideRedevelopment/Prefabs.meta
+Assets/Arena/PoolsideRedevelopment/Prefabs/CenteredLiveJumbotron.prefab
+Assets/Arena/PoolsideRedevelopment/Prefabs/CenteredLiveJumbotron.prefab.meta
+Assets/Arena/PoolsideRedevelopment/Prefabs/ChampionshipPoolside.prefab
+Assets/Arena/PoolsideRedevelopment/Prefabs/ChampionshipPoolside.prefab.meta
+Assets/Arena/PoolsideRedevelopment/Prefabs/PoolsideFineEquipment.prefab
+Assets/Arena/PoolsideRedevelopment/Prefabs/PoolsideFineEquipment.prefab.meta
+Assets/Arena/PoolsideRedevelopment/Textures.meta
+Assets/Arena/PoolsideRedevelopment/Textures/PoolsideReflection.exr
+Assets/Arena/PoolsideRedevelopment/Textures/PoolsideReflection.exr.meta
+
+LOCAL EVIDENCE (IGNORED, NOT PRODUCTION ASSETS)
+Logs/ArenaRedevelopment/ - actual PNGs, JSON evidence and scoped copies of existing focused runners.
+
+PRE-EXISTING CHANGES PRESERVED
+Other M19 scripts/assets/docs, ProjectSettings/QualitySettings.asset (AA0), SourceAssets, reference images, Pipeline settings, old-plan.md, tatus and other unrelated local files were not created or reset by this pass. No Git writes.

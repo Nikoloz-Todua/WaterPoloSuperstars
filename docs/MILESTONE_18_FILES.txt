@@ -1,0 +1,115 @@
+M18 scope relative to M17 working state; includes metas. All unstaged/uncommitted.
+
+MODIFIED
+Assets/Editor/AuthenticFieldSetup.cs
+Assets/Scenes/OlympicMatchArena.unity
+Assets/Scripts/Gameplay/MatchHUD.cs
+Assets/Scripts/Gameplay/MatchNotificationBanner.cs
+Assets/Scripts/Gameplay/MobileMatchControls.cs
+Assets/Scripts/Gameplay/PeriodSprintOff.cs
+Assets/Scripts/Gameplay/PlayerSelection.cs
+Assets/Scripts/Gameplay/PrototypeMatch.cs
+Assets/Scripts/Gameplay/SprintBallReleaseVisual.cs
+Assets/Scripts/Gameplay/SwimmerInput.cs
+Assets/Scripts/WaterVisuals/ChampionshipPresentation.cs
+README.md
+docs/FIELD_AND_SPRINT.md
+docs/PREMIUM_ARENA.md
+plan.md
+
+CREATED
+Assets/Arena/SprintPolish.meta
+Assets/Arena/SprintPolish/Materials.meta
+Assets/Arena/SprintPolish/Materials/Anodized Truss.mat
+Assets/Arena/SprintPolish/Materials/Anodized Truss.mat.meta
+Assets/Arena/SprintPolish/Materials/Cobalt Architectural Glow.mat
+Assets/Arena/SprintPolish/Materials/Cobalt Architectural Glow.mat.meta
+Assets/Arena/SprintPolish/Materials/Competition Diffusers.mat
+Assets/Arena/SprintPolish/Materials/Competition Diffusers.mat.meta
+Assets/Arena/SprintPolish/Materials/Ice Blue Edge Glow.mat
+Assets/Arena/SprintPolish/Materials/Ice Blue Edge Glow.mat.meta
+Assets/Arena/SprintPolish/Materials/Luminaires Navy.mat
+Assets/Arena/SprintPolish/Materials/Luminaires Navy.mat.meta
+Assets/Arena/SprintPolish/Materials/Official Competition Green.mat
+Assets/Arena/SprintPolish/Materials/Official Competition Green.mat.meta
+Assets/Arena/SprintPolish/Materials/Official Competition Red.mat
+Assets/Arena/SprintPolish/Materials/Official Competition Red.mat.meta
+Assets/Arena/SprintPolish/Materials/Official Competition White.mat
+Assets/Arena/SprintPolish/Materials/Official Competition White.mat.meta
+Assets/Arena/SprintPolish/Materials/Official Competition Yellow.mat
+Assets/Arena/SprintPolish/Materials/Official Competition Yellow.mat.meta
+Assets/Arena/SprintPolish/Materials/Official Navy Walking Surface.mat
+Assets/Arena/SprintPolish/Materials/Official Navy Walking Surface.mat.meta
+Assets/Arena/SprintPolish/Meshes.meta
+Assets/Arena/SprintPolish/Meshes/Cobalt Section Grazers.asset
+Assets/Arena/SprintPolish/Meshes/Cobalt Section Grazers.asset.meta
+Assets/Arena/SprintPolish/Meshes/Competition Lens Arrays -1.asset
+Assets/Arena/SprintPolish/Meshes/Competition Lens Arrays -1.asset.meta
+Assets/Arena/SprintPolish/Meshes/Competition Lens Arrays 1.asset
+Assets/Arena/SprintPolish/Meshes/Competition Lens Arrays 1.asset.meta
+Assets/Arena/SprintPolish/Meshes/Diffuser Edge Rings -1.asset
+Assets/Arena/SprintPolish/Meshes/Diffuser Edge Rings -1.asset.meta
+Assets/Arena/SprintPolish/Meshes/Diffuser Edge Rings 1.asset
+Assets/Arena/SprintPolish/Meshes/Diffuser Edge Rings 1.asset.meta
+Assets/Arena/SprintPolish/Meshes/East Platform Full Width Competition Green.asset
+Assets/Arena/SprintPolish/Meshes/East Platform Full Width Competition Green.asset.meta
+Assets/Arena/SprintPolish/Meshes/East Platform Full Width Competition Red.asset
+Assets/Arena/SprintPolish/Meshes/East Platform Full Width Competition Red.asset.meta
+Assets/Arena/SprintPolish/Meshes/East Platform Full Width Competition White.asset
+Assets/Arena/SprintPolish/Meshes/East Platform Full Width Competition White.asset.meta
+Assets/Arena/SprintPolish/Meshes/East Platform Full Width Competition Yellow.asset
+Assets/Arena/SprintPolish/Meshes/East Platform Full Width Competition Yellow.asset.meta
+Assets/Arena/SprintPolish/Meshes/Gallery Frame -1.asset
+Assets/Arena/SprintPolish/Meshes/Gallery Frame -1.asset.meta
+Assets/Arena/SprintPolish/Meshes/Gallery Frame 1.asset
+Assets/Arena/SprintPolish/Meshes/Gallery Frame 1.asset.meta
+Assets/Arena/SprintPolish/Meshes/Jumbotron Ice Edges.asset
+Assets/Arena/SprintPolish/Meshes/Jumbotron Ice Edges.asset.meta
+Assets/Arena/SprintPolish/Meshes/Jumbotron Metal Spine.asset
+Assets/Arena/SprintPolish/Meshes/Jumbotron Metal Spine.asset.meta
+Assets/Arena/SprintPolish/Meshes/Luminaire Housings -1.asset
+Assets/Arena/SprintPolish/Meshes/Luminaire Housings -1.asset.meta
+Assets/Arena/SprintPolish/Meshes/Luminaire Housings 1.asset
+Assets/Arena/SprintPolish/Meshes/Luminaire Housings 1.asset.meta
+Assets/Arena/SprintPolish/Meshes/Release Jaw -1.asset
+Assets/Arena/SprintPolish/Meshes/Release Jaw -1.asset.meta
+Assets/Arena/SprintPolish/Meshes/Release Jaw 1.asset
+Assets/Arena/SprintPolish/Meshes/Release Jaw 1.asset.meta
+Assets/Arena/SprintPolish/Meshes/Thin Cable and Joint.asset
+Assets/Arena/SprintPolish/Meshes/Thin Cable and Joint.asset.meta
+Assets/Arena/SprintPolish/Meshes/West Platform Full Width Competition Green.asset
+Assets/Arena/SprintPolish/Meshes/West Platform Full Width Competition Green.asset.meta
+Assets/Arena/SprintPolish/Meshes/West Platform Full Width Competition Red.asset
+Assets/Arena/SprintPolish/Meshes/West Platform Full Width Competition Red.asset.meta
+Assets/Arena/SprintPolish/Meshes/West Platform Full Width Competition White.asset
+Assets/Arena/SprintPolish/Meshes/West Platform Full Width Competition White.asset.meta
+Assets/Arena/SprintPolish/Meshes/West Platform Full Width Competition Yellow.asset
+Assets/Arena/SprintPolish/Meshes/West Platform Full Width Competition Yellow.asset.meta
+Assets/Arena/SprintPolish/Prefabs.meta
+Assets/Arena/SprintPolish/Prefabs/ChampionshipLighting.prefab
+Assets/Arena/SprintPolish/Prefabs/ChampionshipLighting.prefab.meta
+Assets/Arena/SprintPolish/Settings.meta
+Assets/Arena/SprintPolish/Settings/ChampionshipGrade_0.asset
+Assets/Arena/SprintPolish/Settings/ChampionshipGrade_0.asset.meta
+Assets/Arena/SprintPolish/Settings/ChampionshipGrade_1.asset
+Assets/Arena/SprintPolish/Settings/ChampionshipGrade_1.asset.meta
+Assets/Arena/SprintPolish/Settings/ChampionshipGrade_2.asset
+Assets/Arena/SprintPolish/Settings/ChampionshipGrade_2.asset.meta
+Assets/Arena/SprintPolish/Settings/Championship_0.asset
+Assets/Arena/SprintPolish/Settings/Championship_0.asset.meta
+Assets/Arena/SprintPolish/Settings/Championship_1.asset
+Assets/Arena/SprintPolish/Settings/Championship_1.asset.meta
+Assets/Arena/SprintPolish/Settings/Championship_2.asset
+Assets/Arena/SprintPolish/Settings/Championship_2.asset.meta
+Assets/Arena/SprintPolish/Textures.meta
+Assets/Arena/SprintPolish/Textures/ChampionshipReflection.exr
+Assets/Arena/SprintPolish/Textures/ChampionshipReflection.exr.meta
+Assets/Editor/SprintPolishSetup.cs
+Assets/Editor/SprintPolishSetup.cs.meta
+Assets/Scenes/Recovery/OlympicMatchArena_PreSprintPolish.unity
+Assets/Scenes/Recovery/OlympicMatchArena_PreSprintPolish.unity.meta
+Assets/Scripts/Gameplay/SprintEffortHUD.cs
+Assets/Scripts/Gameplay/SprintEffortHUD.cs.meta
+Tools/Verification/SprintPolishVerification.cs
+docs/MILESTONE_18_FILES.txt
+docs/SPRINT_POLISH.md

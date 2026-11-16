@@ -13,6 +13,8 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private GameObject crowdRow;
         [SerializeField] private Slider controlOpacity;
         [SerializeField] private TMP_Text controlOpacityValue,controlSizeValue;
+        [SerializeField] private TMP_Text cameraViewValue;
+        [SerializeField] private Graphic lengthwiseChoice,sidelineChoice;
         private void OnEnable()
         {
             master.onValueChanged.AddListener(preferences.SetMaster);sfx.onValueChanged.AddListener(preferences.SetSfx);
@@ -37,6 +39,9 @@ namespace ToduStudios.WaterPolo
             crowdRow.SetActive(preferences.SupportsCrowd);
             if(controlOpacity!=null){controlOpacity.SetValueWithoutNotify(v.controlOpacity);controlOpacityValue.text=$"{v.controlOpacity:P0}";}
             if(controlSizeValue!=null)controlSizeValue.text=v.controlSize==0?"SMALL":v.controlSize==2?"LARGE":"NORMAL";
+            if(cameraViewValue!=null)cameraViewValue.text=v.cameraView==MatchCameraView.Lengthwise?"LENGTHWISE":"SIDELINE BROADCAST";
+            if(lengthwiseChoice!=null)lengthwiseChoice.color=v.cameraView==MatchCameraView.Lengthwise?new Color(.035f,.36f,.57f,.96f):new Color(.045f,.1f,.17f,.96f);
+            if(sidelineChoice!=null)sidelineChoice.color=v.cameraView==MatchCameraView.SidelineBroadcast?new Color(.035f,.36f,.57f,.96f):new Color(.045f,.1f,.17f,.96f);
         }
         public void Low()=>preferences.SetGraphics(0);
         public void Medium()=>preferences.SetGraphics(1);
@@ -44,5 +49,7 @@ namespace ToduStudios.WaterPolo
         public void SmallControls()=>preferences.SetControlSize(0);
         public void NormalControls()=>preferences.SetControlSize(1);
         public void LargeControls()=>preferences.SetControlSize(2);
+        public void Lengthwise()=>preferences.SetCameraView(0);
+        public void Sideline()=>preferences.SetCameraView(1);
     }
 }

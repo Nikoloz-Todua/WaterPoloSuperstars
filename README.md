@@ -2,7 +2,23 @@
 
 Water Polo Superstars is a 3D mobile water polo game developed by **ToduStudios**, targeting Android first and iOS later. The current build uses placeholder art and a functional fourteen-athlete match.
 
-## Current stage — Milestone 17 field equipment and period sprint-offs
+## Current stage — championship poolside arena redevelopment
+
+The existing **25 × 20 m** competition field already had the correct dimensions; its 25.6 × 20 m rope envelope and larger basin are preserved. The saved OlympicMatchArena now has sloped pool-edge architecture and drainage, clearer full-width referee colors, white armless chairs on end-corner team risers, equipment areas, layered original event boards, passive broadcast platforms, stand-access detailing and a ceiling-centred live jumbotron. Both gameplay cameras, the wide sprint opening, fourteen athletes, transparent water, controls/HUD and match/economy authorities remain.
+
+Already applied: **Tools > Water Polo > Arena > Apply Championship Poolside Redevelopment**. Launch with **Tools > Water Polo > Play Hub Entry** or **Play Olympic Match Arena**. Field markings follow World Aquatics: red 2 m/red 5 m/yellow 6 m side markers, with no cross-field distance ropes. [Implementation, rule corrections, before/after Game views and verification](docs/ARENA_REDEVELOPMENT.md). Mobile hardware/performance and full-duration play remain untested; the proposed four-button UI is deferred.
+
+## Previous stage — Milestone 19 live scoreboard and broadcast cameras
+
+The existing arena now has a large physical LED scoreboard showing actual scores, clocks, period and temporary exclusions. One observer also keeps six existing jumbotron/deck faces synchronized. Two playable views use one gameplay Camera: preserved **Lengthwise** and elevated **Sideline Broadcast**. Toggle **F6** or use **Pause → Settings → Camera View**; the preference persists. Keyboard, gamepad and joystick movement follow the visible camera axes. The original period-opening overview and F8 inspection remain.
+
+Focused Windows Editor checks passed for both views, goals, exclusions/re-entry, controls, four sprint starts, halftime, pause, restart/exit, three landscape ratios and the Boot/lobby/result/reward loop. Period endings were accelerated; real phones and performance remain untested. Replay pose/state foundations are small and read-only; **goal replay playback is not implemented**. [M19 guide, exact files, screenshots and manual checklist](docs/MATCH_BROADCAST_AND_CAMERAS.md). Launch with **Tools > Water Polo > Play Hub Entry** or **Play Olympic Match Arena**. Setup is already saved.
+
+## Previous stage - Milestone 18 sprint effort and lighting
+
+Deterministic central-lane sprinters, contest switching lock, a real effort meter, smoother opening jaws/cable retraction, clearer colored referee platforms and refined championship lighting are installed in the existing arena. The wide opening camera, swimmers, clear water, normal restarts and rewards remain. Focused Editor/input/quality/period/hub checks passed; physical phones, performance and full-duration play remain untested. [M18 guide and before/after views](docs/SPRINT_POLISH.md). M19 camera/live-display work has subsequently been authorized.
+
+## Previous stage — Milestone 17 field equipment and period sprint-offs
 
 The existing OlympicMatchArena now has measured competition ropes and markers, rectangular white goals with enclosing nets, elevated referee lanes and a genuine race for the center ball at the beginning of each period. Repeated **Left Shift / touchscreen SPRINT** adds capped acceleration; holding remains supported. The AI races using the same motor/stamina. The original ball drops from a retracting cradle, then normal pickup starts play immediately. Goals retain the conceding-team center pass, and Q3 uses the existing halftime end switch. The giant center circle is hidden; Championship Night, fourteen rigs, transparent water, M16 HUD and rewards remain.
 
@@ -98,4 +114,4 @@ Click **Continue Match** at period breaks. Continuing after Q2 swaps team goals,
 - [AGENTS.md](AGENTS.md): permanent development rules, including human-only Git writes.
 - `Tools/Verification/`: Editor-driven checks outside player builds.
 
-Only the human stages, commits or pushes. Preserve Unity `.meta` files. Generated folders, credentials, local legacy references, `old-plan.md` and unrelated files are excluded from proposed backups. Stop after Milestone 17; later work needs separate authorization.
+Only the human stages, commits or pushes. Preserve Unity `.meta` files. Generated folders, credentials, local legacy references, `old-plan.md` and unrelated files are excluded from proposed backups. Stop after the currently authorized milestone; later work needs separate authorization.

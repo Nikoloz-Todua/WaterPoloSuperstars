@@ -1,0 +1,64 @@
+M19 scope relative to the existing M18 working state; includes native assets and metas.
+All changes unstaged and uncommitted. No Git write operation was performed.
+
+MODIFIED EXISTING FILES (14)
+Assets/Scenes/OlympicMatchArena.unity
+Assets/Scripts/Gameplay/GamePreferences.cs
+Assets/Scripts/Gameplay/GameplayCamera.cs
+Assets/Scripts/Gameplay/MatchSettingsView.cs
+Assets/Scripts/Gameplay/PrototypeMatch.cs
+Assets/Scripts/Gameplay/SwimmerInput.cs
+Assets/Scripts/WaterVisuals/ArenaEventDisplay.cs
+README.md
+docs/FIELD_AND_SPRINT.md
+docs/MATCH_UX.md
+docs/PREMIUM_ARENA.md
+docs/SPRINT_POLISH.md
+docs/WATER_VISUALS.md
+plan.md
+
+CREATED (35)
+Assets/Arena/MatchBroadcast.meta
+Assets/Arena/MatchBroadcast/Materials.meta
+Assets/Arena/MatchBroadcast/Materials/Active Exclusion Amber.mat
+Assets/Arena/MatchBroadcast/Materials/Active Exclusion Amber.mat.meta
+Assets/Arena/MatchBroadcast/Materials/Arena Text Front Faces.mat
+Assets/Arena/MatchBroadcast/Materials/Arena Text Front Faces.mat.meta
+Assets/Arena/MatchBroadcast/Materials/Cyan Display Edge.mat
+Assets/Arena/MatchBroadcast/Materials/Cyan Display Edge.mat.meta
+Assets/Arena/MatchBroadcast/Materials/Display Anodized Frame.mat
+Assets/Arena/MatchBroadcast/Materials/Display Anodized Frame.mat.meta
+Assets/Arena/MatchBroadcast/Materials/LED Screen.mat
+Assets/Arena/MatchBroadcast/Materials/LED Screen.mat.meta
+Assets/Arena/MatchBroadcast/Materials/Navy Display Housing.mat
+Assets/Arena/MatchBroadcast/Materials/Navy Display Housing.mat.meta
+Assets/Arena/MatchBroadcast/Meshes.meta
+Assets/Arena/MatchBroadcast/Meshes/Cyan Frame Traces.asset
+Assets/Arena/MatchBroadcast/Meshes/Cyan Frame Traces.asset.meta
+Assets/Arena/MatchBroadcast/Meshes/LED Panel Face.asset
+Assets/Arena/MatchBroadcast/Meshes/LED Panel Face.asset.meta
+Assets/Arena/MatchBroadcast/Meshes/LED Structural Housing.asset
+Assets/Arena/MatchBroadcast/Meshes/LED Structural Housing.asset.meta
+Assets/Arena/MatchBroadcast/Meshes/Open Frame and Wall Mounts.asset
+Assets/Arena/MatchBroadcast/Meshes/Open Frame and Wall Mounts.asset.meta
+Assets/Arena/MatchBroadcast/Prefabs.meta
+Assets/Arena/MatchBroadcast/Prefabs/ChampionshipScoreboard.prefab
+Assets/Arena/MatchBroadcast/Prefabs/ChampionshipScoreboard.prefab.meta
+Assets/Editor/MatchBroadcastSetup.cs
+Assets/Editor/MatchBroadcastSetup.cs.meta
+Assets/Scenes/Recovery/OlympicMatchArena_PreMatchBroadcast.unity
+Assets/Scenes/Recovery/OlympicMatchArena_PreMatchBroadcast.unity.meta
+Assets/Scripts/WaterVisuals/BroadcastSightlines.cs
+Assets/Scripts/WaterVisuals/BroadcastSightlines.cs.meta
+Tools/Verification/MatchBroadcastVerification.cs
+docs/MATCH_BROADCAST_AND_CAMERAS.md
+docs/MILESTONE_19_FILES.txt
+
+NOT M19 CHANGES
+ProjectSettings/QualitySettings.asset AA difference predates the M19 baseline.
+Existing Pipeline package settings, SourceAssets, reference images, M18 handoff files, old-plan.md and tatus were preserved.
+FieldSprintVerification.cs was reused without editing. Existing Unity metadata and protected scene references were preserved.
+
+LOCAL IGNORED EVIDENCE
+Logs/MatchBroadcast/ (actual Game-view PNGs, baseline, focused JSON reports, Console and read-only Git status).
+Fresh reused sprint/hub reports and screenshots are under Logs/FieldSprint/.

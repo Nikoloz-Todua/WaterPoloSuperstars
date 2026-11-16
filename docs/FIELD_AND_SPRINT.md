@@ -1,5 +1,12 @@
 # Milestone 17 — authentic field and period sprint-offs
 
+> The subsequent [poolside redevelopment](ARENA_REDEVELOPMENT.md) preserves all field/sprint coordinates. It improves referee surface coverage, end-corner benches, pool-edge architecture and display integration, with fresh four-period/goal/contact/hub checks.
+
+> Current camera/live-display additions and fresh M19 acceptance: [MATCH_BROADCAST_AND_CAMERAS.md](MATCH_BROADCAST_AND_CAMERAS.md). Field geometry and rules below are preserved.
+
+> M18 refinement is documented in [SPRINT_POLISH.md](SPRINT_POLISH.md); the sections below retain the original milestone architecture and evidence. Use the latest plan.md handoff for current authorization.
+
+
 Implemented and checked in Unity **6000.6.7f1 / URP 17.6**, Windows Editor, 2026-11-16. Production remains the saved `OlympicMatchArena`, with its original GUID, Championship Night venue, transparent water, fourteen rigs, M16 HUD, rules, hub and economy. Stop after this milestone. All changes are unstaged and uncommitted.
 
 ## Rules and measured field

@@ -283,6 +283,9 @@ namespace ToduStudios.WaterPolo
 
         public void Drop(SwimmerBallInteraction claimant)
         {
+            // Scene teardown can remove the pool before a held swimmer's OnDisable callback.
+            // There is no remaining field in which to spawn a physical drop in that case.
+            if (poolBounds == null) return;
             if ((match == null || !match.IsPaused) && State == BallState.Held && Owner == claimant && claimant != null)
                 Release(claimant, 0f, claimant.transform.forward, BallReleaseKind.Drop);
         }

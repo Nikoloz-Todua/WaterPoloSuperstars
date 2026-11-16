@@ -1,5 +1,7 @@
 # Milestone 16 — match interface and mobile UX
 
+> M19 adds real Camera View choices to this same settings panel and preserves the HUD. Current direct entry: **Tools > Water Polo > Play Olympic Match Arena**. See [MATCH_BROADCAST_AND_CAMERAS.md](MATCH_BROADCAST_AND_CAMERAS.md) for F6, movement mapping and current acceptance; the sections below retain M16 history.
+
 Implemented 2026-11-16 in Unity **6000.6.7f1 / URP 17.6**, Windows Editor. This pass updates the existing OlympicMatchArena Canvas. Championship Night scenery, transparent water, all fourteen rigged athletes, animation assets, AI, physics, match rules, frontend and economy remain intact.
 
 ## Open, play and configure

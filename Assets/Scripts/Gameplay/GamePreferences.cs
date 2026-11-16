@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.InputSystem;
 
 namespace ToduStudios.WaterPolo
 {
@@ -17,6 +18,7 @@ namespace ToduStudios.WaterPolo
             public MatchGraphicsQuality graphics=MatchGraphicsQuality.High;
             public int controlSize=1;
             public float controlOpacity=0.88f;
+            public MatchCameraView cameraView=MatchCameraView.Lengthwise;
         }
         [SerializeField] private GameplayCamera gameplayCamera;
         [SerializeField] private MatchAtmosphere atmosphere;
@@ -24,14 +26,19 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private UniversalAdditionalCameraData cameraData;
         private Values values=new Values();
         private bool dirty,originalShadows,originalPost;
+        private InputAction toggleCamera;
         public Values Current=>JsonUtility.FromJson<Values>(JsonUtility.ToJson(values));
         public bool SupportsCrowd=>atmosphere!=null && atmosphere.SupportsCrowdAudio;
         public event Action Changed;
         private void Awake()
         {
+            toggleCamera=new InputAction("CameraView",InputActionType.Button,"<Keyboard>/f6");
             if(cameraData!=null){originalShadows=cameraData.renderShadows;originalPost=cameraData.renderPostProcessing;}
             Reload();
         }
+        private void OnEnable()=>toggleCamera?.Enable();
+        private void Update(){if(toggleCamera!=null&&toggleCamera.WasPressedThisFrame())SetCameraView(values.cameraView==MatchCameraView.Lengthwise?1:0);}
+        private void OnDestroy()=>toggleCamera?.Dispose();
         private static float Valid(float value,float fallback,float min,float max)=>float.IsNaN(value) || float.IsInfinity(value)?fallback:Mathf.Clamp(value,min,max);
         public void Reload()
         {
@@ -49,6 +56,7 @@ namespace ToduStudios.WaterPolo
             values.master=Valid(values.master,1f,0f,1f);values.sfx=Valid(values.sfx,1f,0f,1f);values.crowd=Valid(values.crowd,1f,0f,1f);
             values.zoom=Valid(values.zoom,1f,0.85f,1.25f);values.smoothing=Valid(values.smoothing,1f,0.65f,1.8f);
             if(!Enum.IsDefined(typeof(MatchGraphicsQuality),values.graphics))values.graphics=MatchGraphicsQuality.High;
+            if(!Enum.IsDefined(typeof(MatchCameraView),values.cameraView))values.cameraView=MatchCameraView.Lengthwise;
             values.controlSize=Mathf.Clamp(values.controlSize,0,2);
             values.controlOpacity=Valid(values.controlOpacity,0.88f,0.4f,1f);
         }
@@ -60,12 +68,13 @@ namespace ToduStudios.WaterPolo
         public void SetGraphics(int v){values.graphics=(MatchGraphicsQuality)v;Commit();}
         public void SetControlSize(int v){values.controlSize=v;Commit();}
         public void SetControlOpacity(float v){values.controlOpacity=v;Commit();}
+        public void SetCameraView(int v){values.cameraView=v==1?MatchCameraView.SidelineBroadcast:MatchCameraView.Lengthwise;Commit();}
         private void Commit(){Normalize();dirty=true;Apply();Changed?.Invoke();}
         private void Apply()
         {
             AudioListener.volume=values.master;
             if(atmosphere!=null)atmosphere.SetVolumes(values.sfx,values.crowd);
-            if(gameplayCamera!=null)gameplayCamera.SetUserPreferences(values.zoom,values.smoothing);
+            if(gameplayCamera!=null){gameplayCamera.SetView(values.cameraView);gameplayCamera.SetUserPreferences(values.zoom,values.smoothing);}
             if(effects!=null)effects.Quality=values.graphics==MatchGraphicsQuality.Low?WaterEffectsQuality.Off:
                 values.graphics==MatchGraphicsQuality.Medium?WaterEffectsQuality.Low:WaterEffectsQuality.Standard;
             if(cameraData!=null)
@@ -73,6 +82,6 @@ namespace ToduStudios.WaterPolo
         }
         public void Save(){if(!dirty)return;PlayerPrefs.SetString(StorageKey,JsonUtility.ToJson(values));PlayerPrefs.Save();dirty=false;}
         private void OnApplicationPause(bool paused){if(paused)Save();}
-        private void OnDisable()=>Save();
+        private void OnDisable(){toggleCamera?.Disable();Save();}
     }
 }

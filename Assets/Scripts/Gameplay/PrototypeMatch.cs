@@ -31,6 +31,7 @@ namespace ToduStudios.WaterPolo
         public bool IsPaused { get; private set; }
         [SerializeField] private PeriodSprintOff periodSprint;
         public PeriodSprintOff SprintOff=>periodSprint;
+        public GameplayCamera GameplayView=>gameplayCamera;
         public Vector3 PeriodCenter=>new Vector3(ballStart.position.x,ball.SurfaceHeight,ballStart.position.z);
         public bool IsSprintRace=>Phase==MatchPhase.SprintRace;
         private bool awaitingOpeningPossession;

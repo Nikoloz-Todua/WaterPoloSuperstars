@@ -2,6 +2,21 @@ using UnityEngine;
 
 namespace ToduStudios.WaterPolo
 {
+    public enum MatchCameraView { Lengthwise, SidelineBroadcast }
+    // Replay values are reserved camera ownership states, not an implemented playback feature.
+    public enum MatchCameraPresentation { Live, PeriodOpening, Inspection, GoalCelebration, ReplayPlayback, ReplayOrbit, ReturnToLive }
+    [System.Serializable] public struct BroadcastCameraSnapshot
+    {public Vector3 position;public Quaternion rotation;public float fieldOfView;public MatchCameraView view;public MatchCameraPresentation presentation;}
+    [System.Serializable] public sealed class SidelineCameraProfile
+    {
+        [Min(12f)] public float distance=22f,height=17f;
+        [Range(40f,65f)] public float fieldOfView=54f;
+        [Range(1f,1.6f)] public float maximumZoom=1.45f;
+        [Min(.1f)] public float damping=.48f;
+        [Range(.2f,.8f)] public float ballWeight=.65f;
+        public Vector3 lookAtOffset=Vector3.zero;
+        public Vector3 positionOffset=Vector3.zero;
+    }
     public enum BroadcastCameraMode { NormalBroadcast, WideTactical, GoalkeeperPossession, SetPiece, PeriodSprint }
     [System.Serializable]
     public sealed class BroadcastCameraProfile
@@ -62,6 +77,29 @@ namespace ToduStudios.WaterPolo
         private float requestedZoom=1f, zoomHoldUntil;
         private readonly Vector3[] framingPoints=new Vector3[18];
         private int framingCount;
+        [SerializeField] private SidelineCameraProfile sideline=new SidelineCameraProfile();
+        [SerializeField,Range(.2f,1.2f)] private float viewBlendSeconds=.6f;
+        [Tooltip("Optional architectural overview during sprint preparation only. Live framing stays field-relative.")]
+        [SerializeField] private Transform openingOverview;
+        [SerializeField,Range(40f,70f)] private float openingFieldOfView=60f;
+        [SerializeField,Range(.2f,1.5f)] private float openingBlendSeconds=.85f;
+        private float openingWeight;
+        private MatchCameraView view;
+        private float viewBlend,legacyFieldOfView,sideHeight,sideHeightVelocity;
+        private bool capturedLens,sideInitialized;
+        private Vector3 sideFocus,sideFocusVelocity;
+        private readonly Vector3[] sidePoints=new Vector3[4];
+        public MatchCameraView View=>view;
+        public MatchCameraPresentation Presentation=>!enabled?MatchCameraPresentation.Inspection:match!=null&&match.Phase==MatchPhase.SprintSetup?MatchCameraPresentation.PeriodOpening:MatchCameraPresentation.Live;
+        public float ViewBlend=>viewBlend;
+        public void SetView(MatchCameraView value)=>view=value==MatchCameraView.SidelineBroadcast?value:MatchCameraView.Lengthwise;
+        public BroadcastCameraSnapshot CaptureCameraPose()=>new BroadcastCameraSnapshot{position=transform.position,rotation=transform.rotation,fieldOfView=GetComponent<Camera>().fieldOfView,view=view,presentation=Presentation};
+        public Vector2 ScreenToWorldMovement(Vector2 input)
+        {
+            Vector3 right=Vector3.ProjectOnPlane(transform.right,Vector3.up).normalized;
+            Vector3 up=Vector3.ProjectOnPlane(transform.up,Vector3.up).normalized;
+            Vector3 value=right*input.x+up*input.y;return new Vector2(value.x,value.z);
+        }
         public BroadcastCameraMode ActiveMode {get;private set;}
         public BroadcastCameraMode Mode {get=>mode;set=>mode=value;}
         public float Zoom => currentHeight/Mathf.Max(1f,keeperTarget?keeperHeight:height);
@@ -160,7 +198,7 @@ namespace ToduStudios.WaterPolo
             float zoom=Mathf.Max(minimumZoom,profile.size)*UserZoom;
             float baseHeight=keeperTarget?keeperHeight:height,baseDistance=keeperTarget?keeperDistance:distance;
             Quaternion inverse=Quaternion.Inverse(Quaternion.Euler(pitch,yaw,0f));
-            float tan=Mathf.Tan(lens.fieldOfView*0.5f*Mathf.Deg2Rad);
+            float tan=Mathf.Tan((capturedLens?legacyFieldOfView:lens.fieldOfView)*0.5f*Mathf.Deg2Rad);
             for(int pass=0;pass<4;pass++)
             {
                 Vector3 position=desired+Quaternion.Euler(0f,yaw,0f)*Vector3.back*(baseDistance*zoom)+Vector3.up*(baseHeight*zoom);
@@ -224,21 +262,25 @@ namespace ToduStudios.WaterPolo
             float zoom=FramingZoom(focus,Profile);currentDistance*=zoom;currentHeight*=zoom;
             focusVelocity = Vector3.zero;
             initialized = true;
+            viewBlend=Opening?0f:view==MatchCameraView.SidelineBroadcast?1f:0f;sideInitialized=false;
+            openingWeight=Opening&&openingOverview!=null?1f:0f;
             ApplyPose();
         }
 
         private void OnEnable()
         {
+            lens=GetComponent<Camera>();if(!capturedLens){legacyFieldOfView=lens.fieldOfView;capturedLens=true;}
             initialized = false;
         }
 
         private void LateUpdate()
         {
-            if (match != null && match.IsPaused) return;
+            if((target==null||!target.gameObject.activeInHierarchy)&&roster!=null)foreach(var p in roster.Members)if(p!=null&&p.isActiveAndEnabled&&p.EligibleForPlay){SetTarget(p.Motor);break;}
             if (target == null || poolBounds == null)
                 return;
             if (!initialized)
                 SnapToTarget();
+            if(match!=null&&match.IsPaused){ApplyPose();return;}
             var profile=Profile;Vector3 desired=DesiredFocus();float zoom=FramingZoom(desired,profile);
             float framingDamping=(adaptiveBroadcast?profile.damping:framingSmoothTime)*UserSmoothing;
             currentDistance = Mathf.SmoothDamp(currentDistance, (keeperTarget ? keeperDistance : distance)*zoom,
@@ -253,8 +295,52 @@ namespace ToduStudios.WaterPolo
         private void ApplyPose()
         {
             Vector3 offset = Quaternion.Euler(0f, yaw, 0f) * Vector3.back * currentDistance;
-            transform.SetPositionAndRotation(focus + offset + Vector3.up * currentHeight,
-                Quaternion.Euler(pitch, yaw, 0f));
+            Vector3 position=focus+offset+Vector3.up*currentHeight;Quaternion rotation=Quaternion.Euler(pitch,yaw,0f);
+            float desired=Opening?0f:view==MatchCameraView.SidelineBroadcast?1f:0f;
+            viewBlend=Mathf.MoveTowards(viewBlend,desired,Time.unscaledDeltaTime/Mathf.Max(.2f,viewBlendSeconds));
+            if(viewBlend>0f)
+            {
+                SidePose(out var sidePosition,out var sideRotation);float t=Mathf.SmoothStep(0,1,viewBlend);
+                position=Vector3.Lerp(position,sidePosition,t);position.y+=Mathf.Sin(t*Mathf.PI)*3f;
+                rotation=Quaternion.Slerp(rotation,sideRotation,t);lens.fieldOfView=Mathf.Lerp(legacyFieldOfView,sideline.fieldOfView,t);
+            }
+            else lens.fieldOfView=legacyFieldOfView;
+            openingWeight=Mathf.MoveTowards(openingWeight,Opening&&openingOverview!=null?1f:0f,Time.unscaledDeltaTime/Mathf.Max(.2f,openingBlendSeconds));
+            if(openingOverview!=null&&openingWeight>0)
+            {
+                float t=Mathf.SmoothStep(0,1,openingWeight);position=Vector3.Lerp(position,openingOverview.position,t);
+                rotation=Quaternion.Slerp(rotation,openingOverview.rotation,t);lens.fieldOfView=Mathf.Lerp(lens.fieldOfView,openingFieldOfView,t);
+            }
+            transform.SetPositionAndRotation(position,rotation);
+        }
+        private bool Opening=>match!=null&&match.Phase==MatchPhase.SprintSetup;
+        private void SidePose(out Vector3 position,out Quaternion rotation)
+        {
+            Vector3 player=target!=null?target.Position:poolBounds.transform.position;
+            Vector3 point=ball!=null?ball.PlayPosition:player;
+            Vector3 wanted=Vector3.Lerp(player,point,sideline.ballWeight);
+            wanted.x+=Mathf.Max(0f,Mathf.Max(player.x,point.x)-wanted.x)*.35f;
+            if(ball!=null)wanted.z+=Mathf.Clamp(ball.Velocity.z*.10f,-1.2f,1.2f);
+            Vector3 center=poolBounds.transform.position;
+            wanted.x=Mathf.Clamp(wanted.x,center.x-3f,center.x+4.5f);wanted.z=Mathf.Clamp(wanted.z,center.z-4f,center.z+4f);wanted.y=poolBounds.Waterline;
+            wanted+=sideline.lookAtOffset;
+            if(!sideInitialized){sideFocus=wanted;sideHeight=sideline.height*UserZoom;sideInitialized=true;}
+            sideFocus=Vector3.SmoothDamp(sideFocus,wanted,ref sideFocusVelocity,sideline.damping*UserSmoothing,Mathf.Infinity,Time.unscaledDeltaTime);
+            int count=0;sidePoints[count++]=player+Vector3.up*.45f;sidePoints[count++]=point;
+            GoalMouth goal=attackingGoal;
+            if(ball!=null&&ball.Owner!=null){var carrier=ball.Owner.GetComponent<SwimmerIdentity>();foreach(var team in teams)if(team.Team==carrier.Team)goal=team.AttackingGoal;}
+            if(goal!=null&&(goal.transform.position-point).sqrMagnitude<110f)sidePoints[count++]=goal.transform.position+Vector3.up*.5f;
+            float desiredHeight=sideline.height*UserZoom;
+            for(int pass=0;pass<5;pass++)
+            {
+                position=new Vector3(center.x+Mathf.Min(22.5f,sideline.distance),poolBounds.Waterline+desiredHeight,sideFocus.z)+sideline.positionOffset;
+                rotation=Quaternion.LookRotation(sideFocus-position);Quaternion inverse=Quaternion.Inverse(rotation);float tan=Mathf.Tan(sideline.fieldOfView*.5f*Mathf.Deg2Rad);bool fits=true;
+                for(int i=0;i<count;i++){Vector3 p=inverse*(sidePoints[i]-position);if(p.z<.1f){fits=false;continue;}float x=.5f+p.x/(2*p.z*tan*lens.aspect),y=.5f+p.y/(2*p.z*tan);if(x<.13f||x>.87f||y<.30f||y>.78f)fits=false;}
+                if(fits)break;desiredHeight=Mathf.Min(26f,Mathf.Min(sideline.height*sideline.maximumZoom*UserZoom,desiredHeight*1.12f));
+            }
+            sideHeight=Mathf.SmoothDamp(sideHeight,desiredHeight,ref sideHeightVelocity,sideline.damping*.65f,Mathf.Infinity,Time.unscaledDeltaTime);
+            position=new Vector3(center.x+Mathf.Min(22.5f,sideline.distance),poolBounds.Waterline+Mathf.Clamp(sideHeight,12,26),sideFocus.z)+sideline.positionOffset;
+            rotation=Quaternion.LookRotation(sideFocus-position);
         }
     }
 }

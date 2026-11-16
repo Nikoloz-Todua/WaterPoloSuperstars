@@ -1,5 +1,9 @@
 # Production arena and clear pool water
 
+> The current [poolside redevelopment](ARENA_REDEVELOPMENT.md) retains the water shader/materials/profiles and basin dimensions. Its new 128 px scene reflection is **Assets/Arena/PoolsideRedevelopment/Textures/PoolsideReflection.exr**; rebake with **Tools > Water Polo > Arena > Refresh Redeveloped Arena Reflection**. This replaces only the probe's scene reference, not the established water assets or lighting budgets.
+
+> M19's [live scoreboard and cameras](MATCH_BROADCAST_AND_CAMERAS.md) retain this water/rendering setup. No water shader/material/profile/reflection asset changed; the new board adds no rendering camera or RenderTexture.
+
 ## Latest presentation — Championship Night
 
 **2026-11-15:** the same production OlympicMatchArena now has a dark navy championship treatment, rebuilt deck/technical areas/seating, perimeter light banks, a larger live jumbotron and a scene-local HDR grade. The pool shell, water shader/materials/profiles, dimensions, 14 rigged athletes, audience data and interactive-water systems are unchanged. A new 128 px reflection bake belongs to **Assets/Arena/ChampionshipNight/**. No external art/package import was needed.
