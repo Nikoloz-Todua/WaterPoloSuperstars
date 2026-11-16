@@ -70,7 +70,7 @@ namespace ToduStudios.WaterPolo
         { for (int i = 0; i < teams.Length; i++) if (teams[i].Team == team) return teams[i]; return null; }
         public int ActiveFields(PrototypeTeam team)
         { int count = 0; foreach (var p in roster.FieldPlayers) if (p.Team == team && p.EligibleForPlay) count++; return count; }
-        public bool CanSelect(SwimmerIdentity player) => match.IsCentreRestart ? player==match.CentreTaker : !IsRulePhase || taker == null || taker.Team != selection.HumanTeam || player == taker;
+        public bool CanSelect(SwimmerIdentity player) => match.IsPeriodSprint ? player==match.SprintOff.HumanSprinter : match.IsCentreRestart ? player==match.CentreTaker : !IsRulePhase || taker == null || taker.Team != selection.HumanTeam || player == taker;
         public bool CanRelease(SwimmerBallInteraction player, BallReleaseKind kind)
         {
             var identity = player != null ? player.GetComponent<SwimmerIdentity>() : null;
@@ -83,7 +83,7 @@ namespace ToduStudios.WaterPolo
         }
         public bool KeeperMayAct(PrototypeGoalkeeper keeper) => !match.IsPaused && keeper != null && match.Phase == MatchPhase.PenaltyFlight && keeper == penaltyKeeper;
         public bool PenaltyStation(PrototypeGoalkeeper keeper) => IsPenalty && keeper == penaltyKeeper;
-        public bool CanMove(SwimmerIdentity player) => match.IsPlaying || (!player.IsFieldPlayer && KeeperMayAct(player.GetComponent<PrototypeGoalkeeper>()));
+        public bool CanMove(SwimmerIdentity player) => match.IsPlaying || match.IsSprintRace&&player.IsFieldPlayer || (!player.IsFieldPlayer && KeeperMayAct(player.GetComponent<PrototypeGoalkeeper>()));
 
         /// <summary>A real close-contact command is required. Failed/out-of-range steals alone never award fouls.</summary>
         public bool ReportContact(SwimmerIdentity offender, SwimmerIdentity victim, IllegalContact contact)

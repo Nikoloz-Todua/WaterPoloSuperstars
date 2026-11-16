@@ -10,7 +10,7 @@ namespace ToduStudios.WaterPolo.Editor
 {
     public static class GoalkeeperPrototypeSetup
     {
-        [MenuItem("Tools/Water Polo/Set Up Goalkeeper Prototype")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Set Up Goalkeeper Prototype")]
         public static void SetUp()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode || Enumerable.Range(0, SceneManager.sceneCount).Any(i => SceneManager.GetSceneAt(i).isDirty))

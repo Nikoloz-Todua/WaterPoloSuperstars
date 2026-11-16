@@ -11,7 +11,7 @@ namespace ToduStudios.WaterPolo.Editor
 {
     public static class GoalScoringPrototypeSetup
     {
-        [MenuItem("Tools/Water Polo/Set Up Goals and Scoring Prototype")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Set Up Goals and Scoring Prototype")]
         public static void SetUp()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode ||

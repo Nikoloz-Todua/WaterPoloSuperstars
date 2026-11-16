@@ -128,7 +128,7 @@ namespace ToduStudios.WaterPolo
             for(int i=0;i<wakes.Length;i++)
             {
                 var player=roster.Members[i];Vector3 velocity=player.Motor.Velocity;float speed=velocity.magnitude;
-                bool visible=match.IsPlaying && player.EligibleForPlay && speed>0.3f && (quality==WaterEffectsQuality.Standard || speed>4f)&&DetailVisible(player.Motor.Position);
+                bool visible=match.CanSwim && player.EligibleForPlay && speed>0.3f && (quality==WaterEffectsQuality.Standard || speed>4f)&&DetailVisible(player.Motor.Position);
                 wakes[i].enabled=visible;if(!visible)continue;
                 Vector3 point=player.Motor.Position;point.y=pool.Waterline+0.015f;
                 Vector3 behind=-velocity.normalized,right=Vector3.Cross(Vector3.up,behind);float length=0.45f+speed*0.1f;

@@ -5,7 +5,7 @@ using UnityEngine.InputSystem;
 
 namespace ToduStudios.WaterPolo
 {
-    public enum MatchMenuPage { None, Pause, Settings, RestartConfirmation, ExitConfirmation, Landing, Transition }
+    public enum MatchMenuPage { None, Pause, Settings, RestartConfirmation, ExitConfirmation, Landing, Transition, Controls }
     /// <summary>UI navigation only. PrototypeMatch owns suspension, resets and all competitive phases.</summary>
     [DefaultExecutionOrder(-110), DisallowMultipleComponent]
     public sealed class MatchMenuController : MonoBehaviour
@@ -16,6 +16,8 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private GameObject pausePanel,settingsPanel,confirmationPanel,landingPanel,transitionPanel,pauseButton;
         [SerializeField] private TMP_Text confirmationTitle,confirmationBody,transitionTitle,transitionBody;
         [SerializeField] private GameObject continueButton,resultRestartButton;
+        [SerializeField] private GameObject controlsPanel;
+        [SerializeField] private TMP_Text pauseSummary;
         private InputAction back;
         private MatchMenuPage returnPage;
         public MatchMenuPage Page {get;private set;}
@@ -59,19 +61,28 @@ namespace ToduStudios.WaterPolo
         }
         private void Show(MatchMenuPage page)
         {
+            if(page==MatchMenuPage.Pause && pauseSummary!=null)
+            {
+                int seconds=Mathf.CeilToInt(match.Clock.DisplayRemaining);
+                pauseSummary.text=$"BLUE {match.BlueScore} : {match.WhiteScore} WHITE   •   Q{match.Clock.Quarter}  {seconds/60:0}:{seconds%60:00}";
+            }
             Page=page;pausePanel.SetActive(page==MatchMenuPage.Pause);settingsPanel.SetActive(page==MatchMenuPage.Settings);
             confirmationPanel.SetActive(page==MatchMenuPage.RestartConfirmation || page==MatchMenuPage.ExitConfirmation);
+            if(controlsPanel!=null)controlsPanel.SetActive(page==MatchMenuPage.Controls);
             landingPanel.SetActive(page==MatchMenuPage.Landing);transitionPanel.SetActive(page==MatchMenuPage.Transition);
             overlay.blocksRaycasts=overlay.interactable=Visible;
             pauseButton.SetActive(page==MatchMenuPage.None && match.Phase!=MatchPhase.PreMatch && match.Phase!=MatchPhase.FullTime);
             // Avoid a focused Resume button consuming the same Space used to shoot after resuming.
             if(EventSystem.current!=null)EventSystem.current.SetSelectedGameObject(null);
         }
-        public void OpenPause(){if(Page==MatchMenuPage.Settings || Page==MatchMenuPage.RestartConfirmation || Page==MatchMenuPage.ExitConfirmation)return;match.SetPaused(true);}
+        public void OpenPause(){if(Page==MatchMenuPage.Settings || Page==MatchMenuPage.Controls || Page==MatchMenuPage.RestartConfirmation || Page==MatchMenuPage.ExitConfirmation)return;match.SetPaused(true);}
         public void Resume(){preferences.Save();match.SetPaused(false);}
         public void OpenSettings(){returnPage=Page;Show(MatchMenuPage.Settings);}
+        public void OpenControls(){returnPage=Page;Show(MatchMenuPage.Controls);}
         public void AskRestart(){returnPage=Page;confirmationTitle.text="RESTART MATCH?";confirmationBody.text="Score, clocks and player states will reset.\nYour settings will be kept.";Show(MatchMenuPage.RestartConfirmation);}
-        public void AskExit(){returnPage=Page;confirmationTitle.text="EXIT MATCH?";confirmationBody.text=Hub.HubMatchBridge.Active?"Return to the lobby.\nAbandoned matches earn no rewards.":"Return to the prototype menu.\nCurrent match progress will be lost.";Show(MatchMenuPage.ExitConfirmation);}
+        public void AskExit(){returnPage=Page;confirmationTitle.text="EXIT MATCH?";confirmationBody.text=Hub.HubMatchBridge.Active?
+            match.Phase==MatchPhase.FullTime?"Return to the lobby with your completed match result.":"Return to the lobby.\nAbandoned matches earn no rewards.":
+            "Return to the match menu.\nCurrent match progress will be closed.";Show(MatchMenuPage.ExitConfirmation);}
         public void Cancel(){preferences.Save();Show(returnPage);}
         public void Confirm()
         {
@@ -91,12 +102,23 @@ namespace ToduStudios.WaterPolo
             if(bridge!=null && bridge.TrySaveResult())return true;
             transitionBody.text="Rewards could not be saved. Restore storage access and retry REWARDS & LOBBY.";Show(MatchMenuPage.Transition);return false;
         }
-        public void Continue(){preferences.Save();if(Hub.HubMatchBridge.Active && match.Phase==MatchPhase.FullTime){if(SaveHubResult())Hub.HubApplication.Instance.ReturnToLobby(false);}else match.ContinueMatch();}
+        public void Continue()
+        {
+            preferences.Save();
+            if(match.Phase==MatchPhase.FullTime)
+            {
+                if(Hub.HubMatchBridge.Active){if(SaveHubResult())Hub.HubApplication.Instance.ReturnToLobby(false);}
+                else match.ReturnToPrototype();
+            }
+            else match.ContinueMatch();
+        }
         public void Back()
         {
-            if(Page==MatchMenuPage.Settings || Page==MatchMenuPage.RestartConfirmation || Page==MatchMenuPage.ExitConfirmation)Cancel();
+            if(Page==MatchMenuPage.Settings || Page==MatchMenuPage.Controls || Page==MatchMenuPage.RestartConfirmation || Page==MatchMenuPage.ExitConfirmation)Cancel();
             else if(match.IsPaused)Resume();
             else if(Page==MatchMenuPage.None)OpenPause();
+            else if(Page==MatchMenuPage.Transition)Continue();
+            else if(Page==MatchMenuPage.Landing)StartMatch();
         }
     }
 }

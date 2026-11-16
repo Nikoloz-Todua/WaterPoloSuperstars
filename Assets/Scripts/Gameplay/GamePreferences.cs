@@ -15,6 +15,8 @@ namespace ToduStudios.WaterPolo
             public int version=1;
             public float master=1f,sfx=1f,crowd=1f,zoom=1f,smoothing=1f;
             public MatchGraphicsQuality graphics=MatchGraphicsQuality.High;
+            public int controlSize=1;
+            public float controlOpacity=0.88f;
         }
         [SerializeField] private GameplayCamera gameplayCamera;
         [SerializeField] private MatchAtmosphere atmosphere;
@@ -47,6 +49,8 @@ namespace ToduStudios.WaterPolo
             values.master=Valid(values.master,1f,0f,1f);values.sfx=Valid(values.sfx,1f,0f,1f);values.crowd=Valid(values.crowd,1f,0f,1f);
             values.zoom=Valid(values.zoom,1f,0.85f,1.25f);values.smoothing=Valid(values.smoothing,1f,0.65f,1.8f);
             if(!Enum.IsDefined(typeof(MatchGraphicsQuality),values.graphics))values.graphics=MatchGraphicsQuality.High;
+            values.controlSize=Mathf.Clamp(values.controlSize,0,2);
+            values.controlOpacity=Valid(values.controlOpacity,0.88f,0.4f,1f);
         }
         public void SetMaster(float v){values.master=v;Commit();}
         public void SetSfx(float v){values.sfx=v;Commit();}
@@ -54,6 +58,8 @@ namespace ToduStudios.WaterPolo
         public void SetZoom(float v){values.zoom=v;Commit();}
         public void SetSmoothing(float v){values.smoothing=v;Commit();}
         public void SetGraphics(int v){values.graphics=(MatchGraphicsQuality)v;Commit();}
+        public void SetControlSize(int v){values.controlSize=v;Commit();}
+        public void SetControlOpacity(float v){values.controlOpacity=v;Commit();}
         private void Commit(){Normalize();dirty=true;Apply();Changed?.Invoke();}
         private void Apply()
         {

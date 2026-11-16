@@ -10,7 +10,7 @@ namespace ToduStudios.WaterPolo.Editor
 {
     public static class Milestone10PrototypeSetup
     {
-        [MenuItem("Tools/Water Polo/Set Up Milestone 10 Match")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Set Up Milestone 10 Match")]
         public static void SetUp()
         {
             var scene=SceneManager.GetActiveScene();

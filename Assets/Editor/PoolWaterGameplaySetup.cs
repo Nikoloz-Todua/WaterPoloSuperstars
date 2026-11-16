@@ -13,7 +13,7 @@ namespace ToduStudios.WaterPolo.Editor
     public static class PoolWaterGameplaySetup
     {
         public const string RootName = "Verified Pool Water Presentation";
-        [MenuItem("Tools/Water Polo/Water Visuals/Apply Verified Water to PrototypePool")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Apply Verified Water to PrototypePool")]
         public static void Apply()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode) throw new InvalidOperationException("Stop Play Mode first.");

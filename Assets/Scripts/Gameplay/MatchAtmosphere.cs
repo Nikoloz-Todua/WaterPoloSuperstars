@@ -19,6 +19,7 @@ namespace ToduStudios.WaterPolo
         [SerializeField, Range(0f,1f)] private float volume = 0.35f;
         [SerializeField] private bool compactFeed;
         [SerializeField] private GameObject eventPanel;
+        [SerializeField] private MatchNotificationBanner notifications;
         private AudioSource source, crowdSource;
         private float sfxLevel=1f, crowdLevel=1f;
         public bool SupportsCrowdAudio => crowd != null;
@@ -52,12 +53,12 @@ namespace ToduStudios.WaterPolo
             previousPhase = match.Phase; score = match.BlueScore + match.WhiteScore; quarter = match.Clock.Quarter;
         }
         private void OnEnable()
-        { rules.Decided += Decision; match.Changed += PhaseChanged; match.NewMatch += ClearFeed;match.CentreRestartSignalled+=CentreSignal; ball.Saved += Saved; ball.Impact += Impact;ball.Contact+=WaterContact; }
+        { rules.Decided += Decision; match.Changed += PhaseChanged; match.NewMatch += ClearFeed;match.CentreRestartSignalled+=CentreSignal;match.SprintStarted+=SprintSignal; ball.Saved += Saved; ball.Impact += Impact;ball.Contact+=WaterContact; }
         private void OnDisable()
-        { rules.Decided -= Decision; match.Changed -= PhaseChanged; match.NewMatch -= ClearFeed;match.CentreRestartSignalled-=CentreSignal; ball.Saved -= Saved; ball.Impact -= Impact;ball.Contact-=WaterContact; }
+        { rules.Decided -= Decision; match.Changed -= PhaseChanged; match.NewMatch -= ClearFeed;match.CentreRestartSignalled-=CentreSignal;match.SprintStarted-=SprintSignal; ball.Saved -= Saved; ball.Impact -= Impact;ball.Contact-=WaterContact; }
         private void ClearFeed() { newest=older=""; messageUntil=0f;score=0;quarter=1;if(eventLabel!=null)eventLabel.text="";if(eventPanel!=null)eventPanel.SetActive(false); }
         private void Say(string message)
-        { older=newest;newest=message;messageUntil=match.PresentationTime+5f; if(eventLabel!=null)eventLabel.text=compactFeed?newest:newest+"\n<size=75%>"+older+"</size>"; if(eventPanel!=null)eventPanel.SetActive(true); }
+        { if(notifications!=null)return;older=newest;newest=message;messageUntil=match.PresentationTime+5f; if(eventLabel!=null)eventLabel.text=compactFeed?newest:newest+"\n<size=75%>"+older+"</size>"; if(eventPanel!=null)eventPanel.SetActive(true); }
         private void Decision(RefereeEvent e)
         {
             string player=e.Player!=null?$"{e.Player.Team.ToString().ToUpperInvariant()} #{e.Player.CapNumber}":"";
@@ -79,6 +80,7 @@ namespace ToduStudios.WaterPolo
             previousPhase=match.Phase;quarter=match.Clock.Quarter;
         }
         private void CentreSignal(SwimmerIdentity taker){Play(whistle,whistleCue);}
+        private void SprintSignal(){Play(whistle,whistleCue);}
         private void Saved(){Play(save,saveCue);Say("GOALKEEPER SAVE");}
         private void Impact(){if(match.PresentationTime<nextImpact)return;nextImpact=match.PresentationTime+0.12f;Play(impact,impactCue);}
         private void WaterContact(BallImpactEvent e){if(e.Kind==BallImpactKind.Water || e.Kind==BallImpactKind.Skip)Impact();}
@@ -95,7 +97,8 @@ namespace ToduStudios.WaterPolo
             string excluded=""; int count=0;
             foreach(var p in roster.Members)
                 if(!p.EligibleForPlay){count++;if(!compactFeed || count<=2)excluded+=$"  {p.Team} #{p.CapNumber} {(p.PermanentlyRemoved?"OUT":Mathf.CeilToInt(p.ExclusionRemaining)+"s")}";}
-            rulesLabel.text=compactFeed?$"PF {player?.PersonalFouls ?? 0}/{rules.PersonalFoulLimit}   FIELDS {blue} : {white}"+(status.Length>0?$"  {(blue>white?"BLUE":"WHITE")} +{Mathf.Abs(blue-white)}":"")+"\n"+excluded+(count>2?$" +{count-2} more":""):personal+"  "+status+excluded;
+            string text=compactFeed?$"PF {player?.PersonalFouls ?? 0}/{rules.PersonalFoulLimit}   FIELDS {blue} : {white}"+(status.Length>0?$"  {(blue>white?"BLUE":"WHITE")} +{Mathf.Abs(blue-white)}":"")+"\n"+excluded+(count>2?$" +{count-2} more":""):personal+"  "+status+excluded;
+            if(rulesLabel.text!=text)rulesLabel.text=text;
         }
         private static AudioClip Cue(string name,float hz,float seconds,float gain)
         {

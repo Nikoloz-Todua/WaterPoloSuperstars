@@ -13,6 +13,8 @@ namespace ToduStudios.WaterPolo
         public SwimmerIdentity ActivePlayer { get; private set; }
         private bool phaseInputLocked;
         public bool InputLocked => phaseInputLocked || (ball != null && ball.Match != null && ball.Match.IsPaused);
+        // Selection lock is separate from movement suspension: the sprinter must still be controllable.
+        public bool SwitchingLocked=>InputLocked||ball!=null&&ball.Match!=null&&ball.Match.IsPeriodSprint;
         public PrototypeTeam HumanTeam => humanTeam;
         private SwimmerIdentity lastFieldPlayer;
         [SerializeField] private PrototypeTeamTactics tacticalTeam;
@@ -58,7 +60,7 @@ namespace ToduStudios.WaterPolo
 
         private void OnPossessionChanged(SwimmerBallInteraction previous, SwimmerBallInteraction next)
         {
-            if (InputLocked) return;
+            if (SwitchingLocked) return;
             SwimmerIdentity carrier = next != null ? next.GetComponent<SwimmerIdentity>() : null;
             if (IsEligible(carrier) && carrier != ActivePlayer) Select(carrier);
             else if (ActivePlayer != null && !ActivePlayer.IsFieldPlayer && !IsEligible(ActivePlayer)) SelectFieldFallback();
@@ -66,6 +68,7 @@ namespace ToduStudios.WaterPolo
 
         public bool Select(SwimmerIdentity player)
         {
+            if(ball!=null&&ball.Match!=null&&ball.Match.IsPeriodSprint&&player!=ball.Match.SprintOff.HumanSprinter)return false;
             if (ball != null && ball.Match != null && ball.Match.Rules != null && !ball.Match.Rules.CanSelect(player)) return false;
             if (InputLocked || !IsEligible(player))
                 return false;
@@ -80,7 +83,7 @@ namespace ToduStudios.WaterPolo
 
         public void SelectNext()
         {
-            if (InputLocked) return;
+            if (SwitchingLocked) return;
             if (contextualSwitching && tacticalTeam != null)
             {
                 SwimmerIdentity best = null;
@@ -115,6 +118,8 @@ namespace ToduStudios.WaterPolo
             if (lastFieldPlayer != null && lastFieldPlayer.IsFieldPlayer && IsEligible(lastFieldPlayer)) { Select(lastFieldPlayer); return; }
             foreach (var field in roster.FieldPlayers) if (IsEligible(field)) { Select(field); return; }
         }
+
+        public void RestorePossessionSelection()=>OnPossessionChanged(null,ball!=null?ball.Owner:null);
 
         public void RefreshEligibility()
         {

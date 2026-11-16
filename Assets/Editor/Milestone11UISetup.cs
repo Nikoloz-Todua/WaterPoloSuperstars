@@ -18,7 +18,7 @@ namespace ToduStudios.WaterPolo.Editor
     public static class Milestone11UISetup
     {
         private static readonly Color Navy=new Color(0.022f,0.05f,0.095f,0.96f),Card=new Color(0.045f,0.095f,0.16f,0.97f),Blue=new Color(0.035f,0.38f,0.65f),Cyan=new Color(0.18f,0.84f,0.95f),Muted=new Color(0.62f,0.75f,0.83f);
-        [MenuItem("Tools/Water Polo/Set Up Milestone 11 Interface")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Set Up Milestone 11 Interface")]
         public static void SetUp()
         {
             var scene=SceneManager.GetActiveScene();

@@ -10,7 +10,7 @@ namespace ToduStudios.WaterPolo.Editor
 {
     public static class GameplayRealismSetup
     {
-        [MenuItem("Tools/Water Polo/Set Up Gameplay Realism Expansion")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Set Up Gameplay Realism Expansion")]
         public static void SetUp()
         {
             var scene=SceneManager.GetActiveScene();

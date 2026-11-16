@@ -25,7 +25,7 @@ namespace ToduStudios.WaterPolo.Editor
             {"training","Assets/Art/UI/GameModes/Cards/mode_training.png"},
             {"gameModesBackground","Assets/Art/UI/GameModes/Backgrounds/bg_game_modes.png"},
             {"battlePassBackground","Assets/Art/UI/BattlePass/Backgrounds/bg_battle_pass_purple.png"}};
-        [MenuItem("Tools/Water Polo/Main Lobby/Set Up Unified Frontend")]
+        [MenuItem("Tools/Water Polo/Recovery/Frontend/Set Up Unified Frontend")]
         public static void SetUp()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Stop Play Mode before frontend setup.");

@@ -11,7 +11,7 @@ namespace ToduStudios.WaterPolo.Editor
 {
     public static class TeamPlayPrototypeSetup
     {
-        [MenuItem("Tools/Water Polo/Set Up Two Swimmer Passing Prototype")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Set Up Two Swimmer Passing Prototype")]
         public static void SetUp()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode ||

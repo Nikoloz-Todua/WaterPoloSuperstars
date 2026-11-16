@@ -15,7 +15,7 @@ namespace ToduStudios.WaterPolo.Editor
     public static class Milestone12HubSetup
     {
         public const string BootPath="Assets/Scenes/Boot.unity",LobbyPath="Assets/Scenes/MainLobby.unity",MatchPath="Assets/Scenes/PrototypePool.unity";
-        [MenuItem("Tools/Water Polo/Set Up Milestone 12 Hub")]
+        [MenuItem("Tools/Water Polo/Recovery/Frontend/Set Up Milestone 12 Hub")]
         public static void SetUp()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Stop Play Mode before hub setup.");
@@ -82,14 +82,14 @@ namespace ToduStudios.WaterPolo.Editor
         }
         [MenuItem("Tools/Water Polo/Play Hub Entry")]
         public static void PlayHub(){EditorSceneManager.playModeStartScene=AssetDatabase.LoadAssetAtPath<SceneAsset>(BootPath);EditorApplication.isPlaying=true;}
-        [MenuItem("Tools/Water Polo/Play PrototypePool Directly")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Play PrototypePool Directly")]
         public static void PlayMatchDirectly()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)return;
             for(int i=0;i<SceneManager.sceneCount;i++)if(SceneManager.GetSceneAt(i).isDirty){Debug.LogWarning("Save intended edits before direct match verification.");return;}
             EditorSceneManager.playModeStartScene=null;EditorSceneManager.OpenScene(MatchPath);EditorApplication.isPlaying=true;
         }
-        [MenuItem("Tools/Water Polo/Use Boot as Editor Play Entry")]
+        [MenuItem("Tools/Water Polo/Recovery/Use Boot as Editor Play Entry")]
         public static void SetBootEntry()=>EditorSceneManager.playModeStartScene=AssetDatabase.LoadAssetAtPath<SceneAsset>(BootPath);
         static bool RepairTypography(string path)
         {

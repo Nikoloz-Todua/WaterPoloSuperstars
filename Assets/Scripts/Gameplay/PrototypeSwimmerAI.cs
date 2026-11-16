@@ -51,6 +51,8 @@ namespace ToduStudios.WaterPolo
         {
             if (match.IsPaused) return;
             if (selection.ActivePlayer == identity) { Behaviour = SwimmerAIBehaviour.Human; nextDecision = 0f; return; }
+            if(match.IsSprintRace&&identity.EligibleForPlay&&identity.Motor.enabled)
+            {Behaviour=SwimmerAIBehaviour.PursueLooseBall;match.SprintOff.DriveAI(identity);return;}
             if (!identity.EligibleForPlay || !match.IsPlaying || selection.InputLocked || !identity.Motor.enabled)
             { Behaviour = SwimmerAIBehaviour.Stopped; nextDecision = 0f; return; }
             if (Time.time >= nextDecision || previousOwner != ball.Owner)

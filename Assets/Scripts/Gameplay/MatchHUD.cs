@@ -14,6 +14,7 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private GameObject panel, continueButton, restartButton, returnButton;
         [SerializeField] private MatchMenuController menus;
         [SerializeField] private TMP_Text possessionLabel;
+        [SerializeField] private TMP_Text periodLabel, stateLabel;
         private PrototypeTeam? shownPossession;
         private bool possessionInitialized;
         private int displayedTime=-1,displayedShot=-1,displayedQuarter=-1;
@@ -23,15 +24,23 @@ namespace ToduStudios.WaterPolo
         {
             int seconds=Mathf.CeilToInt(match.Clock.DisplayRemaining);
             if(seconds!=displayedTime || match.Clock.Quarter!=displayedQuarter)
-            {displayedTime=seconds;displayedQuarter=match.Clock.Quarter;clockLabel.text=$"Q{displayedQuarter} | {seconds/60:0}:{seconds%60:00}";}
-            int shot=match.ShotClock!=null?Mathf.CeilToInt(match.ShotClock.Remaining):28;
-            if(shot!=displayedShot){displayedShot=shot;shotClockLabel.text=$"SHOT {shot:00}";shotClockLabel.color=shot<=5?new Color(1f,0.3f,0.12f):Color.white;}
+            {displayedTime=seconds;displayedQuarter=match.Clock.Quarter;clockLabel.text=periodLabel!=null?$"{seconds/60:0}:{seconds%60:00}":$"Q{displayedQuarter} | {seconds/60:0}:{seconds%60:00}";
+                if(periodLabel!=null)periodLabel.text=$"Q{displayedQuarter}";}
+            int shot=match.ShotClock!=null?Mathf.CeilToInt(match.ShotClock.Remaining):-1;
+            if(shot!=displayedShot){displayedShot=shot;shotClockLabel.text=shot<0?"—":$"{(periodLabel==null?"SHOT ":"")}{shot:00}";shotClockLabel.color=shot<=5?new Color(1f,0.39f,0.28f):shot<=10?new Color(1f,0.77f,0.3f):Color.white;}
+            if(stateLabel!=null)
+            {
+                string state=match.IsPaused?"PAUSED":match.IsSprintRace?"SPRINT":match.IsPeriodSprint?"READY":match.AwaitingOpeningPossession?"LOOSE BALL":match.IsPlaying?"LIVE":match.Phase==MatchPhase.FullTime?"FINAL":
+                    match.Phase==MatchPhase.HalfTime?"HALFTIME":match.Phase==MatchPhase.QuarterBreak?"PERIOD END":"STOPPED";
+                if(stateLabel.text!=state)stateLabel.text=state;
+            }
             if(displayedDefense!=humanTeam.DefenseMode){displayedDefense=humanTeam.DefenseMode;strategyLabel.text=$"DEFENSE: {humanTeam.DefenseMode.ToString().ToUpperInvariant()} [Z]";}
             if(possessionLabel!=null)
             {
                 var team=match.ShotClock!=null?match.ShotClock.PossessionTeam:null;
                 if(!possessionInitialized || team!=shownPossession)
-                {possessionInitialized=true;shownPossession=team;possessionLabel.text=team.HasValue?$"{team.Value.ToString().ToUpperInvariant()} POSSESSION":"LOOSE BALL";}
+                {possessionInitialized=true;shownPossession=team;possessionLabel.text=team.HasValue?$"●  {team.Value.ToString().ToUpperInvariant()} POSSESSION":"NEUTRAL BALL";
+                    possessionLabel.color=team==PrototypeTeam.Blue?new Color(0.25f,0.86f,1f):Color.white;}
             }
             if(menus!=null)return;
             if(displayedPhase==match.Phase)return;

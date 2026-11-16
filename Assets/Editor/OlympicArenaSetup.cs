@@ -24,7 +24,7 @@ namespace ToduStudios.WaterPolo.Editor
         static ArenaDimensions dimensions;
         static Material tile, deck, white, steel, navy, blue, aqua, red, yellow, green, glass;
 
-        [MenuItem("Tools/Water Polo/Arena/Set Up Olympic Match Arena")]
+        [MenuItem("Tools/Water Polo/Recovery/Arena/Rebuild Base Olympic Match Arena")]
         public static void SetUp()
         {
             RequireSaved();
@@ -67,10 +67,10 @@ namespace ToduStudios.WaterPolo.Editor
         [MenuItem("Tools/Water Polo/Arena/Open Olympic Match Arena")]
         public static void Open() { RequireSaved(); EditorSceneManager.OpenScene(ScenePath,OpenSceneMode.Single); }
 
-        [MenuItem("Tools/Water Polo/Arena/Play Olympic Match Arena Directly")]
+        [MenuItem("Tools/Water Polo/Play Olympic Match Arena")]
         public static void PlayDirect() { Open(); EditorSceneManager.playModeStartScene=null; EditorApplication.isPlaying=true; }
 
-        [MenuItem("Tools/Water Polo/Arena/Apply Configured Field Dimensions")]
+        [MenuItem("Tools/Water Polo/Recovery/Arena/Rebuild From Configured Field Dimensions")]
         public static void ApplyDimensions()
         {
             Open(); PrepareAssets(); ConfigureDimensions();
@@ -79,7 +79,7 @@ namespace ToduStudios.WaterPolo.Editor
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene()); EditorSceneManager.SaveScene(SceneManager.GetActiveScene()); AssetDatabase.SaveAssets();
         }
 
-        [MenuItem("Tools/Water Polo/Arena/Activate Verified Arena for Lobby")]
+        [MenuItem("Tools/Water Polo/Recovery/Arena/Activate Verified Arena for Lobby")]
         public static void Activate()
         {
             RequireSaved();

@@ -11,7 +11,7 @@ namespace ToduStudios.WaterPolo.Editor
 {
     public static class Milestone8PrototypeSetup
     {
-        [MenuItem("Tools/Water Polo/Set Up Milestone 8 Prototype")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Set Up Milestone 8 Prototype")]
         public static void SetUp()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode || Enumerable.Range(0,SceneManager.sceneCount).Any(i=>SceneManager.GetSceneAt(i).isDirty))

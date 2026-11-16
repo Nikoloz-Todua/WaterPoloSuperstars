@@ -63,7 +63,7 @@ namespace ToduStudios.WaterPolo.Editor
             EditorUtility.SetDirty(c);return c;
         }
         static void Link(AnimatorState from,AnimatorState to,string condition,bool value){var t=from.AddTransition(to);t.hasExitTime=false;t.duration=.16f;t.AddCondition(value?AnimatorConditionMode.If:AnimatorConditionMode.IfNot,0,condition);}
-        [MenuItem("Tools/Water Polo/Animated Athletes/Set Up Prototype and Lab")]
+        [MenuItem("Tools/Water Polo/Recovery/Animated Athletes/Set Up Prototype and Lab")]
         public static void Prepare()
         {
             RequireSaved();Folder(Root+"/Materials");Folder(Root+"/Prefabs");
@@ -111,9 +111,9 @@ namespace ToduStudios.WaterPolo.Editor
         }
         [MenuItem("Tools/Water Polo/Animated Athletes/Play Isolated Swimmer Lab")]
         public static void PlayLab(){RequireSaved();Prepare();SessionState.SetString(Entry,AssetDatabase.GetAssetPath(EditorSceneManager.playModeStartScene));SessionState.SetBool(Restore,true);EditorSceneManager.playModeStartScene=null;EditorApplication.isPlaying=true;}
-        [MenuItem("Tools/Water Polo/Animated Athletes/Apply to One Match Athlete")]
+        [MenuItem("Tools/Water Polo/Recovery/Animated Athletes/Apply to One Match Athlete")]
         public static void ApplyOne()=>Apply(false);
-        [MenuItem("Tools/Water Polo/Animated Athletes/Apply to All 14 Match Athletes")]
+        [MenuItem("Tools/Water Polo/Recovery/Animated Athletes/Apply to All 14 Match Athletes")]
         public static void ApplyAll()=>Apply(true);
         static void Apply(bool all)
         {
@@ -132,7 +132,7 @@ namespace ToduStudios.WaterPolo.Editor
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());EditorSceneManager.SaveScene(SceneManager.GetActiveScene());
             Debug.Log("Applied visual-only prototype to "+chosen.Length+" athletes. Original meshes remain inactive as fallback; all gameplay components and references are retained.");
         }
-        [MenuItem("Tools/Water Polo/Animated Athletes/Restore Original Match Visuals")]
+        [MenuItem("Tools/Water Polo/Recovery/Animated Athletes/Restore Original Match Visuals")]
         public static void Fallback()
         {
             RequireSaved();OlympicArenaSetup.Open();foreach(var v in Object.FindObjectsByType<RiggedSwimmerVisual>(FindObjectsInactive.Include))v.alignmentRoot.gameObject.SetActive(false);

@@ -17,6 +17,7 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private VirtualSwimJoystick joystick;
         [SerializeField] private GameplayActionButton[] buttons;
         [SerializeField] private TMP_Text restartInstruction;
+        [SerializeField] private bool refinedLayout;
         private SwimmerIdentity observed;
         private ShotCharge charge,heldCharge;
         private SwimmerPassing passing;
@@ -26,7 +27,7 @@ namespace ToduStudios.WaterPolo
         public ShotType ShotMode {get;private set;}
         public bool SprintHeld {get;private set;}
         private bool Usable=>!match.IsPaused && !menus.Visible && !selection.InputLocked && observed!=null && observed==selection.ActivePlayer && observed.EligibleForPlay;
-        public bool CanMove=>Usable && match.IsPlaying;
+        public bool CanMove=>Usable && match.CanSwim;
         public Vector2 MovementFor(SwimmerMotor motor)=>CanMove && observed.Motor==motor?joystick.Value:Vector2.zero;
         public bool SprintFor(SwimmerMotor motor)=>CanMove && observed.Motor==motor && SprintHeld;
         private void OnEnable(){match.PauseChanged+=Paused;match.Changed+=Phase;}
@@ -34,6 +35,7 @@ namespace ToduStudios.WaterPolo
         private void Paused(bool paused){if(paused)ResetInputs();}
         private void Phase(){ResetInputs();}
         private void OnApplicationFocus(bool focus){if(!focus)ResetInputs();}
+        private void OnApplicationPause(bool paused){if(paused)ResetInputs();}
         private void ResetInputs()
         {
             SprintHeld=false;joystick?.ResetInput();
@@ -52,13 +54,16 @@ namespace ToduStudios.WaterPolo
             if(!CanMove)joystick.ResetInput();
             bool centre=match.IsCentreRestart;
             bool hasBall=observed!=null && observed.Interaction.HasBall;
+            bool attacking=hasBall || match.ShotClock.PossessionTeam==selection.HumanTeam;
             foreach(var b in buttons)
             {
-                bool show=b.Action==MobileMatchAction.Shoot?hasBall:
-                    b.Action==MobileMatchAction.Steal?!hasBall:
-                    b.Action==MobileMatchAction.Pass?hasBall:
-                    b.Action==MobileMatchAction.Lob || b.Action==MobileMatchAction.ShotMode?hasBall && !centre:
+                bool show=b.Action==MobileMatchAction.Shoot?(refinedLayout?attacking:hasBall):
+                    b.Action==MobileMatchAction.Steal?!(refinedLayout?attacking:hasBall):
+                    b.Action==MobileMatchAction.Pass?(refinedLayout?attacking:hasBall):
+                    b.Action==MobileMatchAction.Lob?(refinedLayout?attacking:hasBall) && !centre:
+                    b.Action==MobileMatchAction.ShotMode?hasBall && !centre:
                     b.Action==MobileMatchAction.Collect?ball.Owner==null && match.IsPlaying:true;
+                if(match.IsPeriodSprint)show=b.Action==MobileMatchAction.Sprint||b.Action==MobileMatchAction.Collect&&ball.CanCollect;
                 if(b.gameObject.activeSelf!=show)b.gameObject.SetActive(show);
                 b.SetAvailable(CanUse(b.Action));
                 if(b.Action==MobileMatchAction.ShotMode)b.SetCaption(ShotMode==ShotType.Skip?"SKIP":ShotMode==ShotType.High?"HIGH":"NORMAL");
@@ -68,15 +73,18 @@ namespace ToduStudios.WaterPolo
                 match.CentreTaker.Team==selection.HumanTeam?"PASS TO RESTART  |  B OR PASS":"WHITE CENTRE PASS"):
                 match.Phase==MatchPhase.FreeThrowReady?"FREE THROW  |  B / PASS OR L / LOB":
                 match.Phase==MatchPhase.PenaltyReady?"PENALTY  |  HOLD / RELEASE SHOOT":"";
+            if(refinedLayout)instruction=""; // The unified event banner owns all set-piece instructions.
             if(restartInstruction.text!=instruction)restartInstruction.text=instruction;
         }
         public bool CanUse(MobileMatchAction action)
         {
             if(!Usable)return false;
+            if(action==MobileMatchAction.Switch&&selection.SwitchingLocked)return false;
             bool hasBall=observed.Interaction.HasBall;
             if(action==MobileMatchAction.Shoot || action==MobileMatchAction.ShotMode)return hasBall && match.Rules.CanRelease(observed.Interaction,BallReleaseKind.Shot);
             if(action==MobileMatchAction.Pass)return hasBall && match.Rules.CanRelease(observed.Interaction,BallReleaseKind.Pass);
             if(action==MobileMatchAction.Lob)return hasBall && match.Rules.CanRelease(observed.Interaction,BallReleaseKind.Lob);
+            if(match.IsSprintRace)return action==MobileMatchAction.Sprint&&stamina!=null&&stamina.SprintAllowed || action==MobileMatchAction.Collect&&ball.CanCollect;
             if(!match.IsPlaying)return false;
             if(action==MobileMatchAction.Sprint)return stamina!=null && stamina.SprintAllowed;
             if(action==MobileMatchAction.Steal)return !hasBall && ball.Owner!=null && ball.Owner.GetComponent<SwimmerIdentity>().Team!=selection.HumanTeam;
@@ -89,7 +97,7 @@ namespace ToduStudios.WaterPolo
             switch(action)
             {
                 case MobileMatchAction.Shoot:if(charge.BeginCharge(ShotMode,this)){heldCharge=charge;return true;}return false;
-                case MobileMatchAction.Sprint:SprintHeld=true;return true;
+                case MobileMatchAction.Sprint:SprintHeld=true;if(match.IsSprintRace)match.SprintOff.Stroke(observed);return true;
                 case MobileMatchAction.Pass:charge.CancelCharge();return passing.TryPass();
                 case MobileMatchAction.Lob:charge.CancelCharge();return lob.TryPass();
                 case MobileMatchAction.Switch:selection.SelectNext();return true;

@@ -16,6 +16,7 @@ namespace ToduStudios.WaterPolo
         private SwimmerStamina stamina;
         private PrototypeMatch match;
         [SerializeField] private MobileMatchControls mobileControls;
+        private bool sprintTapArmed;
 
         private void Awake()
         {
@@ -44,6 +45,7 @@ namespace ToduStudios.WaterPolo
 
             moveAction.Enable();
             sprintAction.Enable();
+            sprintTapArmed=false;
         }
 
         private void Update()
@@ -51,12 +53,21 @@ namespace ToduStudios.WaterPolo
             if (match != null && match.IsPaused) return;
             motor.ClearFacingDirection();
             Vector2 keyboard=moveAction.ReadValue<Vector2>();
-            motor.SetMoveInput(keyboard.sqrMagnitude>0.0001f?keyboard:mobileControls!=null?mobileControls.MovementFor(motor):Vector2.zero);
-            if(stamina!=null)stamina.RequestSprint(sprintAction.IsPressed() || mobileControls!=null && mobileControls.SprintFor(motor));
+            Vector2 direction=keyboard.sqrMagnitude>0.0001f?keyboard:mobileControls!=null?mobileControls.MovementFor(motor):Vector2.zero;
+            bool sprint=sprintAction.IsPressed() || mobileControls!=null && mobileControls.SprintFor(motor);
+            if(!sprintAction.IsPressed())sprintTapArmed=true;
+            if(match!=null&&match.IsSprintRace)
+            {
+                if(sprintTapArmed&&sprintAction.WasPressedThisFrame())match.SprintOff.Stroke(GetComponent<SwimmerIdentity>());
+                direction=match.SprintOff.HumanMovement(direction,sprint);sprint|=match.SprintOff.HumanSprint;
+                match.SprintOff.TryHumanPickup();
+            }
+            motor.SetMoveInput(direction);
+            if(stamina!=null)stamina.RequestSprint(sprint);
         }
 
         public void ResetAfterMenu()
-        { motor.ClearFacingDirection(); motor.SetMoveInput(Vector2.zero); stamina?.RequestSprint(false); }
+        { sprintTapArmed=false;motor.ClearFacingDirection(); motor.SetMoveInput(Vector2.zero); stamina?.RequestSprint(false); }
 
         private void OnDisable()
         {

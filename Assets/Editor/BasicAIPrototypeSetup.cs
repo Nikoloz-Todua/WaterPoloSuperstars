@@ -10,7 +10,7 @@ namespace ToduStudios.WaterPolo.Editor
 {
     public static class BasicAIPrototypeSetup
     {
-        [MenuItem("Tools/Water Polo/Set Up Automatic Switching and AI Prototype")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Set Up Automatic Switching and AI Prototype")]
         public static void SetUp()
         {
             if (!CanSetUp()) return;
@@ -78,7 +78,7 @@ namespace ToduStudios.WaterPolo.Editor
             Debug.Log("Automatic switching and AI references configured. Existing additional roster members and tactical-team references were preserved; use Set Up 2v2 Prototype for the complete current setup.");
         }
 
-        [MenuItem("Tools/Water Polo/Set Up Friendly AI Prototype")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Set Up Friendly AI Prototype")]
         public static void SetUpFriendly()
         {
             if (!CanSetUp()) return;

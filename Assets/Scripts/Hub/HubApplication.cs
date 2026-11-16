@@ -38,7 +38,7 @@ namespace ToduStudios.WaterPolo.Hub
         public void Initialize()
         {
             if(Progression!=null)return;
-            try{var catalog=Resources.Load<HubCatalog>("HubCatalog");if(catalog==null)throw new InvalidOperationException("Run Tools > Water Polo > Set Up Milestone 12 Hub first.");Progression=new HubProgression(catalog,new JsonProfileRepository(SavePath));Error=null;}
+            try{var catalog=Resources.Load<HubCatalog>("HubCatalog");if(catalog==null)throw new InvalidOperationException("Run Tools > Water Polo > Recovery > Frontend > Set Up Milestone 12 Hub first.");Progression=new HubProgression(catalog,new JsonProfileRepository(SavePath));Error=null;}
             catch(Exception e){Error="Progress could not be loaded. Your save files are retained. Retry after restoring file access or a compatible backup.";Debug.LogError("Hub initialization failed ("+e.GetType().Name+"). No default save was written.");}
         }
         public void Launch(string mode)

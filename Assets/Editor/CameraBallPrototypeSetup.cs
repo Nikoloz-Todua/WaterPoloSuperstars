@@ -10,7 +10,7 @@ namespace ToduStudios.WaterPolo.Editor
 {
     public static class CameraBallPrototypeSetup
     {
-        [MenuItem("Tools/Water Polo/Set Up Camera and Ball Prototype")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Set Up Camera and Ball Prototype")]
         public static void SetUp()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode ||

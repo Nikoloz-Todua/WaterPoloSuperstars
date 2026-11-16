@@ -32,7 +32,7 @@ namespace ToduStudios.WaterPolo.Editor
             };
         }
 
-        [MenuItem("Tools/Water Polo/Water Visuals/Set Up WaterVisualTest")]
+        [MenuItem("Tools/Water Polo/Recovery/Set Up WaterVisualTest")]
         public static void SetUp()
         {
             RequireSavedEditMode();
@@ -46,7 +46,7 @@ namespace ToduStudios.WaterPolo.Editor
             Debug.Log("WaterVisualTest ready. Tools > Water Polo > Water Visuals > Play WaterVisualTest. Keys 1/2/3 quality, V viewpoint. PrototypePool unchanged.");
         }
 
-        [MenuItem("Tools/Water Polo/Water Visuals/Play WaterVisualTest")]
+        [MenuItem("Tools/Water Polo/Verification/Play WaterVisualTest")]
         public static void PlayTest()
         {
             RequireSavedEditMode();

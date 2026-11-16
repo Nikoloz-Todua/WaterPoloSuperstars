@@ -25,7 +25,7 @@ namespace ToduStudios.WaterPolo.Editor
         static readonly List<TMP_Text> scoreLabels=new List<TMP_Text>(),clockLabels=new List<TMP_Text>();
         static readonly HashSet<Mesh> temporaryFloors=new HashSet<Mesh>();
 
-        [MenuItem("Tools/Water Polo/Arena/Polish Existing Championship Venue")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Arena/Polish Earlier Championship Venue")]
         public static void SetUp()
         {
             RequireSaved();OlympicArenaSetup.Open();
@@ -259,7 +259,7 @@ namespace ToduStudios.WaterPolo.Editor
             var sun=Object.FindObjectsByType<Light>().Single(l=>l.type==LightType.Directional);sun.intensity=1.65f;sun.color=new Color(.98f,.98f,1);sun.transform.rotation=Quaternion.Euler(68,-25,0);sun.shadowStrength=.48f;
             RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.64f,.74f,.82f);RenderSettings.ambientEquatorColor=new Color(.43f,.54f,.62f);RenderSettings.ambientGroundColor=new Color(.23f,.31f,.36f);RenderSettings.reflectionIntensity=.82f;
         }
-        [MenuItem("Tools/Water Polo/Arena/Refresh Venue Reflection")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Arena/Refresh Earlier Venue Reflection")]
         public static void RefreshReflection(){RequireSaved();OlympicArenaSetup.Open();if(GameObject.Find(PremiumArenaSetup.Name)!=null){PremiumArenaSetup.RefreshReflection();return;}BakeReflection(GameObject.Find(OlympicArenaSetup.EnvironmentName).transform);EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());EditorSceneManager.SaveScene(SceneManager.GetActiveScene());AssetDatabase.SaveAssets();}
         static void BakeReflection(Transform environment)
         {

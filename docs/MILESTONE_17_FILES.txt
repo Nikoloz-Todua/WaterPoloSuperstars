@@ -1,0 +1,130 @@
+Milestone 17 file inventory - 2026-11-16
+Relative to the start of M17, including the prior unstaged M16 implementation.
+No staging, commits or other Git writes.
+
+MODIFIED (40)
+Assets/Editor/AnimatedAthleteImport.cs
+Assets/Editor/AnimatedAthleteSetup.cs
+Assets/Editor/ArenaVenuePolishSetup.cs
+Assets/Editor/BasicAIPrototypeSetup.cs
+Assets/Editor/CameraBallPrototypeSetup.cs
+Assets/Editor/GameplayRealismSetup.cs
+Assets/Editor/GoalScoringPrototypeSetup.cs
+Assets/Editor/GoalkeeperPrototypeSetup.cs
+Assets/Editor/MainMenuSetup.cs
+Assets/Editor/Milestone10PrototypeSetup.cs
+Assets/Editor/Milestone11UISetup.cs
+Assets/Editor/Milestone12HubSetup.cs
+Assets/Editor/Milestone8PrototypeSetup.cs
+Assets/Editor/Milestone9PrototypeSetup.cs
+Assets/Editor/MovementPrototypeBuilder.cs
+Assets/Editor/OlympicArenaSetup.cs
+Assets/Editor/PoolWaterGameplaySetup.cs
+Assets/Editor/PremiumArenaSetup.cs
+Assets/Editor/TeamPlayPrototypeSetup.cs
+Assets/Editor/TwoVTwoPrototypeSetup.cs
+Assets/Editor/UnifiedFrontendSetup.cs
+Assets/Editor/WaterVisualTestSetup.cs
+Assets/Scenes/OlympicMatchArena.unity
+Assets/Scripts/Gameplay/BallController.cs
+Assets/Scripts/Gameplay/GameplayCamera.cs
+Assets/Scripts/Gameplay/MatchAtmosphere.cs
+Assets/Scripts/Gameplay/MatchHUD.cs
+Assets/Scripts/Gameplay/MatchNotificationBanner.cs
+Assets/Scripts/Gameplay/MatchRules.cs
+Assets/Scripts/Gameplay/MobileMatchControls.cs
+Assets/Scripts/Gameplay/PoolsideReferee.cs
+Assets/Scripts/Gameplay/PrototypeMatch.cs
+Assets/Scripts/Gameplay/PrototypeSwimmerAI.cs
+Assets/Scripts/Gameplay/SwimmerInput.cs
+Assets/Scripts/Gameplay/SwimmerMotor.cs
+Assets/Scripts/Gameplay/SwimmerStamina.cs
+Assets/Scripts/Gameplay/WaterInteractionEffects.cs
+Assets/Scripts/Hub/HubApplication.cs
+README.md
+plan.md
+
+CREATED (79)
+Assets/Arena/AuthenticField.meta
+Assets/Arena/AuthenticField/Materials.meta
+Assets/Arena/AuthenticField/Materials/Brushed Alloy.mat
+Assets/Arena/AuthenticField/Materials/Brushed Alloy.mat.meta
+Assets/Arena/AuthenticField/Materials/Competition Green.mat
+Assets/Arena/AuthenticField/Materials/Competition Green.mat.meta
+Assets/Arena/AuthenticField/Materials/Competition Red.mat
+Assets/Arena/AuthenticField/Materials/Competition Red.mat.meta
+Assets/Arena/AuthenticField/Materials/Competition White.mat
+Assets/Arena/AuthenticField/Materials/Competition White.mat.meta
+Assets/Arena/AuthenticField/Materials/Competition Yellow.mat
+Assets/Arena/AuthenticField/Materials/Competition Yellow.mat.meta
+Assets/Arena/AuthenticField/Materials/Navy Non Slip.mat
+Assets/Arena/AuthenticField/Materials/Navy Non Slip.mat.meta
+Assets/Arena/AuthenticField/Materials/Sprint Cyan.mat
+Assets/Arena/AuthenticField/Materials/Sprint Cyan.mat.meta
+Assets/Arena/AuthenticField/Materials/Woven Goal Cord.mat
+Assets/Arena/AuthenticField/Materials/Woven Goal Cord.mat.meta
+Assets/Arena/AuthenticField/Meshes.meta
+Assets/Arena/AuthenticField/Meshes/Blue Designated Sprinter.asset
+Assets/Arena/AuthenticField/Meshes/Blue Designated Sprinter.asset.meta
+Assets/Arena/AuthenticField/Meshes/East Platform Edge Trim and Outer Safety Rail.asset
+Assets/Arena/AuthenticField/Meshes/East Platform Edge Trim and Outer Safety Rail.asset.meta
+Assets/Arena/AuthenticField/Meshes/East Platform Markers Competition Green.asset
+Assets/Arena/AuthenticField/Meshes/East Platform Markers Competition Green.asset.meta
+Assets/Arena/AuthenticField/Meshes/East Platform Markers Competition Red.asset
+Assets/Arena/AuthenticField/Meshes/East Platform Markers Competition Red.asset.meta
+Assets/Arena/AuthenticField/Meshes/East Platform Markers Competition White.asset
+Assets/Arena/AuthenticField/Meshes/East Platform Markers Competition White.asset.meta
+Assets/Arena/AuthenticField/Meshes/East Platform Markers Competition Yellow.asset
+Assets/Arena/AuthenticField/Meshes/East Platform Markers Competition Yellow.asset.meta
+Assets/Arena/AuthenticField/Meshes/East Platform Non Slip Walking Deck.asset
+Assets/Arena/AuthenticField/Meshes/East Platform Non Slip Walking Deck.asset.meta
+Assets/Arena/AuthenticField/Meshes/Enclosing Woven Net.asset
+Assets/Arena/AuthenticField/Meshes/Enclosing Woven Net.asset.meta
+Assets/Arena/AuthenticField/Meshes/Float Supports and Stays.asset
+Assets/Arena/AuthenticField/Meshes/Float Supports and Stays.asset.meta
+Assets/Arena/AuthenticField/Meshes/Open Cradle and Retracting Stem.asset
+Assets/Arena/AuthenticField/Meshes/Open Cradle and Retracting Stem.asset.meta
+Assets/Arena/AuthenticField/Meshes/Rigid White Frame.asset
+Assets/Arena/AuthenticField/Meshes/Rigid White Frame.asset.meta
+Assets/Arena/AuthenticField/Meshes/Ropes Brushed Alloy.asset
+Assets/Arena/AuthenticField/Meshes/Ropes Brushed Alloy.asset.meta
+Assets/Arena/AuthenticField/Meshes/Ropes Competition Green.asset
+Assets/Arena/AuthenticField/Meshes/Ropes Competition Green.asset.meta
+Assets/Arena/AuthenticField/Meshes/Ropes Competition Red.asset
+Assets/Arena/AuthenticField/Meshes/Ropes Competition Red.asset.meta
+Assets/Arena/AuthenticField/Meshes/Ropes Competition White.asset
+Assets/Arena/AuthenticField/Meshes/Ropes Competition White.asset.meta
+Assets/Arena/AuthenticField/Meshes/Ropes Competition Yellow.asset
+Assets/Arena/AuthenticField/Meshes/Ropes Competition Yellow.asset.meta
+Assets/Arena/AuthenticField/Meshes/West Platform Edge Trim and Outer Safety Rail.asset
+Assets/Arena/AuthenticField/Meshes/West Platform Edge Trim and Outer Safety Rail.asset.meta
+Assets/Arena/AuthenticField/Meshes/West Platform Markers Competition Green.asset
+Assets/Arena/AuthenticField/Meshes/West Platform Markers Competition Green.asset.meta
+Assets/Arena/AuthenticField/Meshes/West Platform Markers Competition Red.asset
+Assets/Arena/AuthenticField/Meshes/West Platform Markers Competition Red.asset.meta
+Assets/Arena/AuthenticField/Meshes/West Platform Markers Competition White.asset
+Assets/Arena/AuthenticField/Meshes/West Platform Markers Competition White.asset.meta
+Assets/Arena/AuthenticField/Meshes/West Platform Markers Competition Yellow.asset
+Assets/Arena/AuthenticField/Meshes/West Platform Markers Competition Yellow.asset.meta
+Assets/Arena/AuthenticField/Meshes/West Platform Non Slip Walking Deck.asset
+Assets/Arena/AuthenticField/Meshes/West Platform Non Slip Walking Deck.asset.meta
+Assets/Arena/AuthenticField/Meshes/White Designated Sprinter.asset
+Assets/Arena/AuthenticField/Meshes/White Designated Sprinter.asset.meta
+Assets/Arena/AuthenticField/Prefabs.meta
+Assets/Arena/AuthenticField/Prefabs/CompetitionFieldEquipment.prefab
+Assets/Arena/AuthenticField/Prefabs/CompetitionFieldEquipment.prefab.meta
+Assets/Editor/AuthenticFieldSetup.cs
+Assets/Editor/AuthenticFieldSetup.cs.meta
+Assets/Scenes/Recovery/OlympicMatchArena_PreAuthenticField.unity
+Assets/Scenes/Recovery/OlympicMatchArena_PreAuthenticField.unity.meta
+Assets/Scripts/Gameplay/PeriodSprintOff.cs
+Assets/Scripts/Gameplay/PeriodSprintOff.cs.meta
+Assets/Scripts/Gameplay/SprintBallReleaseVisual.cs
+Assets/Scripts/Gameplay/SprintBallReleaseVisual.cs.meta
+Tools/Verification/FieldSprintVerification.cs
+docs/FIELD_AND_SPRINT.md
+docs/MILESTONE_17_FILES.txt
+
+Pre-existing M16 files and unrelated changes remain; current whole-workspace status is in Logs/FieldSprint/Git-Final.txt.
+The untracked M16-created MatchNotificationBanner.cs is classified MODIFIED here because M17 extends it.
+No existing .meta GUID, old-plan.md, source model, clip, water shader, catalog, save implementation or MainLobby asset was edited by M17.

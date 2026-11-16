@@ -13,7 +13,10 @@ namespace ToduStudios.WaterPolo
     {
         [SerializeField] private PoolBounds poolBounds;
         [SerializeField] private PrototypeMatch match;
-        private bool Live => match==null || match.IsPlaying;
+        private bool Live => match==null || match.CanSwim;
+        private bool periodSupported,periodDropping;
+        public bool PeriodSupported=>periodSupported;
+        public bool PeriodDropping=>periodDropping;
         public PrototypeMatch Match => match;
         public event Action<SwimmerBallInteraction, BallReleaseKind> Released;
         public event Action Impact;
@@ -70,7 +73,7 @@ namespace ToduStudios.WaterPolo
         }
         public Vector3 Velocity => body != null && !body.isKinematic ? body.linearVelocity : Vector3.zero;
         public event Action<SwimmerBallInteraction, SwimmerBallInteraction> PossessionChanged;
-        public bool CanCollect => Live && isActiveAndEnabled && !simulationPaused && Owner == null && Time.time>=collectAfter && Velocity.magnitude<=flight.maximumReceivingSpeed &&
+        public bool CanCollect => Live && !periodSupported && !periodDropping && isActiveAndEnabled && !simulationPaused && Owner == null && Time.time>=collectAfter && Velocity.magnitude<=flight.maximumReceivingSpeed &&
             ((!IsAirborne && State==BallState.Free) || (IsAirborne && Time.time>=collectAfter && PhysicsPosition.y<=SurfaceHeight+receivingHeight && Velocity.y<=0f));
         public int ShotSequence { get; private set; }
         public Vector3 ShotOrigin { get; private set; }
@@ -360,6 +363,22 @@ namespace ToduStudios.WaterPolo
             ShotOrigin = spawn;
             NoteMotionOrigin(spawn);
         }
+        public void PreparePeriodBall(Vector3 position)
+        {
+            if(match==null||match.Phase!=MatchPhase.SprintSetup)return;
+            ResetForRestart(position);periodSupported=true;simulationPaused=true;
+            body.isKinematic=true;body.interpolation=RigidbodyInterpolation.None;
+            body.constraints=RigidbodyConstraints.None;body.useGravity=false;ballCollider.enabled=false;
+            body.position=position;transform.position=position;Physics.SyncTransforms();NoteMotionOrigin(position);
+        }
+        public void ReleasePeriodBall()
+        {
+            if(match==null||!match.IsSprintRace||match.IsPaused||!periodSupported)return;
+            periodSupported=false;periodDropping=true;simulationPaused=false;
+            body.isKinematic=false;body.interpolation=RigidbodyInterpolation.Interpolate;ballCollider.enabled=true;
+            ReleaseKind=BallReleaseKind.Drop;IsScoringShot=false;CurrentShot=ShotType.Normal;
+            BeginFlight(body.position,Vector3.zero);
+        }
 
         /// <summary>Receives a swept contact already validated by the interception observer, including released-shot cooldown.</summary>
         public bool TryCatchContact(SwimmerBallInteraction claimant, Vector3 contact)
@@ -403,6 +422,7 @@ namespace ToduStudios.WaterPolo
 
         private void ResolveWaterImpact()
         {
+            periodDropping=false;
             Vector3 incoming=Velocity, end=body.position;
             float fraction=previousAirPosition.y>end.y?Mathf.Clamp01((previousAirPosition.y-SurfaceHeight)/(previousAirPosition.y-end.y)):1f;
             Vector3 contact=Vector3.Lerp(previousAirPosition,end,fraction);contact.y=SurfaceHeight;
@@ -560,6 +580,7 @@ namespace ToduStudios.WaterPolo
 
         private void ResetFree()
         {
+            periodSupported=periodDropping=false;
             RestoreSurfacePhysics();
             SwimmerBallInteraction previousOwner = Owner;
             intendedReceiver = null;

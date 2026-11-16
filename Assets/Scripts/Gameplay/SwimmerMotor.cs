@@ -24,10 +24,26 @@ namespace ToduStudios.WaterPolo
         private float speedOverride = -1f;
         private SwimmerStamina stamina;
         private SwimmerIdentity identity;
+        private bool leavingPeriodLine;
+        private float periodAcceleration=1f;
+        public void SetPeriodAcceleration(float value)=>periodAcceleration=Mathf.Clamp(value,1f,1.5f);
+        public void StageOnGoalLine(Vector3 point,Quaternion rotation)
+        {
+            if(body==null)body=GetComponent<Rigidbody>();
+            StopMotion();leavingPeriodLine=true;body.position=point;body.rotation=rotation;
+        }
         public void OverrideSpeed(float speed) => speedOverride = Mathf.Max(0.1f, speed);
         public void ClearSpeedOverride() => speedOverride = -1f;
         public void SetMovementBounds(ISwimmerMovementBounds bounds) => movementBounds = bounds;
-        private Vector3 ClampMovement(Vector3 position) => movementBounds != null ? movementBounds.ClampMovement(position) : poolBounds.ClampPosition(position, boundaryClearance);
+        private Vector3 ClampMovement(Vector3 position)
+        {
+            if(leavingPeriodLine)
+            {
+                if(Mathf.Abs(position.z-poolBounds.transform.position.z)>poolBounds.Length*.5f-boundaryClearance)return poolBounds.ClampPosition(position,0f);
+                leavingPeriodLine=false;
+            }
+            return movementBounds != null ? movementBounds.ClampMovement(position) : poolBounds.ClampPosition(position, boundaryClearance);
+        }
 
         public Vector3 Velocity => velocity;
         public float MaxSpeed => (speedOverride > 0f ? speedOverride : maxSpeed) * (stamina!=null?stamina.SpeedMultiplier:1f);
@@ -40,11 +56,13 @@ namespace ToduStudios.WaterPolo
             velocity = Vector3.zero;
             aimDirection = Vector3.zero;
             ClearSpeedOverride();
+            periodAcceleration=1f;
             if(stamina!=null)stamina.StopSprint();
         }
 
         public void ResetPose(Vector3 position, Quaternion rotation)
         {
+            leavingPeriodLine=false;
             if (body == null) body = GetComponent<Rigidbody>();
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
@@ -99,6 +117,7 @@ namespace ToduStudios.WaterPolo
             Vector3 targetVelocity = new Vector3(moveInput.x, 0f, moveInput.y) * MaxSpeed;
             float changeRate = moveInput.sqrMagnitude > 0f ? acceleration : deceleration;
             if(stamina!=null)changeRate*=stamina.AccelerationMultiplier;
+            changeRate*=periodAcceleration;
             velocity = Vector3.MoveTowards(velocity, targetVelocity, changeRate * step);
 
             Vector3 previous = body.position;

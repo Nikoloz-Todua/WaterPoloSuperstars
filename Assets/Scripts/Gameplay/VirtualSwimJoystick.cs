@@ -4,13 +4,14 @@ using UnityEngine.EventSystems;
 namespace ToduStudios.WaterPolo
 {
     [DisallowMultipleComponent]
-    public sealed class VirtualSwimJoystick : MonoBehaviour,IPointerDownHandler,IDragHandler,IPointerUpHandler,ICancelHandler
+    public sealed class VirtualSwimJoystick : MonoBehaviour,IPointerDownHandler,IDragHandler,IPointerUpHandler,ICancelHandler,IInitializePotentialDragHandler
     {
         [SerializeField] private RectTransform handle;
         [SerializeField] private MobileMatchControls controls;
         [SerializeField,Range(0.05f,0.3f)] private float deadZone=0.12f;
         private int pointer=int.MinValue;
         public Vector2 Value {get;private set;}
+        public void OnInitializePotentialDrag(PointerEventData e)=>e.useDragThreshold=false;
         public void OnPointerDown(PointerEventData e)
         {if(pointer!=int.MinValue || e.button!=PointerEventData.InputButton.Left || !controls.CanMove)return;pointer=e.pointerId;OnDrag(e);}
         public void OnDrag(PointerEventData e)

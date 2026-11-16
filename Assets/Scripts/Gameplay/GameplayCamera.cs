@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace ToduStudios.WaterPolo
 {
-    public enum BroadcastCameraMode { NormalBroadcast, WideTactical, GoalkeeperPossession, SetPiece }
+    public enum BroadcastCameraMode { NormalBroadcast, WideTactical, GoalkeeperPossession, SetPiece, PeriodSprint }
     [System.Serializable]
     public sealed class BroadcastCameraProfile
     {
@@ -55,6 +55,7 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private BroadcastCameraProfile wideTactical=new BroadcastCameraProfile {size=1.18f,ballWeight=0.45f,maximumZoom=1.65f};
         [SerializeField] private BroadcastCameraProfile goalkeeperPossession=new BroadcastCameraProfile {size=1.1f,ballWeight=0.2f,maximumZoom=1.5f};
         [SerializeField] private BroadcastCameraProfile setPiece=new BroadcastCameraProfile {size=1.1f,ballWeight=0.5f,maximumZoom=1.5f};
+        [SerializeField] private BroadcastCameraProfile periodSprint=new BroadcastCameraProfile {size=1.35f,ballWeight=.5f,maximumZoom=2.2f,damping=.5f};
         [SerializeField,Range(0f,1f)] private float predictionSeconds=0.28f;
         [SerializeField,Range(0f,0.3f)] private float teammateInfluence=0.12f;
         [SerializeField,Min(0.1f)] private float minimumZoom=1f;
@@ -68,9 +69,9 @@ namespace ToduStudios.WaterPolo
         {
             get
             {
-                ActiveMode=match!=null && (match.IsCentreRestart || match.Rules!=null && match.Rules.IsRulePhase)?BroadcastCameraMode.SetPiece:
+                ActiveMode=match!=null&&match.IsPeriodSprint?BroadcastCameraMode.PeriodSprint:match!=null && (match.IsCentreRestart || match.Rules!=null && match.Rules.IsRulePhase)?BroadcastCameraMode.SetPiece:
                     keeperTarget?BroadcastCameraMode.GoalkeeperPossession:mode==BroadcastCameraMode.WideTactical?mode:BroadcastCameraMode.NormalBroadcast;
-                return ActiveMode==BroadcastCameraMode.SetPiece?setPiece:ActiveMode==BroadcastCameraMode.GoalkeeperPossession?goalkeeperPossession:
+                return ActiveMode==BroadcastCameraMode.PeriodSprint?periodSprint:ActiveMode==BroadcastCameraMode.SetPiece?setPiece:ActiveMode==BroadcastCameraMode.GoalkeeperPossession?goalkeeperPossession:
                     ActiveMode==BroadcastCameraMode.WideTactical?wideTactical:normalBroadcast;
             }
         }
@@ -95,6 +96,14 @@ namespace ToduStudios.WaterPolo
             if(!adaptiveBroadcast)return LegacyFocus();
             var profile=Profile;
             framingCount=0;
+            if(match!=null&&match.IsPeriodSprint)
+            {
+                framingPoints[framingCount++]=ball.transform.position;
+                if(match.Phase==MatchPhase.SprintSetup)
+                {foreach(var p in roster.Members)if(p.EligibleForPlay&&framingCount<framingPoints.Length)framingPoints[framingCount++]=p.Motor.Position;return poolBounds.transform.position;}
+                for(int i=0;i<2;i++){var p=match.SprintOff.Sprinter((PrototypeTeam)i);if(p!=null)framingPoints[framingCount++]=p.Motor.Position;}
+                return Vector3.Lerp(target.Position,ball.transform.position,.5f);
+            }
             Vector3 player=snapping?target.Position:target.transform.position;
             framingPoints[framingCount++]=player;
             Vector3 desired=player+Vector3.ClampMagnitude(target.Velocity*predictionSeconds,lookAhead);

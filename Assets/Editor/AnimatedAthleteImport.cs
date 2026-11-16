@@ -7,7 +7,7 @@ namespace ToduStudios.WaterPolo.Editor
 public static class AnimatedAthleteImport
 {
  public const string Root="Assets/SwimmerAnimationPrototype";
- [MenuItem("Tools/Water Polo/Animated Athletes/Reimport Prototype Source FBXs")]
+ [MenuItem("Tools/Water Polo/Recovery/Animated Athletes/Reimport Prototype Source FBXs")]
  public static void Reimport()
  {
   if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Stop Play Mode before reimporting the prototype.");

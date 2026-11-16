@@ -32,7 +32,7 @@ namespace ToduStudios.WaterPolo.Editor
         static float L=>d.PoolLength/2;
         static float Y=>d.deckElevation;
 
-        [MenuItem("Tools/Water Polo/Arena/Apply Championship Night Overhaul")]
+        [MenuItem("Tools/Water Polo/Recovery/Arena/Apply Championship Night Overhaul")]
         public static void SetUp()
         {
             RequireSaved();OlympicArenaSetup.Open();

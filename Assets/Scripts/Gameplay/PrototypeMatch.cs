@@ -4,7 +4,7 @@ using UnityEngine;
 namespace ToduStudios.WaterPolo
 {
     public enum MatchPhase { PreMatch, Playing, GoalRestart, TurnoverRestart, QuarterBreak, FullTime, HalfTime,
-        FreeThrowSetup, FreeThrowReady, PenaltySetup, PenaltyReady, PenaltyFlight, CentreRestartSetup, CentreRestartReady }
+        FreeThrowSetup, FreeThrowReady, PenaltySetup, PenaltyReady, PenaltyFlight, CentreRestartSetup, CentreRestartReady, SprintSetup, SprintRace }
     /// <summary>Authoritative phases, score evaluation and transitions. Clocks advance only in Playing.</summary>
     [DefaultExecutionOrder(-100), DisallowMultipleComponent]
     public sealed class PrototypeMatch : MonoBehaviour
@@ -29,6 +29,15 @@ namespace ToduStudios.WaterPolo
         public MatchPhase Phase { get; private set; } = MatchPhase.Playing;
         public bool IsPlaying => !IsPaused && Phase==MatchPhase.Playing;
         public bool IsPaused { get; private set; }
+        [SerializeField] private PeriodSprintOff periodSprint;
+        public PeriodSprintOff SprintOff=>periodSprint;
+        public Vector3 PeriodCenter=>new Vector3(ballStart.position.x,ball.SurfaceHeight,ballStart.position.z);
+        public bool IsSprintRace=>Phase==MatchPhase.SprintRace;
+        private bool awaitingOpeningPossession;
+        public bool AwaitingOpeningPossession=>awaitingOpeningPossession;
+        public bool IsPeriodSprint=>Phase==MatchPhase.SprintSetup||IsSprintRace;
+        public bool CanSwim=>!IsPaused&&(Phase==MatchPhase.Playing||IsSprintRace);
+        public event Action SprintStarted;
         // Gameplay stoppage deadlines share a pause-aware unscaled timeline. UI animation uses real unscaled time.
         public float PresentationTime => (IsPaused ? pausedAt : Time.unscaledTime) - pausedSeconds;
         private float pausedAt, pausedSeconds, resumeTimeScale = 1f;
@@ -36,7 +45,7 @@ namespace ToduStudios.WaterPolo
         public event Action<bool> PauseChanged;
         [SerializeField] private MatchRules rules;
         public MatchRules Rules => rules;
-        public bool BallInMotion => !IsPaused && (IsPlaying || Phase == MatchPhase.PenaltyFlight);
+        public bool BallInMotion => !IsPaused && (IsPlaying || IsSprintRace || Phase == MatchPhase.PenaltyFlight);
         public MatchClock Clock => clock;
         public PossessionShotClock ShotClock => shotClock;
         public string Result => BlueScore==WhiteScore?"DRAW":BlueScore>WhiteScore?"WIN":"LOSE";
@@ -86,6 +95,34 @@ namespace ToduStudios.WaterPolo
             previousPosition = ballBody.position;
             previousMotion = ball.MotionRevision;
             ball.Released += CentreReleased;
+            ball.PossessionChanged+=SprintAcquired;
+        }
+        private void Start(){if(periodSprint!=null)BeginPeriodSprint();}
+        private void BeginPeriodSprint()
+        {
+            Phase=MatchPhase.SprintSetup;awaitingOpeningPossession=true;CentreTaker=CentreReceiver=null;restartTeam=null;
+            StopPlay(true);shotClock.ResetPossession();periodSprint.Prepare();
+            playerSelection.SetInputLocked(false);if(periodSprint.HumanSprinter!=null)playerSelection.Select(periodSprint.HumanSprinter);playerSelection.SetInputLocked(true);
+            Changed?.Invoke();
+        }
+        private void ReleasePeriodSprint()
+        {
+            Phase=MatchPhase.SprintRace;periodSprint.Begin();
+            roster.SetSimulationPaused(false);playerSelection.SetInputLocked(false);
+            ball.ReleasePeriodBall();previousPosition=ballBody.position;previousMotion=ball.MotionRevision;
+            Changed?.Invoke();SprintStarted?.Invoke();
+        }
+        private void SprintAcquired(SwimmerBallInteraction previous,SwimmerBallInteraction next)
+        {
+            if(!awaitingOpeningPossession||IsPaused||next==null)return;
+            Phase=MatchPhase.Playing;awaitingOpeningPossession=false;periodSprint.Finish();
+            playerSelection.RestorePossessionSelection();
+            previousPosition=ballBody.position;previousMotion=ball.MotionRevision;Changed?.Invoke();
+        }
+        private void EndUnclaimedSprint()
+        {
+            // Keep the real loose ball and stopped opening clocks; unlock selection and ordinary pursuit.
+            Phase=MatchPhase.Playing;periodSprint.EndUnclaimedContest();playerSelection.RefreshEligibility();Changed?.Invoke();
         }
 
         private void FixedUpdate()
@@ -114,7 +151,7 @@ namespace ToduStudios.WaterPolo
         /// <summary>One clock path for live physics and deterministic simulation. Never runs during stoppages.</summary>
         public void AdvanceLiveTime(float seconds)
         {
-            if(!IsPlaying || seconds<=0f || float.IsNaN(seconds) || float.IsInfinity(seconds))return;
+            if(!IsPlaying || awaitingOpeningPossession || seconds<=0f || float.IsNaN(seconds) || float.IsInfinity(seconds))return;
             float step=Mathf.Min(seconds,clock.Remaining);
             if(shotClock!=null)step=Mathf.Min(step,shotClock.LiveSecondsRemaining);
             if(rules!=null)rules.TickLive(step);
@@ -217,25 +254,28 @@ namespace ToduStudios.WaterPolo
             if(Phase!=MatchPhase.QuarterBreak && Phase!=MatchPhase.HalfTime)return;
             bool half=Phase==MatchPhase.HalfTime;
             if(half)SetEnds(true);
-            clock.NextQuarter();restartTeam=null;CompleteRestart(half);
+            clock.NextQuarter();restartTeam=null;if(periodSprint!=null)BeginPeriodSprint();else CompleteRestart(half);
         }
         public void RestartMatch()=>PrepareMatch(true);
         public void ReturnToPrototype()=>PrepareMatch(false);
         private void PrepareMatch(bool play)
         {
             SetPaused(false);
-            CentreTaker=CentreReceiver=null;CentreSignals=0;
+            CentreTaker=CentreReceiver=null;CentreSignals=0;awaitingOpeningPossession=false;
             Phase=MatchPhase.PreMatch;StopPlay(true);
             SetEnds(false);EndSwitchCount=0;
             BlueScore=WhiteScore=0;lastScoredShot=-1;clock.Reset();restartTeam=null;
             NewMatch?.Invoke();
-            if(play)CompleteRestart();
+            if(play){if(periodSprint!=null)BeginPeriodSprint();else CompleteRestart();}
             else {if(roster!=null)roster.ResetPositions();Changed?.Invoke();}
         }
 
         private void Update()
         {
             if(IsPaused)return;
+            if(Phase==MatchPhase.SprintSetup&&periodSprint!=null)
+            {if(periodSprint.NeedsRestage)BeginPeriodSprint();if(periodSprint.Ready)ReleasePeriodSprint();}
+            if(IsSprintRace){periodSprint.Tick();if(periodSprint.ContestExpired)EndUnclaimedSprint();}
             if(IsRestarting && PresentationTime>=restartAt)
             {if(Phase==MatchPhase.GoalRestart)BeginCentreRestart();else CompleteRestart();}
             if(Phase==MatchPhase.CentreRestartSetup && PresentationTime>=centreReadyAt)ReadyCentreRestart();
@@ -394,8 +434,9 @@ namespace ToduStudios.WaterPolo
         {
             SetPaused(false);
             if(ball!=null)ball.Released-=CentreReleased;
-            if (!IsPlaying && ball != null && swimmer != null && ballStart != null && swimmerStart != null)
-                CompleteRestart();
+            if(ball!=null)ball.PossessionChanged-=SprintAcquired;
+            // Scene teardown may already have destroyed goals/keepers. Unsubscribe and restore
+            // suspension here; gameplay resets belong to the explicit restart/period commands.
         }
     }
 }

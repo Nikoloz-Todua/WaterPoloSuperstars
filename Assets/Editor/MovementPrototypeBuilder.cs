@@ -17,7 +17,7 @@ namespace ToduStudios.WaterPolo.Editor
         public const string ScenePath = "Assets/Scenes/PrototypePool.unity";
         private const string MaterialFolder = "Assets/Materials/Prototype";
 
-        [MenuItem("Tools/Water Polo/Create Movement Prototype")]
+        [MenuItem("Tools/Water Polo/Legacy Prototype Tools/Create Movement Prototype")]
         public static void CreateMovementPrototype()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode)

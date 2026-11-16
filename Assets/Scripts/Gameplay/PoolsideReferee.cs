@@ -21,6 +21,7 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private float deckSide=1f;
         [SerializeField,Min(1f)] private float deckOffset=1.4f;
         [SerializeField] private float deckHeight=0.18f;
+        [SerializeField,Range(.4f,.5f)] private float travelFraction=.43f;
         private float targetZ,speed,nextDecision,signalUntil,holdUntil;
         private int lastScore;
         private bool walking;
@@ -29,8 +30,9 @@ namespace ToduStudios.WaterPolo
         public float TargetZ=>targetZ;
         public bool Walking=>walking;
         private void Awake(){presentation=visual as IRefereePresentation;targetZ=transform.position.z;lastScore=match.BlueScore+match.WhiteScore;}
-        private void OnEnable(){rules.Decided+=Decision;match.Changed+=Phase;match.NewMatch+=ResetObserver;match.CentreRestartSignalled+=CentreSignal;}
-        private void OnDisable(){rules.Decided-=Decision;match.Changed-=Phase;match.NewMatch-=ResetObserver;match.CentreRestartSignalled-=CentreSignal;}
+        private void OnEnable(){rules.Decided+=Decision;match.Changed+=Phase;match.NewMatch+=ResetObserver;match.CentreRestartSignalled+=CentreSignal;match.SprintStarted+=SprintSignal;}
+        private void OnDisable(){rules.Decided-=Decision;match.Changed-=Phase;match.NewMatch-=ResetObserver;match.CentreRestartSignalled-=CentreSignal;match.SprintStarted-=SprintSignal;}
+        private void SprintSignal(){Signal=RefereeSignal.Restart;signalUntil=match.PresentationTime+1.2f;holdUntil=signalUntil;}
         private void ResetObserver(){targetZ=pool.transform.position.z;walking=false;speed=0f;Signal=RefereeSignal.None;lastScore=0;holdUntil=0f;}
         private void CentreSignal(SwimmerIdentity taker)
         {Signal=RefereeSignal.Restart;signalUntil=match.PresentationTime+1.6f;holdUntil=signalUntil;}
@@ -58,7 +60,7 @@ namespace ToduStudios.WaterPolo
                 nextDecision=match.PresentationTime+decisionInterval;
                 float z=action.z-pool.transform.position.z;
                 // Observe sectors, rather than tracking every small ball displacement.
-                float sector=Mathf.Abs(z)<4f?0f:Mathf.Sign(z)*(Mathf.Abs(z)>10f?pool.Length*0.38f:pool.Length*0.22f);
+                float sector=Mathf.Abs(z)<4f?0f:Mathf.Sign(z)*(Mathf.Abs(z)>10f?pool.Length*(travelFraction-.01f):pool.Length*0.22f);
                 if(match.Rules!=null && match.Rules.IsPenalty)sector=Mathf.Sign(z)*pool.Length*0.34f;
                 if(!match.IsPlaying && !rules.IsRulePhase && match.Phase!=MatchPhase.GoalRestart)sector=0f;
                 float desired=pool.transform.position.z+sector;
@@ -72,7 +74,7 @@ namespace ToduStudios.WaterPolo
             Vector3 point=transform.position;point.z+=speed*Time.deltaTime;
             point.x=pool.transform.position.x+Mathf.Sign(deckSide)*(pool.Width*0.5f+deckOffset);
             point.y=pool.Waterline+deckHeight;
-            point.z=Mathf.Clamp(point.z,pool.transform.position.z-pool.Length*0.43f,pool.transform.position.z+pool.Length*0.43f);
+            point.z=Mathf.Clamp(point.z,pool.transform.position.z-pool.Length*travelFraction,pool.transform.position.z+pool.Length*travelFraction);
             transform.position=point;
             Vector3 look=action-point;look.y=0f;
             if(look.sqrMagnitude>0.1f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(look),100f*Time.deltaTime);

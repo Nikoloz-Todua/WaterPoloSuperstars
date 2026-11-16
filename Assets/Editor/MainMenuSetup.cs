@@ -29,7 +29,7 @@ namespace ToduStudios.WaterPolo.Editor
             {"mascot","Brand/logo_mascot.png"},{"profile","Profile/profile_default.png"},{"background","Backgrounds/bg_main_menu.png"}
         };
 
-        [MenuItem("Tools/Water Polo/Main Lobby/Set Up Asset Home Screen")]
+        [MenuItem("Tools/Water Polo/Recovery/Frontend/Set Up Asset Home Screen")]
         public static void SetUp()
         {
             RequireSaved();
@@ -71,7 +71,7 @@ namespace ToduStudios.WaterPolo.Editor
             Debug.Log("Asset-driven MainLobby saved. Tools > Water Polo > Play Hub Entry. Original PNG pixels and all economy/match systems retained.");
         }
 
-        [MenuItem("Tools/Water Polo/Main Lobby/Open MainLobby")]
+        [MenuItem("Tools/Water Polo/Open Main Lobby")]
         public static void Open(){RequireSaved();EditorSceneManager.OpenScene(ScenePath,OpenSceneMode.Single);}
 
         public static void ConfigureLandscape()

@@ -28,7 +28,7 @@ namespace ToduStudios.WaterPolo
         public void Simulate(bool moving,float seconds)
         {
             if(match!=null && match.IsPaused)return;
-            if(match!=null && !match.IsPlaying){StopSprint();return;}
+            if(match!=null && !match.CanSwim){StopSprint();return;}
             if(!sprintAllowed){StopSprint();return;}
             if(exhausted && Value>=restartThreshold)exhausted=false;
             IsSprinting=requested && moving && !exhausted && Value>0f;

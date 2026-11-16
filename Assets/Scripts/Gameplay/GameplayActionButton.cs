@@ -24,15 +24,16 @@ namespace ToduStudios.WaterPolo
         {
             if(!initialized){baseColor=background.color;initialized=true;}
             if(availabilitySet && value==available)return;availabilitySet=true;available=value;
-            background.color=value?baseColor:new Color(baseColor.r,baseColor.g,baseColor.b,baseColor.a*0.35f);
-            label.color=value?Color.white:new Color(0.65f,0.74f,0.8f,0.65f);
+            background.color=value?baseColor:new Color(baseColor.r,baseColor.g,baseColor.b,baseColor.a*0.7f);
+            label.color=value?Color.white:new Color(0.72f,0.8f,0.86f,0.85f);
             if(!value)CancelInput();
         }
         public void SetCaption(string caption){if(label.text!=caption)label.text=caption;}
         public void OnPointerDown(PointerEventData e)
         {
             if(pointer!=int.MinValue || e.button!=PointerEventData.InputButton.Left || !available || !controls.CanUse(action))return;
-            pointer=e.pointerId;controls.Begin(action);background.color=baseColor*new Color(0.72f,0.85f,0.95f,1f);
+            if(!controls.Begin(action))return;
+            pointer=e.pointerId;background.color=Color.Lerp(baseColor,new Color(0.28f,0.85f,1f,baseColor.a),0.45f);
         }
         public void OnPointerUp(PointerEventData e)
         {
