@@ -2,7 +2,13 @@
 
 Water Polo Superstars is a 3D mobile water polo game developed by **ToduStudios**, targeting Android first and iOS later. The current build uses placeholder art and a functional fourteen-athlete match.
 
-## Current stage — championship poolside arena redevelopment
+## Current stage — championship arena premium finish
+
+The existing **OlympicMatchArena** now reads as one long **50 × 25 m architectural pool** around the preserved **25 × 20 m gameplay field**. Continuous measured competition ropes, underwater black T markings, reinforced white goals and compact re-entry landings replace the broken-line/partitioned-pool appearance. The three-tier bowl, 22 correctly facing team chairs, clear bench access, player-entry portal, blue LED ribbons and live scoreboards remain integrated with the existing match.
+
+Already saved; repeat-safe finish: **Tools > Water Polo > Arena > Apply Premium Championship Finish**, outside Play Mode. Both cameras, broad opening, fourteen athletes, AI, controls/HUD, scoring, sprint-offs, exclusions and Boot/hub/results are preserved. Fresh Windows Editor physical/input/pointer/camera/hub checks passed; full-duration play and mobile performance remain untested. [Report, measured compromise, screenshots, verification and exact files](docs/CHAMPIONSHIP_ARENA_PREMIUM.md). No Git writes were performed.
+
+## Previous stage — championship poolside arena redevelopment
 
 The existing **25 × 20 m** competition field already had the correct dimensions; its 25.6 × 20 m rope envelope and larger basin are preserved. The saved OlympicMatchArena now has sloped pool-edge architecture and drainage, clearer full-width referee colors, white armless chairs on end-corner team risers, equipment areas, layered original event boards, passive broadcast platforms, stand-access detailing and a ceiling-centred live jumbotron. Both gameplay cameras, the wide sprint opening, fourteen athletes, transparent water, controls/HUD and match/economy authorities remain.
 

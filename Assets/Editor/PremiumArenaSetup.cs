@@ -120,7 +120,7 @@ namespace ToduStudios.WaterPolo.Editor
             foreach(var r in env.Find("Aquatic Centre Architecture").GetComponentsInChildren<Renderer>())
             {
                 string n=r.name.ToLowerInvariant();
-                if(n.Contains("label")||r is TMPro.TMP_SubMesh||r.GetComponent<TMP_Text>()!=null)continue;
+                if(n.Contains("label")||r.GetComponent<TMPro.TMP_SubMesh>()!=null||r.GetComponent<TMP_Text>()!=null)continue;
                 r.sharedMaterial=n.Contains("concourse")?ceramic:n.Contains("glass")||n.Contains("daylight")?glass:n.Contains("white")||n.Contains("wall")||n.Contains("ceiling")?graphite:n.Contains("steel")||n.Contains("beam")||n.Contains("mullion")?silver:navy;
             }
             foreach(var mark in env.Find("Water Polo Field Markers — no race lanes").GetComponentsInChildren<TMP_Text>())

@@ -1,0 +1,84 @@
+# Exact files changed — premium arena finish, 2026-11-17
+# Compared with the file hash inventory taken before this finishing pass. No Git writes.
+# New native meshes/materials/metas, recovery, scripts, documentation and selected evidence are included.
+# Logs/ArenaPremium contains additional local generated verification artifacts and is excluded here.
+
+ADDED Assets/Arena/ChampionshipRebuild/Materials/Championship Portal Graphic.mat
+ADDED Assets/Arena/ChampionshipRebuild/Materials/Championship Portal Graphic.mat.meta
+ADDED Assets/Arena/ChampionshipRebuild/Materials/Underwater Anthracite Ceramic.mat
+ADDED Assets/Arena/ChampionshipRebuild/Materials/Underwater Anthracite Ceramic.mat.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/BlueScoringGoal Professional Goal Engineering Brushed Marine Alloy.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/BlueScoringGoal Professional Goal Engineering Brushed Marine Alloy.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/BlueScoringGoal Professional Goal Engineering Cobalt Architectural Enamel.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/BlueScoringGoal Professional Goal Engineering Cobalt Architectural Enamel.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/BlueScoringGoal Professional Goal Engineering Competition Polymer.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/BlueScoringGoal Professional Goal Engineering Competition Polymer.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Championship Architectural Finish Championship Portal Graphic.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Championship Architectural Finish Championship Portal Graphic.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Championship Architectural Finish Cobalt Architectural Enamel.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Championship Architectural Finish Cobalt Architectural Enamel.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Championship Architectural Finish Ice Blue Inlay.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Championship Architectural Finish Ice Blue Inlay.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Continuous Competition Ropes and Reentry Rectangles Brushed Marine Alloy.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Continuous Competition Ropes and Reentry Rectangles Brushed Marine Alloy.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Continuous Competition Ropes and Reentry Rectangles Competition Green.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Continuous Competition Ropes and Reentry Rectangles Competition Green.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Continuous Competition Ropes and Reentry Rectangles Competition Polymer.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Continuous Competition Ropes and Reentry Rectangles Competition Polymer.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Continuous Competition Ropes and Reentry Rectangles Competition Red.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Continuous Competition Ropes and Reentry Rectangles Competition Red.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Continuous Competition Ropes and Reentry Rectangles Competition Yellow.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Continuous Competition Ropes and Reentry Rectangles Competition Yellow.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Corner Team Entry Landings Brushed Marine Alloy.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Corner Team Entry Landings Brushed Marine Alloy.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Corner Team Entry Landings Ice Blue Inlay.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Corner Team Entry Landings Ice Blue Inlay.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Corner Team Entry Landings Midnight Marine Enamel.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Corner Team Entry Landings Midnight Marine Enamel.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Corner Team Entry Landings Navy Event Rubber.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Corner Team Entry Landings Navy Event Rubber.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Inlaid Swimming Lane T Markings Ice Blue Inlay.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Inlaid Swimming Lane T Markings Ice Blue Inlay.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Inlaid Swimming Lane T Markings Underwater Anthracite Ceramic.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/Inlaid Swimming Lane T Markings Underwater Anthracite Ceramic.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/WhiteScoringGoal Professional Goal Engineering Brushed Marine Alloy.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/WhiteScoringGoal Professional Goal Engineering Brushed Marine Alloy.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/WhiteScoringGoal Professional Goal Engineering Cobalt Architectural Enamel.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/WhiteScoringGoal Professional Goal Engineering Cobalt Architectural Enamel.asset.meta
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/WhiteScoringGoal Professional Goal Engineering Competition Polymer.asset
+ADDED Assets/Arena/ChampionshipRebuild/Meshes/WhiteScoringGoal Professional Goal Engineering Competition Polymer.asset.meta
+MODIFIED Assets/Arena/ChampionshipRebuild/Textures/Championship50mReflection.exr
+ADDED Assets/Editor/ChampionshipArenaPremium.cs
+ADDED Assets/Editor/ChampionshipArenaPremium.cs.meta
+MODIFIED Assets/Editor/PremiumArenaSetup.cs
+MODIFIED Assets/Scenes/OlympicMatchArena.unity
+ADDED Assets/Scenes/Recovery/OlympicMatchArena_PrePremiumPolish.unity
+ADDED Assets/Scenes/Recovery/OlympicMatchArena_PrePremiumPolish.unity.meta
+MODIFIED Assets/TextMesh Pro/Resources/Fonts & Materials/LiberationSans SDF - Fallback.asset
+ADDED docs/CHAMPIONSHIP_ARENA_PREMIUM.md
+ADDED docs/Evidence/ArenaPremium/After-Arena.png
+ADDED docs/Evidence/ArenaPremium/After-Lengthwise.png
+ADDED docs/Evidence/ArenaPremium/After-Opening.png
+ADDED docs/Evidence/ArenaPremium/After-Sideline.png
+ADDED docs/Evidence/ArenaPremium/Athlete-Entrance.png
+ADDED docs/Evidence/ArenaPremium/Before-Arena.png
+ADDED docs/Evidence/ArenaPremium/Before-Lengthwise.png
+ADDED docs/Evidence/ArenaPremium/Before-Opening.png
+ADDED docs/Evidence/ArenaPremium/Before-Sideline.png
+ADDED docs/Evidence/ArenaPremium/Blue-Bench.png
+ADDED docs/Evidence/ArenaPremium/Full-Arena.png
+ADDED docs/Evidence/ArenaPremium/Goal-Engineering.png
+ADDED docs/Evidence/ArenaPremium/Jumbotron-Lighting.png
+ADDED docs/Evidence/ArenaPremium/Long-Pool.png
+ADDED docs/Evidence/ArenaPremium/Official-Reward-Result.png
+ADDED docs/Evidence/ArenaPremium/Primary-Live-Board.png
+ADDED docs/Evidence/ArenaPremium/Reentry-Corner.png
+ADDED docs/Evidence/ArenaPremium/Returned-MainLobby.png
+ADDED docs/Evidence/ArenaPremium/White-Bench.png
+MODIFIED plan.md
+MODIFIED README.md
+ADDED Tools/Verification/ArenaPremiumAuthoring.cs
+ADDED Tools/Verification/ArenaPremiumBroadcastVerification.cs
+ADDED Tools/Verification/ArenaPremiumSprintVerification.cs
+ADDED Tools/Verification/ArenaPremiumVerification.cs
+ADDED docs/CHAMPIONSHIP_ARENA_PREMIUM_FILES.txt
