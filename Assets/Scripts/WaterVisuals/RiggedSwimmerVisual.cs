@@ -26,6 +26,9 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         Vector3 lastLeft,lastRight;
         float idleAt,leftAt,rightAt,bubbleAt;
         int previousPreview=-1,saveAttempts;
+        bool reaching;
+        Quaternion restAlignment;
+        float throwAt, throwTurn;
         static readonly int Move=Animator.StringToHash("Move"),Hold=Animator.StringToHash("Hold"),Block=Animator.StringToHash("Block");
         public Animator Animator=>animator;
         public Transform LeftHand=>leftHand;
@@ -37,6 +40,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         public bool Preview=>identity==null;
         void Awake()
         {
+            if(alignmentRoot!=null)restAlignment=alignmentRoot.localRotation;
             animator=GetComponent<Animator>();animator.applyRootMotion=false;
             // Animator must tick while offscreen too: alignment and hand-entry sampling share its bones.
             animator.cullingMode=AnimatorCullingMode.AlwaysAnimate;
@@ -52,12 +56,15 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         void Released(SwimmerBallInteraction source,BallReleaseKind kind)
         {
             if(identity==null||source!=identity.Interaction||kind==BallReleaseKind.Drop)return;
+            Vector3 direction=Vector3.ProjectOnPlane(ball.Velocity,Vector3.up);
+            throwTurn=Mathf.Clamp(Vector3.SignedAngle(motor.Facing,direction,Vector3.up),-37f,37f);
+            throwAt=Time.time+.26f;
             animator.SetTrigger(kind==BallReleaseKind.Pass||kind==BallReleaseKind.Lob?"Pass":"Shoot");ReleaseAnimations++;
             if(water!=null)water.EmitAthleteSurface(source.transform.position,.48f,true);
         }
         void Update()
         {
-            bool paused=match!=null&&match.IsPaused;animator.speed=paused?0:1;if(paused)return;
+            bool paused=match!=null&&(match.IsPaused||match.GoalPresentationActive);animator.speed=paused?0:1;if(paused)return;
             if(Preview)
             {
                 var k=Keyboard.current;
@@ -71,6 +78,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                 float speed=motor.Velocity.magnitude;
                 Locomotion=identity.EligibleForPlay?Mathf.Clamp01(speed/2.8f):0;
                 if(stamina!=null&&stamina.IsSprinting&&speed>3)Locomotion=1+Mathf.Clamp01((speed-3)/2.5f);
+                reaching=ball.ShowReceivingHand(identity.Interaction);
                 animator.SetBool(Hold,identity.Interaction.HasBall||(charge!=null&&charge.IsCharging));
                 animator.SetBool(Block,keeper!=null&&keeper.ThreateningShot);
                 if(keeper!=null&&keeper.SaveAttempts!=saveAttempts){saveAttempts=keeper.SaveAttempts;animator.SetTrigger("Save");SaveAnimations++;}
@@ -78,13 +86,15 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             animator.SetFloat(Move,Locomotion,.16f,Time.deltaTime);
             // Empty override states retain their last sampled muscles with write-defaults off.
             // Fade the entire action layer out so the locomotion stroke owns free arms again.
-            bool action=animator.GetBool(Hold)||animator.GetBool(Block)||animator.IsInTransition(1)||!animator.GetCurrentAnimatorStateInfo(1).IsName("Free arms");
+            bool action=reaching||animator.GetBool(Hold)||animator.GetBool(Block)||animator.IsInTransition(1)||!animator.GetCurrentAnimatorStateInfo(1).IsName("Free arms");
             animator.SetLayerWeight(1,Mathf.MoveTowards(animator.GetLayerWeight(1),action?1:0,Time.deltaTime*8));
         }
         void LateUpdate()
         {
-            if(head==null||alignmentRoot==null||(match!=null&&match.IsPaused))return;
+            if(head==null||alignmentRoot==null||(match!=null&&(match.IsPaused||match.GoalPresentationActive)))return;
             float surface=pool!=null?pool.Waterline:0;
+            float turn=Mathf.SmoothStep(0,1,Mathf.Clamp01((throwAt-Time.time)*5f));
+            alignmentRoot.localRotation=restAlignment*Quaternion.Euler(0f,throwTurn*turn,0f);
             // Outside the animated hierarchy: correct the mesh waterline, never the swimmer root.
             Vector3 p=alignmentRoot.position;p.y+=surface+headHeight-head.position.y;alignmentRoot.position=p;
             float now=match!=null?match.PresentationTime:Time.time;
@@ -111,11 +121,13 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         }
         void OnAnimatorIK(int layer)
         {
-            if(layer!=1||identity==null||ball==null||!identity.Interaction.HasBall)return;
-            Vector3 target=ball.transform.position;
+            if(layer!=1||identity==null||ball==null)return;
+            bool holding=identity.Interaction.HasBall;
+            if (!holding && !reaching) { animator.SetIKPositionWeight(AvatarIKGoal.RightHand,0); return; }
+            Vector3 target=holding?identity.Interaction.HeldBallPoint:ball.RaisedHand(identity.Interaction,ball.PhysicsPosition);
             var shoulder=animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
             target=shoulder.position+Vector3.ClampMagnitude(target-shoulder.position,.53f);
-            animator.SetIKPositionWeight(AvatarIKGoal.RightHand,.85f);animator.SetIKPosition(AvatarIKGoal.RightHand,target);
+            animator.SetIKPositionWeight(AvatarIKGoal.RightHand,holding?1f:.92f);animator.SetIKPosition(AvatarIKGoal.RightHand,target);
         }
     }
 }

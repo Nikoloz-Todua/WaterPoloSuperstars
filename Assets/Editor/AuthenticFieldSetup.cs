@@ -17,7 +17,7 @@ namespace ToduStudios.WaterPolo.Editor
         public const string Root="Assets/Arena/AuthenticField",Name="Competition Field Equipment",Recovery="Assets/Scenes/Recovery/OlympicMatchArena_PreAuthenticField.unity";
         static PoolBounds pool;
         static Material white,red,yellow,green,navy,metal,net,cyan;
-        [MenuItem("Tools/Water Polo/Arena/Set Up Authentic Field and Period Sprint-Offs")]
+        [MenuItem("Tools/Water Polo/Recovery/Arena/Earlier Arena Passes/Set Up Authentic Field and Period Sprint-Offs")]
         public static void SetUp()
         {
             var scene=SceneManager.GetActiveScene();

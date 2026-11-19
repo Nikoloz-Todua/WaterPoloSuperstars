@@ -1,8 +1,20 @@
-﻿# Water Polo Superstars
+# Water Polo Superstars
 
 Water Polo Superstars is a 3D mobile water polo game developed by **ToduStudios**, targeting Android first and iOS later. The current build uses placeholder art and a functional fourteen-athlete match.
 
-## Current stage — championship arena premium finish
+## Current stage — match reliability and goal presentation
+
+WASD and arrow keys share match movement in both cameras. Own goals credit the opposing team and show the responsible athlete's regret. The goal-line replay angle follows the recorded crossing into the net.
+
+For an exclusion demonstration, choose **Tools > Water Polo > Verification > Exclusion Test** and select a scenario. [Milestone 24 controls, game views and Editor verification](docs/MATCH_TECHNICAL_POLISH.md).
+
+## Previous stage — dry passing and goal replays
+
+Pass through the air to a teammate's raised hand, or hold the touch PASS button to place the ball on the water. Charged, high and skip shots share the arena's physical goalkeeper and goal system. Goals trigger a short celebration and two camera angles of the recorded play. Tap to advance or use **Skip All** to return to the centre restart.
+
+Launch with **Tools > Water Polo > Play Hub Entry** or test the arena with **Tools > Water Polo > Play Olympic Match Arena**. [Controls, implementation and Editor verification](docs/BALL_PHYSICS_AND_GOAL_REPLAYS.md).
+
+## Previous stage — championship arena premium finish
 
 The existing **OlympicMatchArena** now reads as one long **50 × 25 m architectural pool** around the preserved **25 × 20 m gameplay field**. Continuous measured competition ropes, underwater black T markings, reinforced white goals and compact re-entry landings replace the broken-line/partitioned-pool appearance. The three-tier bowl, 22 correctly facing team chairs, clear bench access, player-entry portal, blue LED ribbons and live scoreboards remain integrated with the existing match.
 

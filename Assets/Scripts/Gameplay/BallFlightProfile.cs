@@ -33,6 +33,8 @@ namespace ToduStudios.WaterPolo
     /// <summary>Pure ballistic helpers. They predict intent, never move or acquire the ball.</summary>
     public static class BallTrajectory
     {
+        public static Vector3 Velocity(Vector3 origin,Vector3 destination,float seconds)
+            => (destination-origin)/seconds - Physics.gravity*(seconds*.5f);
         public static float TimeToHeight(float height, float verticalSpeed, float gravity)
         { return (verticalSpeed+Mathf.Sqrt(verticalSpeed*verticalSpeed+2f*gravity*Mathf.Max(0f,height)))/gravity; }
         public static Vector3 Position(Vector3 origin,Vector3 velocity,float seconds,bool gravity)

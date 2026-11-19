@@ -65,7 +65,7 @@ namespace ToduStudios.WaterPolo
                 {
                     Vector3 offset = anchor.position + Vector3.up * (i < 0 ? .7f : .3f) - head.position;
                     if (offset.sqrMagnitude < .016f) break;
-                    if (!match.IsPaused) visual.position += Vector3.ClampMagnitude(offset, 3.5f * Time.deltaTime);
+                    if (!match.IsPaused && !match.GoalPresentationActive) visual.position += Vector3.ClampMagnitude(offset, 3.5f * Time.deltaTime);
                     yield return null;
                 }
                 if (visual == null || athlete.BenchVisual != visual) yield break;

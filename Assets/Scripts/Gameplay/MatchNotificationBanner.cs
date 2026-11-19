@@ -76,7 +76,7 @@ namespace ToduStudios.WaterPolo
         }
         private void Update()
         {
-            if(menus.Visible){group.alpha=0f;return;}
+            if(menus.Visible || match.GoalPresentationActive){group.alpha=0f;return;}
             bool show=!menus.Visible && (match.PresentationTime<until || centre && match.IsCentreRestart);
             group.alpha=Mathf.MoveTowards(group.alpha,show?1f:0f,Time.unscaledDeltaTime/(show?0.12f:0.2f));
         }

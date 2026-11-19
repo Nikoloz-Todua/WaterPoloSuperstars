@@ -90,7 +90,8 @@ namespace ToduStudios.WaterPolo
         private Vector3 sideFocus,sideFocusVelocity;
         private readonly Vector3[] sidePoints=new Vector3[4];
         public MatchCameraView View=>view;
-        public MatchCameraPresentation Presentation=>!enabled?MatchCameraPresentation.Inspection:match!=null&&match.Phase==MatchPhase.SprintSetup?MatchCameraPresentation.PeriodOpening:MatchCameraPresentation.Live;
+        public bool CinematicOverride { get; internal set; }
+        public MatchCameraPresentation Presentation=>CinematicOverride?MatchCameraPresentation.ReplayPlayback:!enabled?MatchCameraPresentation.Inspection:match!=null&&match.Phase==MatchPhase.SprintSetup?MatchCameraPresentation.PeriodOpening:MatchCameraPresentation.Live;
         public float ViewBlend=>viewBlend;
         public void SetView(MatchCameraView value)=>view=value==MatchCameraView.SidelineBroadcast?value:MatchCameraView.Lengthwise;
         public BroadcastCameraSnapshot CaptureCameraPose()=>new BroadcastCameraSnapshot{position=transform.position,rotation=transform.rotation,fieldOfView=GetComponent<Camera>().fieldOfView,view=view,presentation=Presentation};
@@ -276,6 +277,7 @@ namespace ToduStudios.WaterPolo
 
         private void LateUpdate()
         {
+            if (CinematicOverride) return;
             if((target==null||!target.gameObject.activeInHierarchy)&&roster!=null)foreach(var p in roster.Members)if(p!=null&&p.isActiveAndEnabled&&p.EligibleForPlay){SetTarget(p.Motor);break;}
             if (target == null || poolBounds == null)
                 return;
@@ -295,6 +297,7 @@ namespace ToduStudios.WaterPolo
 
         private void ApplyPose()
         {
+            if (CinematicOverride) return;
             Vector3 offset = Quaternion.Euler(0f, yaw, 0f) * Vector3.back * currentDistance;
             Vector3 position=focus+offset+Vector3.up*currentHeight;Quaternion rotation=Quaternion.Euler(pitch,yaw,0f);
             float desired=Opening?0f:view==MatchCameraView.SidelineBroadcast?1f:0f;

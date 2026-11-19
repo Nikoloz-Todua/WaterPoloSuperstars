@@ -12,7 +12,7 @@ namespace ToduStudios.WaterPolo
         private InputAction pass;
         private InputAction steal;
         private InputAction hold;
-        private InputAction skipModifier, highModifier;
+        private InputAction skipModifier, highModifier, wetModifier;
         private SwimmerPassing passing;
         private SwimmerSteal stealing;
         private ShotCharge charge;
@@ -37,6 +37,8 @@ namespace ToduStudios.WaterPolo
             steal = new InputAction("AttemptSteal", InputActionType.Button, "<Keyboard>/f");
             hold = new InputAction("IntentionalHold", InputActionType.Button, "<Keyboard>/g");
             skipModifier=new InputAction("SkipShotModifier",InputActionType.Button,"<Keyboard>/q");
+            wetModifier=new InputAction("WetPassModifier",InputActionType.Button,"<Keyboard>/q");
+            wetModifier.AddBinding("<Gamepad>/leftShoulder");
             highModifier=new InputAction("HighShotModifier",InputActionType.Button,"<Keyboard>/r");
         }
 
@@ -47,7 +49,7 @@ namespace ToduStudios.WaterPolo
             pass.Enable();
             steal.Enable();
             hold.Enable();
-            skipModifier.Enable();highModifier.Enable();
+            skipModifier.Enable();highModifier.Enable();wetModifier.Enable();
             lob.Enable();
             enabledFrame = Time.frameCount;
             blockShootUntilRelease = false;
@@ -70,7 +72,7 @@ namespace ToduStudios.WaterPolo
             if (!blockShootUntilRelease && shoot.WasReleasedThisFrame())
                 charge?.ReleaseCharge();
             else if (pass.WasPressedThisFrame())
-            { charge?.CancelCharge(); passing?.TryPass(); }
+            { charge?.CancelCharge(); passing?.TryPass(wetModifier.IsPressed()?PassDelivery.Wet:PassDelivery.Dry); }
             else if(lob.WasPressedThisFrame())
             {charge?.CancelCharge();lobPassing?.TryPass();}
             else if (steal.WasPressedThisFrame())
@@ -106,7 +108,7 @@ namespace ToduStudios.WaterPolo
             pass?.Dispose();
             steal?.Dispose();
             hold?.Dispose();
-            skipModifier?.Dispose();highModifier?.Dispose();
+            skipModifier?.Dispose();highModifier?.Dispose();wetModifier?.Dispose();
             lob?.Dispose();
         }
     }

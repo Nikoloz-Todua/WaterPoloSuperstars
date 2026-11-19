@@ -311,8 +311,8 @@ namespace ToduStudios.WaterPolo
             {
                 var keyboard = UnityEngine.InputSystem.Keyboard.current;
                 float lean = mobile != null ? mobile.KeeperLean : 0f;
-                if (keyboard != null && (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed)) lean = -1f;
-                if (keyboard != null && (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed)) lean = 1f;
+                if (keyboard != null && ((keyboard.FindKeyOnCurrentKeyboardLayout("A")??keyboard.aKey).isPressed || keyboard.leftArrowKey.isPressed)) lean = -1f;
+                if (keyboard != null && ((keyboard.FindKeyOnCurrentKeyboardLayout("D")??keyboard.dKey).isPressed || keyboard.rightArrowKey.isPressed)) lean = 1f;
                 penaltyKeeper.ChoosePenaltySide(lean);
             }
             bool human = taker.Team == selection.HumanTeam;
@@ -441,7 +441,7 @@ namespace ToduStudios.WaterPolo
         }
         private void FixedUpdate()
         {
-            if (!useCompetitionReentryArea || match.IsPaused) return;
+            if (!useCompetitionReentryArea || match.IsPaused || match.GoalPresentationActive) return;
             foreach (var player in roster.Members)
             {
                 if (player.EligibleForPlay) continue;

@@ -1,8 +1,31 @@
 # Water Polo Superstars — Project Plan and Handoff
 
-Last updated: 2026-11-17.
+Last updated: 2026-11-20.
 
-## Current handoff — Milestone 20 premium arena finish and acceptance
+## Current handoff — Milestone 24 match technical polish
+
+Milestone 24 works in OlympicMatchArena over the saved Milestone 23 local work. Human-only Git writes remain permanent. Native scene recovery `Assets/Scenes/Recovery/OlympicMatchArena_PreMilestone24.unity` was copied byte-for-byte before edits and is outside the build. [Implementation, Editor commands, test results and screens](docs/MATCH_TECHNICAL_POLISH.md).
+
+- WASD and arrows use the same digital normalized action and camera transform. WASD resolves displayed letters with a physical fallback when a layout lacks them. Visible menus own UI navigation. The motor, stamina, speeds and joystick path stay in their existing systems.
+- PrototypeMatch scores the whole-ball crossing for the goal mouth's scoring team. BallController freezes the controlling player and team at release, tracks opposing contact, and returns attacking, defensive deflection, own-goal or unknown attribution. Replay uses shooter celebration, a generic scoring-team reaction or a restrained own-goal regret pose as appropriate.
+- The second replay angle moves to the field side of the goal from the opposite entry side. Both angles use the real recorded crossing and net tail. Only the decisive portion plays more slowly. Existing overlays, Auto Replay, centre pass and both live cameras retain their paths.
+- In Edit Mode choose **Tools > Water Polo > Verification > Exclusion Test**, then a team or scenario. The demonstration uses real off-ball contact, clocks, restart, gate movement and re-entry. The tested cases cover both teams, pause, natural 18-second timing, early possession, third-personal replacement and halftime reversal.
+- Main production menu entries remain Play Hub Entry, Open Main Lobby and Play Olympic Match Arena. Earlier arena authoring is under Recovery > Arena > Earlier Arena Passes. The Android profile inherits the enabled Boot, MainLobby and OlympicMatchArena order. SampleScene is disabled for builds and retained for its template role.
+- Windows Editor evidence is under `Logs/MatchTechnicalPolish/`. See the report for verified scope and device limits. The next milestone requires authorization.
+
+## Previous handoff — Milestone 23 ball physics and recorded goal presentations
+
+Milestone 23 is saved in OlympicMatchArena. The checked-in starting point was Milestone 22 commit 7e5a2aa. Its penalty, substitution and camera work is described in [the Milestone 22 report](docs/PENALTIES_EXCLUSIONS_AND_CAMERA.md). The prior top-of-file handoff was stale. The native recovery is `Assets/Scenes/Recovery/OlympicMatchArena_PreMilestone23.unity`, outside builds and byte-identical to production before this work. Human-only Git writes remain permanent.
+
+- BallController remains the ownership and physics authority. Ordinary passes previously used gravity-off surface motion. Dry passes launch from a raised socket with a ballistic arc and bounded receiver lead. A swept 3D hand region permits one intended catch or opposing interception. Existing humanoid rigs reach with one-handed IK. Wet placement is Q+B, LB+North or a held PASS touch. Selection hands off on release. Possession follows physical contact.
+- Normal and powerful shots use raised hand launches. High and skip preserve distinct flight profiles. Wet and missed pass impacts reduce drift. The five-metre penalty origin, aim, existing shot charge and swept keeper remain in the authoritative path.
+- PrototypeMatch owns score, phase, clocks and centre pass. It holds GoalRestart through the goal presentation. GoalReplayDirector uses a bounded 20 Hz ring and renderer-only pooled actors with actual recorded ball and rig poses. A scorer arm pump precedes two views of the same goal. Tap, Enter or right shoulder advances a stage. Skip All, Backspace or East completes it. Auto Replay is a backward-compatible presentation preference.
+- The saved interface uses the existing Canvas and render camera. Use **Tools > Water Polo > Match UX > Set Up Milestone 23 Goal Replays** in Edit Mode. Initial install and byte-identical repeat setup passed. **Tools > Water Polo > Play Olympic Match Arena** tests the arena directly. Normal Editor startup is Boot.
+- Editor verification covers measured dry-pass arcs and exclusive catches, White AI and keeper delivery, moving reception, interception, touch wet/dry, missed lob, skip flight, penalties and saves. Replay verification covers Blue and White, two angles, auto progression, tap debounce, mouse/touch/gamepad, Pause, Skip All, Restart, camera restoration, period-ending penalty and a staged late deflection.
+- The isolated Boot → Lobby → Match → Result → Lobby test passed. It restarted and exited from playback, physically acquired four sprint-offs, accelerated period endings, checked one victory receipt and verified the real profile hash. M22 discipline and F6/F8 regressions passed. Game views and machine results are in `Logs/BallAndGoalReplays/`. [Implementation, settings, limits and exact file inventory](docs/BALL_PHYSICS_AND_GOAL_REPLAYS.md).
+- Native device performance, production catch and celebration animation, and persistent Save Goal remain future work. A new brief is required for another milestone.
+
+## Previous handoff — Milestone 20 premium arena finish and acceptance
 
 2026-11-17: The developer authorized the supplied production-direction rebuild/polish brief for the **existing OlympicMatchArena**. **Finishing pass implemented, saved and focused Windows Editor acceptance passed. Stop after this arena work.** Human-only Git writes remain permanent. Full implementation, measured layout, evidence, screenshots and limits: **docs/CHAMPIONSHIP_ARENA_PREMIUM.md**; exact changed paths including metas/evidence: **docs/CHAMPIONSHIP_ARENA_PREMIUM_FILES.txt**.
 

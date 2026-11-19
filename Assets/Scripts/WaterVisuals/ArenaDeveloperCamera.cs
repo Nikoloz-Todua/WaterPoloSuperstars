@@ -18,10 +18,10 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         }
         void LateUpdate()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            if (Keyboard.current != null && Keyboard.current.f8Key.wasPressedThisFrame)
+            if (broadcast.CinematicOverride) return;
+            if ((Application.isEditor || Debug.isDebugBuild) &&
+                Keyboard.current != null && Keyboard.current.f8Key.wasPressedThisFrame)
                 SetView(ViewIndex + 1);
-#endif
             if (ViewIndex >= 0 && viewpoints[ViewIndex] != null)
                 transform.SetPositionAndRotation(viewpoints[ViewIndex].position, viewpoints[ViewIndex].rotation);
         }

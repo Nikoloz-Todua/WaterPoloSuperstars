@@ -14,6 +14,7 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private MobileMatchAction action;
         [SerializeField] private Graphic background;
         [SerializeField] private TMP_Text label;
+        private float passPressedAt;
         private Color baseColor;
         private int pointer=int.MinValue;
         private bool available,initialized,availabilitySet;
@@ -32,12 +33,17 @@ namespace ToduStudios.WaterPolo
         public void OnPointerDown(PointerEventData e)
         {
             if(pointer!=int.MinValue || e.button!=PointerEventData.InputButton.Left || !available || !controls.CanUse(action))return;
-            if(!controls.Begin(action))return;
+            if(action==MobileMatchAction.Pass)passPressedAt=Time.unscaledTime;
+            else if(!controls.Begin(action))return;
             pointer=e.pointerId;background.color=Color.Lerp(baseColor,new Color(0.28f,0.85f,1f,baseColor.a),0.45f);
         }
         public void OnPointerUp(PointerEventData e)
         {
-            if(pointer!=e.pointerId)return;pointer=int.MinValue;controls.End(action,false);if(available)background.color=baseColor;
+            if(pointer!=e.pointerId)return;
+            pointer=int.MinValue;
+            if (action==MobileMatchAction.Pass) controls.ReleasePass(Time.unscaledTime-passPressedAt >= .32f);
+            else controls.End(action,false);
+            if(available)background.color=baseColor;
         }
         public void OnPointerExit(PointerEventData e){if(pointer==e.pointerId)CancelInput();}
         public void OnCancel(BaseEventData e)=>CancelInput();

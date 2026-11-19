@@ -121,7 +121,11 @@ namespace ToduStudios.WaterPolo
             overlay.blocksRaycasts=overlay.interactable=Visible;
             pauseButton.SetActive(page==MatchMenuPage.None && match.Phase!=MatchPhase.PreMatch && match.Phase!=MatchPhase.FullTime);
             // Avoid a focused Resume button consuming the same Space used to shoot after resuming.
-            if(EventSystem.current!=null)EventSystem.current.SetSelectedGameObject(null);
+            if (EventSystem.current != null)
+            {
+                EventSystem.current.sendNavigationEvents=Visible;
+                EventSystem.current.SetSelectedGameObject(null);
+            }
         }
         public void OpenPause(){if(Page==MatchMenuPage.Substitutions || Page==MatchMenuPage.Settings || Page==MatchMenuPage.Controls || Page==MatchMenuPage.RestartConfirmation || Page==MatchMenuPage.ExitConfirmation)return;match.SetPaused(true);}
         public void Resume(){preferences.Save();match.SetPaused(false);}

@@ -4,6 +4,7 @@ using UnityEngine;
 namespace ToduStudios.WaterPolo
 {
     public enum BallState { Free, Held, Released }
+    public enum PassDelivery { Dry, Wet, Lob }
     public enum BallReleaseKind { None, Shot, Pass, Drop, Lob }
 
     /// <summary>Exclusive ownership and hybrid 3D flight/water simulation for the single match ball.</summary>
@@ -24,6 +25,9 @@ namespace ToduStudios.WaterPolo
         public event Action<BallImpactEvent> Contact;
         public event Action<GoalMouth, Vector3, float> Netted;
         [SerializeField] private BallFlightProfile flight = new BallFlightProfile();
+        public PassDelivery Delivery { get; private set; }
+        public event Action<SwimmerBallInteraction> DryCaught;
+        private PrototypeRoster roster;
         public ShotType CurrentShot { get; private set; }
         public int WaterBounces { get; private set; }
         private Vector3 previousAirPosition;
@@ -74,11 +78,23 @@ namespace ToduStudios.WaterPolo
         public Vector3 Velocity => body != null && !body.isKinematic ? body.linearVelocity : Vector3.zero;
         public event Action<SwimmerBallInteraction, SwimmerBallInteraction> PossessionChanged;
         public bool CanCollect => Live && !periodSupported && !periodDropping && isActiveAndEnabled && !simulationPaused && Owner == null && Time.time>=collectAfter && Velocity.magnitude<=flight.maximumReceivingSpeed &&
-            ((!IsAirborne && State==BallState.Free) || (IsAirborne && Time.time>=collectAfter && PhysicsPosition.y<=SurfaceHeight+receivingHeight && Velocity.y<=0f));
+            ((!IsAirborne && State==BallState.Free) || (IsAirborne && !IsPassFlight && PhysicsPosition.y<=SurfaceHeight+receivingHeight && Velocity.y<=0f));
+        private bool IsPassFlight => ReleaseKind == BallReleaseKind.Pass || ReleaseKind == BallReleaseKind.Lob;
         public int ShotSequence { get; private set; }
         public Vector3 ShotOrigin { get; private set; }
         // Eligibility outlives the short Released cooldown state, allowing long shots to score.
         public bool IsScoringShot { get; private set; }
+        public bool CanScoreGoal { get; private set; }
+        private GoalAction goalAction;
+        private bool opposingTouch;
+
+        public GoalAttribution AttributeGoal(PrototypeTeam team) => goalAction.Attribute(team,opposingTouch);
+
+        private void NotePlayerContact(SwimmerIdentity player)
+        {
+            if (CanScoreGoal && player != null && goalAction.Actor != null && player.Team != goalAction.Team)
+                opposingTouch=true;
+        }
         public SwimmerBallInteraction IntendedReceiver => intendedReceiver != null ? intendedReceiver.Interaction : null;
         public float SurfaceHeight => poolBounds.Waterline + surfaceOffset;
         // Unobstructed linear-drag travel budget for tactical shot assessment, not a guaranteed trajectory.
@@ -88,6 +104,8 @@ namespace ToduStudios.WaterPolo
 
         private void Awake()
         {
+            roster = match != null ? match.GetComponent<PrototypeRoster>() : null;
+            if (roster == null && match != null) roster = FindAnyObjectByType<PrototypeRoster>();
             body = GetComponent<Rigidbody>();
             ballCollider = GetComponent<SphereCollider>();
             if (poolBounds == null)
@@ -119,7 +137,7 @@ namespace ToduStudios.WaterPolo
             return true;
         }
 
-        private void AssignOwner(SwimmerBallInteraction claimant)
+        private void AssignOwner(SwimmerBallInteraction claimant, Vector3? contact = null)
         {
             RestoreSurfacePhysics();
             SwimmerBallInteraction previousOwner = Owner;
@@ -134,10 +152,11 @@ namespace ToduStudios.WaterPolo
             body.isKinematic = true;
             body.interpolation = RigidbodyInterpolation.None;
             ballCollider.enabled = false;
+            if (contact.HasValue) body.position = transform.position = contact.Value;
             Owner = claimant;
             OwnershipStartedAt = Time.time;
             State = BallState.Held;
-            IsScoringShot = false;
+            IsScoringShot = CanScoreGoal = false;
             NoteMotionOrigin(body.position);
             NotifyPossessionChanged(previousOwner);
         }
@@ -161,37 +180,77 @@ namespace ToduStudios.WaterPolo
             if (!CanRelease(claimant, BallReleaseKind.Shot) || simulationPaused || State != BallState.Held || Owner != claimant || !Eligible(claimant))
                 return false;
             bool penaltyThrow = match != null && match.Phase == MatchPhase.PenaltyReady;
-            CurrentShot=shot;
-            Release(claimant, Mathf.Max(0f, speed), claimant.GetComponent<SwimmerMotor>().Facing, BallReleaseKind.Shot);
-            float rise=shot==ShotType.High?flight.highReleaseHeight:shot==ShotType.Skip?flight.skipReleaseHeight:
-                shot==ShotType.Powerful?flight.powerfulReleaseHeight:flight.normalReleaseHeight;
-            Vector3 origin=body.position+Vector3.up*rise;
-            float range=ShotDistance(claimant);
-            float vertical=0.15f;
-            if(shot==ShotType.High)
-            {float time=Mathf.Clamp(range/Mathf.Max(1f,speed),0.15f,1.5f);vertical=(0.48f-rise-Physics.gravity.y*time*time*0.5f)/time;}
-            else if(shot==ShotType.Skip)
-            {float maximum=Mathf.Sqrt(2f*rise/Mathf.Max(0.1f,-Physics.gravity.y))*0.9f;float time=Mathf.Clamp(range*0.55f/Mathf.Max(1f,speed),0.1f,maximum);vertical=(-rise-Physics.gravity.y*time*time*0.5f)/time;}
+            Vector3 direction = claimant.GetComponent<SwimmerMotor>().Facing;
+            Vector3 origin = ThrowOrigin(claimant, direction);
+            GoalMouth goal = null;
+            var identity = claimant.GetComponent<SwimmerIdentity>();
+            foreach (var candidate in goalMouths)
+                if (candidate != null && identity != null && candidate.ScoringTeam == identity.Team) { goal = candidate; break; }
             if (penaltyThrow)
             {
-                var goal = match.Rules.PenaltyGoal.transform;
-                float approach = Vector3.Dot(body.linearVelocity, goal.forward);
-                float depth = -goal.InverseTransformPoint(origin).z;
-                float travel = Mathf.Clamp(depth / Mathf.Max(1f, approach), .06f, 1f);
-                vertical = (goal.position.y + match.Rules.PenaltyTargetHeight - origin.y) / travel - .5f * Physics.gravity.y * travel;
+                goal = match.Rules.PenaltyGoal;
+                Vector3 local = goal.transform.InverseTransformPoint(origin);
+                local.z = -5f;
+                // Keep the five-metre trajectory aligned with the taker's aim.
+                local.x = goal.transform.InverseTransformPoint(identity.Motor.Position).x;
+                origin = goal.transform.TransformPoint(local);
             }
-            BeginFlight(origin,body.linearVelocity+Vector3.up*vertical);
+            CurrentShot = shot;
+            Vector3 horizontal = direction * Mathf.Max(.1f, speed);
+            float approach = goal != null ? Vector3.Dot(horizontal, goal.transform.forward) : 0f;
+            float depth = goal != null ? -goal.transform.InverseTransformPoint(origin).z : 0f;
+            float time = Mathf.Clamp(depth / Mathf.Max(1f, approach), .1f, 1.35f);
+            float top = goal != null ? goal.transform.position.y : poolBounds.Waterline;
+            float targetHeight = penaltyThrow ? top + match.Rules.PenaltyTargetHeight : top + .43f;
+            float vertical = approach > 2f && depth > 0 ? BallTrajectory.Velocity(origin,new Vector3(origin.x,targetHeight,origin.z),time).y : .55f;
+            if (shot == ShotType.Skip && !penaltyThrow)
+            {
+                float landing = Mathf.Clamp(time * .47f, .13f, .5f);
+                vertical = BallTrajectory.Velocity(origin,new Vector3(origin.x,SurfaceHeight,origin.z),landing).y;
+            }
+            else if (shot == ShotType.High && !penaltyThrow)
+            {
+                float highTime = Mathf.Clamp(time * 1.32f + .07f, .28f, 1.4f);
+                horizontal *= time / highTime;
+                vertical = BallTrajectory.Velocity(origin,new Vector3(origin.x,targetHeight,origin.z),highTime).y;
+            }
+            Release(claimant, horizontal.magnitude, direction, BallReleaseKind.Shot, origin);
+            BeginFlight(origin, horizontal + Vector3.up * vertical);
+            CompleteRelease(claimant,BallReleaseKind.Shot);
             return true;
         }
 
-        private float ShotDistance(SwimmerBallInteraction player)
+        private Vector3 ThrowOrigin(SwimmerBallInteraction player, Vector3 forward)
         {
-            var identity=player.GetComponent<SwimmerIdentity>();
-            foreach(var goal in goalMouths)
-                if(goal!=null && identity!=null && goal.ScoringTeam==identity.Team)
-                    return Mathf.Clamp(Vector3.ProjectOnPlane(goal.transform.position-body.position,Vector3.up).magnitude,2f,18f);
-            return 8f;
+            var motor = player.GetComponent<SwimmerMotor>();
+            Vector3 socket = motor != null ? motor.Position : player.transform.position;
+            socket += forward * .36f + Vector3.Cross(Vector3.up,forward) * .26f;
+            socket = poolBounds.ClampPosition(socket, Radius);
+            socket.y = poolBounds.Waterline + .57f;
+            return socket;
         }
+
+        public Vector3 RaisedHand(SwimmerBallInteraction player, Vector3 from)
+        {
+            var motor = player.GetComponent<SwimmerMotor>();
+            Vector3 root = motor.Position;
+            Vector3 toward = Vector3.ProjectOnPlane(from-root,Vector3.up).normalized;
+            Vector3 right = Vector3.Cross(Vector3.up,motor.Facing);
+            Vector3 hand = root + toward * .42f + right * .19f;
+            hand.y = poolBounds.Waterline + .57f;
+            return hand;
+        }
+
+        public bool ShowReceivingHand(SwimmerBallInteraction player)
+        {
+            if (!IsAirborne || Owner != null || !IsPassFlight || Delivery == PassDelivery.Wet ||
+                player == LastReleaser || !Eligible(player)) return false;
+            Vector3 toward = player.transform.position - PhysicsPosition;
+            return toward.sqrMagnitude < 8f && Vector3.Dot(toward,Velocity) > 0f &&
+                (player == IntendedReceiver || LastReleaser != null &&
+                 player.GetComponent<SwimmerIdentity>().Team != LastReleaser.GetComponent<SwimmerIdentity>().Team);
+        }
+
         private void BeginFlight(Vector3 origin, Vector3 velocity)
         {
             IsAirborne=true;body.constraints=RigidbodyConstraints.None;body.useGravity=true;body.linearDamping=flight.airDrag;
@@ -247,33 +306,59 @@ namespace ToduStudios.WaterPolo
         }
 
         public bool TryPass(SwimmerBallInteraction claimant, Vector3 direction, float speed,
-            SwimmerPassing receiver, float minimumFlightTime, float receivingWindow)
+            SwimmerPassing receiver, float minimumFlightTime, float receivingWindow, PassDelivery delivery = PassDelivery.Dry)
         {
             if (!CanRelease(claimant, BallReleaseKind.Pass) || simulationPaused || State != BallState.Held || Owner != claimant || !Eligible(claimant))
                 return false;
-            if(match!=null && match.IsCentreRestart && (receiver==null || !match.IsCentreReceiver(receiver.Identity)))return false;
-            direction = Vector3.ProjectOnPlane(direction, Vector3.up);
-            if (direction.sqrMagnitude < 0.0001f || speed <= 0f ||
-                (receiver != null && !receiver.CanReceiveFrom(claimant))) return false;
-            Release(claimant, speed, direction.normalized, BallReleaseKind.Pass);
-            intendedReceiver = receiver;
-            receiveAfter = Time.time + Mathf.Max(0.02f, minimumFlightTime);
-            receiveUntil = Time.time + Mathf.Max(minimumFlightTime + 0.1f, receivingWindow);
-            previousPassPosition = body.position;
+            if (match != null && match.IsCentreRestart && (receiver == null || !match.IsCentreReceiver(receiver.Identity))) return false;
+            direction = Vector3.ProjectOnPlane(direction, Vector3.up).normalized;
+            if (direction.sqrMagnitude < .5f || speed <= 0f || (receiver != null && !receiver.CanReceiveFrom(claimant))) return false;
+            Vector3 origin = ThrowOrigin(claimant,direction);
+            Vector3 target = receiver != null ? RaisedHand(receiver.Interaction,origin) : origin + direction * 5f;
+            float range = Vector3.ProjectOnPlane(target-origin, Vector3.up).magnitude;
+            float time = Mathf.Clamp(range / Mathf.Max(speed,10.5f), .30f, 1.12f);
+            if (receiver != null)
+            {
+                Vector3 movement = receiver.Identity.Motor.Velocity;
+                target += Vector3.ClampMagnitude(movement*time*.82f,1.65f);
+                if (delivery == PassDelivery.Wet)
+                    target += movement.sqrMagnitude > .25f ? movement.normalized * .64f : -direction * .38f;
+            }
+            target = poolBounds.ClampPosition(target, Radius);
+            target.y = delivery == PassDelivery.Wet ? SurfaceHeight : origin.y;
+            LaunchPass(claimant,origin,target,time,receiver,delivery,minimumFlightTime,receivingWindow);
             return true;
         }
 
-        public bool TryLob(SwimmerBallInteraction claimant,Vector3 direction,float distance,float flightDuration,SwimmerPassing receiver)
+        public bool TryLob(SwimmerBallInteraction claimant, Vector3 direction, float distance, float flightDuration, SwimmerPassing receiver)
         {
-            if(!CanRelease(claimant,BallReleaseKind.Lob) || simulationPaused || State!=BallState.Held || Owner!=claimant || !Eligible(claimant) || flightDuration<0.2f || distance<=0f ||
-                (receiver!=null && !receiver.CanReceiveFrom(claimant)))return false;
-            direction=Vector3.ProjectOnPlane(direction,Vector3.up).normalized;if(direction.sqrMagnitude<0.5f)return false;
-            Release(claimant,distance/flightDuration,direction,BallReleaseKind.Lob);
-            Vector3 end=poolBounds.ClampPosition(body.position+direction*distance,Radius);
-            Vector3 horizontal=Vector3.ProjectOnPlane(end-body.position,Vector3.up)/flightDuration;
-            BeginFlight(body.position,horizontal+Vector3.up*(Mathf.Max(0.1f,-Physics.gravity.y)*flightDuration*0.5f));
-            intendedReceiver=receiver;receiveAfter=Time.time+0.1f;receiveUntil=Time.time+flightDuration+1.2f;previousPassPosition=body.position;
+            if (!CanRelease(claimant,BallReleaseKind.Lob) || simulationPaused || State != BallState.Held || Owner != claimant ||
+                !Eligible(claimant) || flightDuration < .2f || distance <= 0f || (receiver != null && !receiver.CanReceiveFrom(claimant))) return false;
+            direction = Vector3.ProjectOnPlane(direction,Vector3.up).normalized;
+            if (direction.sqrMagnitude < .5f) return false;
+            Vector3 origin = ThrowOrigin(claimant,direction);
+            Vector3 target = receiver != null ? RaisedHand(receiver.Interaction,origin) +
+                Vector3.ClampMagnitude(receiver.Identity.Motor.Velocity * flightDuration * .7f,1.65f) : origin + direction * distance;
+            target = poolBounds.ClampPosition(target,Radius);
+            target.y = receiver != null ? origin.y : SurfaceHeight;
+            LaunchPass(claimant,origin,target,flightDuration,receiver,PassDelivery.Lob,.1f,flightDuration + .4f);
             return true;
+        }
+
+        private void LaunchPass(SwimmerBallInteraction player, Vector3 origin, Vector3 target, float duration,
+            SwimmerPassing receiver, PassDelivery delivery, float minimumFlight, float window)
+        {
+            var kind = delivery == PassDelivery.Lob ? BallReleaseKind.Lob : BallReleaseKind.Pass;
+            Vector3 velocity = BallTrajectory.Velocity(origin,target,duration);
+            var planar = Vector3.ProjectOnPlane(velocity,Vector3.up);
+            Release(player,planar.magnitude,planar.normalized,kind,origin);
+            Delivery = delivery;
+            intendedReceiver = receiver;
+            receiveAfter = Time.time + Mathf.Max(.08f, minimumFlight);
+            receiveUntil = Time.time + Mathf.Max(duration+.16f, window);
+            previousPassPosition = origin;
+            BeginFlight(origin,velocity);
+            CompleteRelease(player,kind);
         }
 
         private void RestoreSurfacePhysics()
@@ -296,14 +381,16 @@ namespace ToduStudios.WaterPolo
             // There is no remaining field in which to spawn a physical drop in that case.
             if (poolBounds == null) return;
             if ((match == null || !match.IsPaused) && State == BallState.Held && Owner == claimant && claimant != null)
+            {
                 Release(claimant, 0f, claimant.transform.forward, BallReleaseKind.Drop);
+                CompleteRelease(claimant,BallReleaseKind.Drop);
+            }
         }
 
-        private void Release(SwimmerBallInteraction claimant, float speed, Vector3 launchDirection, BallReleaseKind kind)
+        private void Release(SwimmerBallInteraction claimant, float speed, Vector3 launchDirection, BallReleaseKind kind, Vector3? actualOrigin = null)
         {
             RestoreSurfacePhysics();
             WaterBounces=0;nettedGoal=null;
-            SwimmerBallInteraction previousOwner = Owner;
             intendedReceiver = null;
             Vector3 direction = Vector3.ProjectOnPlane(launchDirection, Vector3.up).normalized;
             // Start beyond the capsule; at pool edges the position is clamped and collision stays
@@ -311,23 +398,20 @@ namespace ToduStudios.WaterPolo
             Vector3 releasePoint = speed > 0f
                 ? claimant.GetComponent<SwimmerMotor>().Position + direction * claimant.ReleaseDistance
                 : transform.position;
-            if (kind == BallReleaseKind.Shot && match != null && match.Phase == MatchPhase.PenaltyReady)
-            {
-                // The normal anti-overlap offset would move a five-metre throw inside the line.
-                // Owner collision remains ignored until separation on the existing release path.
-                releasePoint = claimant.GetComponent<SwimmerMotor>().Position;
-            }
-            // Keep release spawning on the playing side; a teleport into a net is not a goal.
-            Vector3 spawn = poolBounds.ClampPosition(releasePoint, Radius);
-            spawn.y = SurfaceHeight;
+            Vector3 spawn = actualOrigin ?? poolBounds.ClampPosition(releasePoint, Radius);
+            if (!actualOrigin.HasValue) spawn.y = SurfaceHeight;
             body.position = spawn;
             ShotOrigin = spawn;
             NoteMotionOrigin(spawn);
             ReleaseKind = kind;
             ReleaseStartedAt = Time.time;
             LastReleaser = claimant;
-            IsScoringShot = speed > 0f && (match == null || (!match.IsCentreRestart && match.Phase != MatchPhase.FreeThrowReady));
-            if (IsScoringShot) ShotSequence++;
+            bool legalRelease = match == null || !match.IsCentreRestart && match.Phase != MatchPhase.FreeThrowReady;
+            IsScoringShot = speed > 0f && legalRelease;
+            CanScoreGoal = IsScoringShot || kind == BallReleaseKind.Drop && match != null && match.IsPlaying;
+            goalAction = CanScoreGoal ? new GoalAction(claimant,kind) : default;
+            opposingTouch = false;
+            if (CanScoreGoal) ShotSequence++;
             Owner = null;
             State = BallState.Released;
             collectAfter = Time.time + releaseProtection;
@@ -339,8 +423,12 @@ namespace ToduStudios.WaterPolo
                 Physics.IgnoreCollision(ballCollider, ignoredOwnerCollider, true);
             body.linearVelocity = direction * speed;
             body.angularVelocity = Vector3.zero;
-            NotifyPossessionChanged(previousOwner);
-            Released?.Invoke(claimant, kind);
+        }
+
+        private void CompleteRelease(SwimmerBallInteraction claimant, BallReleaseKind kind)
+        {
+            NotifyPossessionChanged(claimant);
+            Released?.Invoke(claimant,kind);
         }
 
         private Vector3 SurfacePosition(Vector3 position)
@@ -405,8 +493,7 @@ namespace ToduStudios.WaterPolo
             if (!(Live || match!=null && !match.IsPaused && match.Phase==MatchPhase.PenaltyFlight) || !isActiveAndEnabled || simulationPaused || Owner != null || State == BallState.Held || identity == null || !identity.EligibleForPlay || identity.IsFieldPlayer || !claimant.isActiveAndEnabled || claimant.CarryAnchor == null)
                 return false;
             Vector3 incoming=Velocity;
-            body.position = contact;
-            AssignOwner(claimant);
+            AssignOwner(claimant,contact);
             Saved?.Invoke();
             Contact?.Invoke(new BallImpactEvent(BallImpactKind.Save,contact,incoming,Vector3.zero));
             return true;
@@ -416,6 +503,7 @@ namespace ToduStudios.WaterPolo
         {
             var identity = claimant != null ? claimant.GetComponent<SwimmerIdentity>() : null;
             if (!(Live || match!=null && !match.IsPaused && match.Phase==MatchPhase.PenaltyFlight) || !isActiveAndEnabled || simulationPaused || Owner != null || State == BallState.Held || identity == null || !identity.EligibleForPlay || identity.IsFieldPlayer || !claimant.isActiveAndEnabled) return false;
+            NotePlayerContact(identity);
             intendedReceiver = null; RestoreOwnerCollision();
             Vector3 incoming=Velocity;
             if(contact.y>SurfaceHeight+0.04f || outgoingVelocity.y>0.1f)BeginFlight(contact,outgoingVelocity);
@@ -432,6 +520,8 @@ namespace ToduStudios.WaterPolo
         private void OnCollisionEnter(Collision collision)
         {
             if(match!=null && !match.BallInMotion)return;
+            var athlete=collision.rigidbody != null ? collision.rigidbody.GetComponent<SwimmerIdentity>() : null;
+            NotePlayerContact(athlete);
             Impact?.Invoke();
             if(collision.contactCount>0)Contact?.Invoke(new BallImpactEvent(BallImpactKind.Frame,collision.GetContact(0).point,collision.relativeVelocity,Velocity));
         }
@@ -455,7 +545,11 @@ namespace ToduStudios.WaterPolo
             }
             else
             {
-                RestoreSurfacePhysics();body.position=contact;body.linearVelocity=outgoing;State=BallState.Free;
+                RestoreSurfacePhysics();
+                body.position=contact;
+                body.linearVelocity=outgoing;
+                if (IsPassFlight || ReleaseKind == BallReleaseKind.Shot) body.linearDamping=Mathf.Max(waterDrag,2.1f);
+                State=BallState.Free;
                 previousPassPosition=contact;
             }
             Contact?.Invoke(new BallImpactEvent(skip?BallImpactKind.Skip:BallImpactKind.Water,contact,incoming,outgoing));
@@ -465,7 +559,10 @@ namespace ToduStudios.WaterPolo
             Vector3 horizontal=Vector3.ProjectOnPlane(incoming,Vector3.up);
             skip=ReleaseKind==BallReleaseKind.Shot && CurrentShot==ShotType.Skip && WaterBounces==0 &&
                 horizontal.magnitude>5f && -incoming.y>0.7f && -incoming.y<horizontal.magnitude*0.9f && FindPocket(contact)==null;
-            Vector3 outgoing=horizontal*(ReleaseKind==BallReleaseKind.Lob?flight.lobWaterRetention:skip?flight.skipRetention:flight.shotWaterRetention);
+            float retention = IsPassFlight ? flight.lobWaterRetention : skip ? flight.skipRetention :
+                ReleaseKind == BallReleaseKind.Shot ? Mathf.Min(.42f,flight.shotWaterRetention) : flight.shotWaterRetention;
+            Vector3 outgoing = horizontal * retention;
+            if (IsPassFlight) outgoing = Vector3.ClampMagnitude(outgoing,2.35f);
             if(skip)outgoing.y=Mathf.Clamp(-incoming.y*flight.skipRestitution,0.6f,2.7f);
             return outgoing;
         }
@@ -474,7 +571,7 @@ namespace ToduStudios.WaterPolo
         {
             if(goal==null || nettedGoal!=null || Owner!=null)return;
             float speed=Velocity.magnitude;netVelocity=Velocity*0.28f;nettedGoal=goal;
-            IsScoringShot=false;intendedReceiver=null;IsAirborne=false;body.isKinematic=true;
+            IsScoringShot=CanScoreGoal=false;intendedReceiver=null;IsAirborne=false;body.isKinematic=true;
             Netted?.Invoke(goal,body.position,speed);
             Contact?.Invoke(new BallImpactEvent(BallImpactKind.Net,body.position,netVelocity/0.28f,netVelocity));
         }
@@ -501,8 +598,11 @@ namespace ToduStudios.WaterPolo
                 return;
             }
 
+            if (IsAirborne && TryReceivePass()) return;
             if(IsAirborne)
             {
+                if (ignoredOwnerCollider != null && !ignoredOwnerCollider.bounds.Intersects(ballCollider.bounds))
+                    RestoreOwnerCollision();
                 if(body.position.y<=SurfaceHeight && body.linearVelocity.y<=0f)
                 {
                     ResolveWaterImpact();
@@ -516,7 +616,7 @@ namespace ToduStudios.WaterPolo
                     if(Mathf.Abs(clamped.x-position.x)>0.001f)airVelocity.x*=-edgeRestitution;
                     if(Mathf.Abs(clamped.z-position.z)>0.001f)airVelocity.z*=-edgeRestitution;
                     body.position=clamped;body.linearVelocity=airVelocity;previousAirPosition=clamped;
-                    TryReceivePass();return;
+                    return;
                 }
             }
 
@@ -547,35 +647,61 @@ namespace ToduStudios.WaterPolo
 
         private bool TryReceivePass()
         {
-            if (intendedReceiver == null) return false;
-            if (!intendedReceiver.Identity.EligibleForPlay || !intendedReceiver.isActiveAndEnabled || !intendedReceiver.Interaction.isActiveAndEnabled || Time.time > receiveUntil)
-            {
-                intendedReceiver = null;
-                return false;
-            }
+            if (!IsPassFlight || Owner != null) return false;
+            if (intendedReceiver != null && (!Eligible(intendedReceiver.Interaction) ||
+                !intendedReceiver.isActiveAndEnabled || Time.time > receiveUntil)) intendedReceiver = null;
+
             Vector3 from = previousPassPosition;
             Vector3 current = body.position;
             previousPassPosition = current;
-            if(current.y>SurfaceHeight+receivingHeight || Velocity.magnitude>flight.maximumReceivingSpeed || (IsAirborne && Velocity.y>0f))return false;
-            if (Time.time < receiveAfter || Owner != null) return false;
-            Vector3 target = intendedReceiver.Identity.Motor.Position;
-            Vector3 travel = current - from;
-            travel.y = 0f;
-            Vector3 offset = target - from;
-            offset.y = 0f;
-            float fraction = travel.sqrMagnitude > 0.0001f
-                ? Mathf.Clamp01(Vector3.Dot(offset, travel) / travel.sqrMagnitude) : 0f;
-            Vector3 contact = Vector3.Lerp(from,current,fraction);
-            if(contact.y>SurfaceHeight+receivingHeight)return false;
-            Vector3 separation = target - contact;
-            separation.y = 0f;
-            float range = intendedReceiver.ReceivingDistance;
-            if (separation.sqrMagnitude > range * range) return false;
-            SwimmerBallInteraction receiver = intendedReceiver.Interaction;
-            // Receive at a point on the actual travelled segment, never at the teammate's position.
-            body.position = contact;
-            AssignOwner(receiver);
+            if (!IsAirborne || Delivery == PassDelivery.Wet || Time.time < receiveAfter || Time.time > receiveUntil ||
+                current.y > SurfaceHeight + 1.2f || Velocity.magnitude > flight.maximumReceivingSpeed) return false;
+
+            SwimmerBallInteraction catcher = null;
+            Vector3 catchPoint = Vector3.zero;
+            float first = float.PositiveInfinity;
+            if (intendedReceiver != null) TryHandContact(intendedReceiver.Identity,from,current,ref catcher,ref catchPoint,ref first);
+            if (roster != null && LastReleaser != null)
+            {
+                var passer = LastReleaser.GetComponent<SwimmerIdentity>();
+                for (int i = 0; i < roster.Members.Count; i++)
+                {
+                    var p = roster.Members[i];
+                    if (p.Team == passer.Team || !p.EligibleForPlay) continue;
+                    TryHandContact(p,from,current,ref catcher,ref catchPoint,ref first);
+                }
+            }
+            if (catcher == null) return false;
+            AssignOwner(catcher,catchPoint);
+            DryCaught?.Invoke(catcher);
             return true;
+        }
+
+        private void TryHandContact(SwimmerIdentity player, Vector3 from, Vector3 to,
+            ref SwimmerBallInteraction catcher, ref Vector3 point, ref float first)
+        {
+            if (!Eligible(player.Interaction)) return;
+            Vector3 motion = to-from;
+            if (motion.sqrMagnitude < .000001f || (player.Motor.Position - to).sqrMagnitude > 2.5f) return;
+            Vector3 arrival = Vector3.ProjectOnPlane(motion,Vector3.up).normalized;
+            if (player.Interaction != IntendedReceiver && Vector3.Dot(player.Motor.Facing,-arrival) < .24f) return;
+            if ((Velocity-player.Motor.Velocity).magnitude > flight.maximumReceivingSpeed) return;
+            Vector3 hand = RaisedHand(player.Interaction,from-arrival);
+            // Solve first segment/sphere contact so a defender and receiver cannot both collect.
+            const float reach = .31f;
+            Vector3 delta = from-hand;
+            float a = motion.sqrMagnitude;
+            float b = Vector3.Dot(delta,motion);
+            float c = delta.sqrMagnitude - reach*reach;
+            float d = b*b-a*c;
+            if (d < 0f) return;
+            float t = c <= 0f ? 0f : (-b-Mathf.Sqrt(d))/a;
+            if (t < 0f || t > 1f || t >= first) return;
+            var contact = Vector3.Lerp(from,to,t);
+            if (contact.y < SurfaceHeight+.1f) return;
+            first = t;
+            point = contact;
+            catcher = player.Interaction;
         }
 
         private void LateUpdate()
@@ -586,7 +712,7 @@ namespace ToduStudios.WaterPolo
                 return;
             // Use the interpolated swimmer pose, after physics, for a smooth visible carry.
             float blend = 1f - Mathf.Exp(-carrySharpness * Time.deltaTime);
-            transform.position = Vector3.Lerp(transform.position, Owner.CarryAnchor.position, blend);
+            transform.position = Vector3.Lerp(transform.position, Owner.HeldBallPoint, blend);
         }
 
         private void RestoreOwnerCollision()
@@ -604,7 +730,9 @@ namespace ToduStudios.WaterPolo
             intendedReceiver = null;
             nettedGoal=null;WaterBounces=0;
             simulationPaused = false;
-            IsScoringShot = false;
+            IsScoringShot = CanScoreGoal = false;
+            goalAction = default;
+            opposingTouch = false;
             ReleaseKind = BallReleaseKind.None; LastReleaser = null;
             Owner = null;
             State = BallState.Free;

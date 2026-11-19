@@ -17,6 +17,9 @@ namespace ToduStudios.WaterPolo
         private PrototypeMatch match;
         [SerializeField] private MobileMatchControls mobileControls;
         private bool sprintTapArmed;
+        private Keyboard movementKeyboard;
+        private string movementLayout;
+        private const string DisplayKeyPrefix="<Keyboard>/#(";
 
         private void Awake()
         {
@@ -43,6 +46,7 @@ namespace ToduStudios.WaterPolo
                 moveAction = source.Clone();
             }
 
+            RefreshKeyboardLayout();
             moveAction.Enable();
             sprintAction.Enable();
             sprintTapArmed=false;
@@ -51,6 +55,7 @@ namespace ToduStudios.WaterPolo
         private void Update()
         {
             if (match != null && match.IsPaused) return;
+            RefreshKeyboardLayout();
             motor.ClearFacingDirection();
             Vector2 keyboard=moveAction.ReadValue<Vector2>();
             Vector2 direction=keyboard.sqrMagnitude>0.0001f?keyboard:mobileControls!=null?mobileControls.MovementFor(motor):Vector2.zero;
@@ -73,6 +78,28 @@ namespace ToduStudios.WaterPolo
             }
             motor.SetMoveInput(direction);
             if(stamina!=null)stamina.RequestSprint(sprint);
+        }
+
+        private void RefreshKeyboardLayout()
+        {
+            var keyboard=Keyboard.current;
+            string layout=keyboard?.keyboardLayout;
+            if (keyboard==movementKeyboard && layout==movementLayout) return;
+            movementKeyboard=keyboard;
+            movementLayout=layout;
+            // Layouts without Latin lettering still support the physical W/A/S/D cluster.
+            for (int i=0;i<moveAction.bindings.Count;i++)
+            {
+                var binding=moveAction.bindings[i];
+                if (!binding.path.StartsWith(DisplayKeyPrefix,System.StringComparison.Ordinal) ||
+                    binding.path.Length!=DisplayKeyPrefix.Length+2) continue;
+                string letter=binding.path.Substring(DisplayKeyPrefix.Length,1);
+                string fallback=keyboard!=null && keyboard.FindKeyOnCurrentKeyboardLayout(letter)==null
+                    ? "<Keyboard>/"+letter.ToLowerInvariant() : null;
+                if (binding.overridePath==fallback) continue;
+                if (fallback==null) moveAction.RemoveBindingOverride(i);
+                else moveAction.ApplyBindingOverride(i,fallback);
+            }
         }
 
         public void ResetAfterMenu()

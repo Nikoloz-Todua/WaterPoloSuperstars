@@ -24,7 +24,7 @@ namespace ToduStudios.WaterPolo.Editor
         static readonly Dictionary<string,GameObject> sectionPrefabs=new Dictionary<string,GameObject>();
         sealed class SeatSlot{public Vector3 floor;public Quaternion rotation;public int tier,key;}
 
-        [MenuItem("Tools/Water Polo/Arena/Build Milestone 20 Championship Venue")]
+        [MenuItem("Tools/Water Polo/Recovery/Arena/Earlier Arena Passes/Build Milestone 20 Championship Venue")]
         public static void SetUp()
         {
             RequireSaved();var env=Object.FindAnyObjectByType<ArenaQualityController>();var pool=Object.FindAnyObjectByType<PoolBounds>();

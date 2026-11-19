@@ -20,7 +20,7 @@ namespace ToduStudios.WaterPolo.Editor
         static Material textMaterial;
         static ArenaDimensions dimensions;
         static int meshNumber;
-        [MenuItem("Tools/Water Polo/Arena/Apply Championship Poolside Redevelopment")]
+        [MenuItem("Tools/Water Polo/Recovery/Arena/Earlier Arena Passes/Apply Championship Poolside Redevelopment")]
         public static void SetUp()
         {
             RequireSaved();var scene=SceneManager.GetActiveScene();var arena=Object.FindAnyObjectByType<ArenaQualityController>();
@@ -212,7 +212,7 @@ namespace ToduStudios.WaterPolo.Editor
             var presentation=venue.GetComponent<ChampionshipPresentation>();foreach(var l in presentation.technicalLights){int end=l.transform.position.z<0?-1:1;l.transform.position=new Vector3(8,3.7f,end*17.1f);l.transform.LookAt(new Vector3(8,.9f,end*18.1f));}
             if(presentation.accentLights!=null)foreach(var l in presentation.accentLights)if(l.name=="Display Structure Wash"){float s=Mathf.Sign(l.transform.position.x);l.transform.position=new Vector3(s*6,26.8f,0);l.transform.LookAt(new Vector3(s*4.4f,26.6f,0));l.intensity=5f;l.range=6f;}
         }
-        [MenuItem("Tools/Water Polo/Arena/Refresh Redeveloped Arena Reflection")]
+        [MenuItem("Tools/Water Polo/Recovery/Arena/Earlier Arena Passes/Refresh Redeveloped Arena Reflection")]
         public static void RefreshReflection()
         {
             RequireSaved();var arena=Object.FindAnyObjectByType<ArenaQualityController>();if(arena.transform.Find(Name)==null)throw new InvalidOperationException("Install redevelopment first.");var probe=arena.GetComponentInChildren<ReflectionProbe>();bool visible=arena.water.waterSurface.enabled;var pipeline=QualitySettings.renderPipeline;int aa=QualitySettings.antiAliasing;arena.water.waterSurface.enabled=false;QualitySettings.renderPipeline=arena.pipelines[2];

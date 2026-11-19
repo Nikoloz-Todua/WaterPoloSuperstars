@@ -50,7 +50,7 @@ namespace ToduStudios.WaterPolo
                 ResetInputs();observed=selection.ActivePlayer;
                 if(observed!=null){charge=observed.GetComponent<ShotCharge>();passing=observed.GetComponent<SwimmerPassing>();lob=observed.GetComponent<LobPassing>();steal=observed.GetComponent<SwimmerSteal>();stamina=observed.GetComponent<SwimmerStamina>();}
             }
-            bool visible=!menus.Visible && !match.IsPaused && match.Phase!=MatchPhase.PreMatch && match.Phase!=MatchPhase.FullTime;
+            bool visible=!match.GoalPresentationActive && !menus.Visible && !match.IsPaused && match.Phase!=MatchPhase.PreMatch && match.Phase!=MatchPhase.FullTime;
             if(gameplayRoot.activeSelf!=visible)gameplayRoot.SetActive(visible);
             if(!CanMove)joystick.ResetInput();
             bool centre=match.IsCentreRestart;
@@ -93,6 +93,12 @@ namespace ToduStudios.WaterPolo
             if(action==MobileMatchAction.Collect)return ball.CanCollect;
             return true;
         }
+        public bool ReleasePass(bool wet)
+        {
+            if (!CanUse(MobileMatchAction.Pass)) return false;
+            charge.CancelCharge();
+            return passing.TryPass(wet && match.IsPlaying ? PassDelivery.Wet : PassDelivery.Dry);
+        }
         public bool Begin(MobileMatchAction action)
         {
             if(!CanUse(action))return false;
@@ -100,7 +106,7 @@ namespace ToduStudios.WaterPolo
             {
                 case MobileMatchAction.Shoot:if(charge.BeginCharge(ShotMode,this)){heldCharge=charge;return true;}return false;
                 case MobileMatchAction.Sprint:SprintHeld=true;if(match.IsSprintRace)match.SprintOff.Stroke(observed);return true;
-                case MobileMatchAction.Pass:charge.CancelCharge();return passing.TryPass();
+                case MobileMatchAction.Pass:return ReleasePass(false);
                 case MobileMatchAction.Lob:charge.CancelCharge();return lob.TryPass();
                 case MobileMatchAction.Switch:selection.SelectNext();return true;
                 case MobileMatchAction.Steal:steal.TrySteal();return true;

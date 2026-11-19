@@ -17,6 +17,7 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private Graphic lengthwiseChoice,sidelineChoice;
         [SerializeField] private Slider height;
         [SerializeField] private TMP_Text heightValue;
+        [SerializeField] private TMP_Text autoReplayLabel;
         private void OnEnable()
         {
             if(height!=null) height.onValueChanged.AddListener(preferences.SetHeight);
@@ -36,6 +37,7 @@ namespace ToduStudios.WaterPolo
         private void Refresh()
         {
             var v=preferences.Current;
+            if(autoReplayLabel!=null)autoReplayLabel.text=v.automaticGoalReplays?"AUTO REPLAY ON":"AUTO REPLAY OFF";
             if(height!=null){height.SetValueWithoutNotify(v.cameraHeight);heightValue.text=$"{v.cameraHeight:0.00}x";}
             master.SetValueWithoutNotify(v.master);sfx.SetValueWithoutNotify(v.sfx);crowd.SetValueWithoutNotify(v.crowd);
             zoom.SetValueWithoutNotify(v.zoom);smoothing.SetValueWithoutNotify(v.smoothing);

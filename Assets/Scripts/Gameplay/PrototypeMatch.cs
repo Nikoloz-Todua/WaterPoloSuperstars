@@ -70,6 +70,15 @@ namespace ToduStudios.WaterPolo
         public int BlueScore { get; private set; }
         public int WhiteScore { get; private set; }
         public bool IsRestarting => Phase==MatchPhase.GoalRestart || Phase==MatchPhase.TurnoverRestart;
+        public GoalAttribution LastGoalAttribution { get; private set; }
+        public GoalReplayDirector GoalPresentation { get; private set; }
+        public bool GoalPresentationActive => GoalPresentation != null && GoalPresentation.Active;
+        internal void AttachGoalPresentation(GoalReplayDirector director) => GoalPresentation = director;
+        internal void ReleaseGoalPresentation()
+        {
+            if (Phase == MatchPhase.GoalRestart) restartAt = PresentationTime;
+        }
+        public Guid MatchReplayId { get; private set; }
         public float RestartDelay => restartDelay;
         public event Action Changed;
         public event Action NewMatch;
@@ -135,7 +144,7 @@ namespace ToduStudios.WaterPolo
             Vector3 from = previousMotion == ball.MotionRevision ? previousPosition : ball.MotionOrigin;
             previousPosition = current;
             previousMotion = ball.MotionRevision;
-            if (ball.IsScoringShot && ball.Owner == null && ball.State != BallState.Held && lastScoredShot != ball.ShotSequence)
+            if (ball.CanScoreGoal && ball.Owner == null && ball.State != BallState.Held && lastScoredShot != ball.ShotSequence)
             foreach (GoalMouth goal in goals)
             {
                 if (goal != null && goal.isActiveAndEnabled && goal.TryGetCrossing(from, current, ball.Radius, out _))
@@ -180,13 +189,16 @@ namespace ToduStudios.WaterPolo
         {
             PrototypeTeam team=goal.ScoringTeam;
             lastScoredShot = ball.ShotSequence;
+            LastGoalAttribution = ball.AttributeGoal(team);
             if (team == PrototypeTeam.Blue)
                 BlueScore++;
             else
                 WhiteScore++;
             if(rules!=null)rules.GoalScored();
-            if (EndingPenalty) { FinishPeriod(); return; }
-            Phase=MatchPhase.GoalRestart;restartTeam=team==PrototypeTeam.Blue?PrototypeTeam.White:PrototypeTeam.Blue;
+            Phase=MatchPhase.GoalRestart;
+            if (GoalPresentation != null && GoalPresentation.isActiveAndEnabled) GoalPresentation.Begin(goal,ball);
+            if (EndingPenalty && !GoalPresentationActive) { FinishPeriod(); return; }
+            restartTeam=team==PrototypeTeam.Blue?PrototypeTeam.White:PrototypeTeam.Blue;
             ball.CaptureGoal(goal);
             restartAt = PresentationTime + restartDelay;
             StopPlay(false);
@@ -278,9 +290,10 @@ namespace ToduStudios.WaterPolo
             SetPaused(false);
             EndingPenalty = false;
             CentreTaker=CentreReceiver=null;CentreSignals=0;awaitingOpeningPossession=false;
+            MatchReplayId = Guid.NewGuid();
             Phase=MatchPhase.PreMatch;StopPlay(true);
             SetEnds(false);EndSwitchCount=0;
-            BlueScore=WhiteScore=0;lastScoredShot=-1;clock.Reset();restartTeam=null;
+            BlueScore=WhiteScore=0;lastScoredShot=-1;LastGoalAttribution=default;clock.Reset();restartTeam=null;
             NewMatch?.Invoke();
             if(play){if(periodSprint!=null)BeginPeriodSprint();else CompleteRestart();}
             else {if(roster!=null)roster.ResetPositions();Changed?.Invoke();}
@@ -292,8 +305,15 @@ namespace ToduStudios.WaterPolo
             if(Phase==MatchPhase.SprintSetup&&periodSprint!=null)
             {if(periodSprint.NeedsRestage)BeginPeriodSprint();if(periodSprint.Ready)ReleasePeriodSprint();}
             if(IsSprintRace){periodSprint.Tick();if(periodSprint.ContestExpired)EndUnclaimedSprint();}
-            if(IsRestarting && PresentationTime>=restartAt)
-            {if(Phase==MatchPhase.GoalRestart)BeginCentreRestart();else CompleteRestart();}
+            if (IsRestarting && !GoalPresentationActive && PresentationTime>=restartAt)
+            {
+                if (Phase==MatchPhase.GoalRestart)
+                {
+                    if (EndingPenalty) FinishPeriod();
+                    else BeginCentreRestart();
+                }
+                else CompleteRestart();
+            }
             if(Phase==MatchPhase.CentreRestartSetup && PresentationTime>=centreReadyAt)ReadyCentreRestart();
             if(Phase==MatchPhase.CentreRestartReady && CentreTaker.Team!=playerSelection.HumanTeam && PresentationTime>=centrePassAt)
                 TryCentrePass(CentreTaker);

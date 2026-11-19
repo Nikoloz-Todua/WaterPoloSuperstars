@@ -16,7 +16,7 @@ namespace ToduStudios.WaterPolo.Editor
     {
         public const string Recovery="Assets/Scenes/Recovery/OlympicMatchArena_PreMatchUX.unity";
         static readonly Color Navy=new Color(.018f,.043f,.082f,.95f),Card=new Color(.045f,.1f,.17f,.96f),Cyan=new Color(.22f,.85f,1f),Muted=new Color(.65f,.76f,.85f),Blue=new Color(.035f,.36f,.57f,.96f),Gold=new Color(1f,.78f,.3f);
-        [MenuItem("Tools/Water Polo/Match UX/Set Up Milestone 16 Match Interface")]
+        [MenuItem("Tools/Water Polo/Recovery/Match UX/Set Up Milestone 16 Match Interface")]
         public static void SetUp()
         {
             var scene=SceneManager.GetActiveScene();
@@ -195,6 +195,86 @@ namespace ToduStudios.WaterPolo.Editor
             panel.gameObject.SetActive(false);
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene);
+        }
+
+        [MenuItem("Tools/Water Polo/Match UX/Set Up Milestone 23 Goal Replays")]
+        public static void SetUpGoalReplays()
+        {
+            var scene=SceneManager.GetActiveScene();
+            if (EditorApplication.isPlayingOrWillChangePlaymode || scene.isDirty || scene.path!=OlympicArenaSetup.ScenePath)
+                throw new InvalidOperationException("Open the saved production arena in Edit Mode.");
+            var menus=UnityEngine.Object.FindAnyObjectByType<MatchMenuController>();
+            if (menus.GetComponent<GoalReplayDirector>() != null)
+            {
+                var existing=menus.transform.Find("MatchSafeArea/GoalPresentation");
+                if (existing!=null && existing.Find("AdvancePlate")==null)
+                {
+                    StyleAdvanceHint(existing);
+                    EditorSceneManager.MarkSceneDirty(scene);
+                    EditorSceneManager.SaveScene(scene);
+                }
+                return;
+            }
+            var match=UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+            var safe=menus.transform.Find("MatchSafeArea");
+            var prefs=menus.GetComponent<GamePreferences>();
+            var director=menus.gameObject.AddComponent<GoalReplayDirector>();
+            var overlay=new GameObject("GoalPresentation",typeof(RectTransform)).GetComponent<RectTransform>();
+            overlay.SetParent(safe,false);
+            overlay.anchorMin=Vector2.zero;
+            overlay.anchorMax=Vector2.one;
+            overlay.offsetMin=overlay.offsetMax=Vector2.zero;
+            var clickArea=overlay.gameObject.AddComponent<UnityEngine.UI.Image>();
+            clickArea.color=new Color(0,0,0,0);
+            var advance=overlay.gameObject.AddComponent<UnityEngine.UI.Button>();
+            advance.targetGraphic=clickArea;
+            advance.transition=UnityEngine.UI.Selectable.Transition.None;
+            advance.navigation=new UnityEngine.UI.Navigation{mode=UnityEngine.UI.Navigation.Mode.None};
+            UnityEventTools.AddPersistentListener(advance.onClick,director.Advance);
+
+            var titleCard=Panel(overlay,"TitleCard",new Vector2(.5f,1),new Vector2(0,-75),new Vector2(530,118),Navy);
+            var headline=Text(titleCard,"Headline","GOAL",new Vector2(0,27),new Vector2(500,48),34,Color.white);
+            headline.fontStyle=FontStyles.Bold;
+            var score=Text(titleCard,"Score","BLUE  0  :  0  WHITE",new Vector2(0,-9),new Vector2(500,35),21,Cyan);
+            var detail=Text(titleCard,"Detail","Q1",new Vector2(0,-40),new Vector2(500,26),17,Muted);
+            Text(overlay,"AdvanceHint","TAP TO ADVANCE",Vector2.zero,new Vector2(420,60),18,Color.white);
+            StyleAdvanceHint(overlay);
+            var track=Panel(overlay,"Track",new Vector2(.5f,0),new Vector2(0,70),new Vector2(340,5),new Color(.58f,.72f,.83f,.45f));
+            var line=Rect(track,"Progress",new Vector2(0,.5f),Vector2.zero,new Vector2(340,5));
+            line.pivot=new Vector2(0,.5f);
+            var timeline=line.gameObject.AddComponent<UnityEngine.UI.Image>();
+            timeline.color=Cyan;
+            timeline.raycastTarget=false;
+            var skip=Button(overlay,"SkipAll","SKIP ALL",Vector2.zero,new Vector2(205,56),director.SkipAll,Card);
+            Move(skip,overlay,new Vector2(1,0),new Vector2(-140,66),new Vector2(205,56));
+            var pause=Button(overlay,"ReplayPause","PAUSE",Vector2.zero,new Vector2(140,56),menus.OpenPause,Card);
+            Move(pause,overlay,new Vector2(1,1),new Vector2(-109,-56),new Vector2(140,56));
+
+            Assign(director,"match",match);
+            Assign(director,"ball",UnityEngine.Object.FindAnyObjectByType<BallController>());
+            Assign(director,"roster",UnityEngine.Object.FindAnyObjectByType<PrototypeRoster>());
+            Assign(director,"preferences",prefs);
+            Assign(director,"overlay",overlay.gameObject);
+            Assign(director,"headline",headline);
+            Assign(director,"detail",detail);
+            Assign(director,"score",score);
+            Assign(director,"timeline",timeline);
+            overlay.gameObject.SetActive(false);
+            var settings=menus.transform.Find("MenuOverlay/MenuSafeArea/SettingsPanel");
+            var toggle=Button(settings,"AutoReplay","AUTO REPLAY ON",new Vector2(340,-379),new Vector2(230,48),prefs.ToggleGoalReplays,Card);
+            Assign(settings.GetComponent<MatchSettingsView>(),"autoReplayLabel",toggle.GetComponentInChildren<TMP_Text>());
+            var controls=menus.transform.Find("MenuOverlay/MenuSafeArea/ControlsPanel/Tip").GetComponent<TMP_Text>();
+            controls.text="Dry pass: tap PASS or B    ?    Wet pass: hold PASS, Q+B, or LB+North";
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+        }
+
+        static void StyleAdvanceHint(Transform overlay)
+        {
+            var plate=Panel(overlay,"AdvancePlate",new Vector2(.5f,0),new Vector2(0,110),new Vector2(280,40),Navy);
+            var prompt=overlay.Find("AdvanceHint").GetComponent<TMP_Text>();
+            Move(prompt.rectTransform,plate,Vector2.one*.5f,Vector2.zero,new Vector2(265,40));
+            prompt.fontSize=21;
         }
 
         static void Close(Transform parent,UnityAction action){var r=(RectTransform)parent;var b=Button(parent,"Close","X",new Vector2(r.rect.width*.5f-46,r.rect.height*.5f-46),new Vector2(60,60),action,Card);b.GetComponentInChildren<TMP_Text>().fontSize=24;}

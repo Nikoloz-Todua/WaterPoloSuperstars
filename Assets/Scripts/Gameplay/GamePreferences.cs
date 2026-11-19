@@ -14,6 +14,7 @@ namespace ToduStudios.WaterPolo
         [Serializable] public sealed class Values
         {
             public int version=1;
+            public bool automaticGoalReplays=true;
             public float cameraHeight=1f;
             public float master=1f,sfx=1f,crowd=1f,zoom=1f,smoothing=1f;
             public MatchGraphicsQuality graphics=MatchGraphicsQuality.High;
@@ -30,6 +31,8 @@ namespace ToduStudios.WaterPolo
         private InputAction toggleCamera;
         public Values Current=>JsonUtility.FromJson<Values>(JsonUtility.ToJson(values));
         public bool SupportsCrowd=>atmosphere!=null && atmosphere.SupportsCrowdAudio;
+        public bool AutomaticGoalReplays => values.automaticGoalReplays;
+        public void ToggleGoalReplays(){values.automaticGoalReplays=!values.automaticGoalReplays;Commit();}
         public event Action Changed;
         private void Awake()
         {
@@ -38,7 +41,7 @@ namespace ToduStudios.WaterPolo
             Reload();
         }
         private void OnEnable()=>toggleCamera?.Enable();
-        private void Update(){if(toggleCamera!=null&&toggleCamera.WasPressedThisFrame())SetCameraView(values.cameraView==MatchCameraView.Lengthwise?1:0);}
+        private void Update(){if(toggleCamera!=null&&toggleCamera.WasPressedThisFrame()&&(gameplayCamera==null||!gameplayCamera.CinematicOverride))SetCameraView(values.cameraView==MatchCameraView.Lengthwise?1:0);}
         private void OnDestroy()=>toggleCamera?.Dispose();
         private static float Valid(float value,float fallback,float min,float max)=>float.IsNaN(value) || float.IsInfinity(value)?fallback:Mathf.Clamp(value,min,max);
         public void Reload()
@@ -47,7 +50,7 @@ namespace ToduStudios.WaterPolo
             try
             {
                 string json=PlayerPrefs.GetString(StorageKey,"");
-                if(!string.IsNullOrEmpty(json)){var loaded=JsonUtility.FromJson<Values>(json);if(loaded!=null && loaded.version==1)values=loaded;}
+                if(!string.IsNullOrEmpty(json)){var loaded=new Values();JsonUtility.FromJsonOverwrite(json,loaded);if(loaded.version==1)values=loaded;}
             }
             catch(ArgumentException){values=new Values();}
             Normalize();dirty=false;Apply();Changed?.Invoke();

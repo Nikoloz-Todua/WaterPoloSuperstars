@@ -46,12 +46,20 @@ namespace ToduStudios.WaterPolo
 
         private void OnEnable()
         {
-            if (ball != null) ball.PossessionChanged += OnPossessionChanged;
+            if (ball != null) { ball.PossessionChanged += OnPossessionChanged; ball.Released += OnReleased; }
         }
 
         private void OnDisable()
         {
-            if (ball != null) ball.PossessionChanged -= OnPossessionChanged;
+            if (ball != null) { ball.PossessionChanged -= OnPossessionChanged; ball.Released -= OnReleased; }
+        }
+
+        private void OnReleased(SwimmerBallInteraction passer, BallReleaseKind kind)
+        {
+            if (SwitchingLocked || (kind != BallReleaseKind.Pass && kind != BallReleaseKind.Lob) ||
+                (ball.Match != null && !ball.Match.IsPlaying) || ball.IntendedReceiver == null ||
+                passer.GetComponent<SwimmerIdentity>().Team != humanTeam) return;
+            Select(ball.IntendedReceiver.GetComponent<SwimmerIdentity>());
         }
 
         public bool IsEligible(SwimmerIdentity player) => player != null && player.enabled && player.gameObject.activeInHierarchy &&

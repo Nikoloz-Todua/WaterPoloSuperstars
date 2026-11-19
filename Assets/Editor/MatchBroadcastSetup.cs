@@ -19,7 +19,7 @@ namespace ToduStudios.WaterPolo.Editor
         public const string Root="Assets/Arena/MatchBroadcast",Name="Primary Championship Scoreboard",Recovery="Assets/Scenes/Recovery/OlympicMatchArena_PreMatchBroadcast.unity";
         static readonly Color Cyan=new Color(.22f,.85f,1f),Navy=new Color(.018f,.043f,.082f,.96f),Card=new Color(.045f,.1f,.17f,.96f);
         static Material textMaterial;
-        [MenuItem("Tools/Water Polo/Arena/Set Up Live Scoreboard and Broadcast Cameras")]
+        [MenuItem("Tools/Water Polo/Recovery/Arena/Earlier Arena Passes/Set Up Live Scoreboard and Broadcast Cameras")]
         public static void SetUp()
         {
             var scene=SceneManager.GetActiveScene();if(EditorApplication.isPlayingOrWillChangePlaymode||scene.isDirty||scene.path!=OlympicArenaSetup.ScenePath)throw new InvalidOperationException("Open saved OlympicMatchArena outside Play Mode.");

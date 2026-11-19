@@ -404,7 +404,7 @@ namespace ToduStudios.WaterPolo.Editor
             RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=Hex("#344767");RenderSettings.ambientEquatorColor=Hex("#1B2D49");RenderSettings.ambientGroundColor=Hex("#0B1628");RenderSettings.reflectionIntensity=.72f;RenderSettings.skybox=null;RenderSettings.sun=key;
             var cam=Object.FindAnyObjectByType<GameplayCamera>().GetComponent<Camera>();cam.clearFlags=CameraClearFlags.SolidColor;cam.backgroundColor=Hex("#081323");cam.allowHDR=true;cam.GetUniversalAdditionalCameraData().renderPostProcessing=true;
         }
-        [MenuItem("Tools/Water Polo/Arena/Refresh Championship Night Reflection")]
+        [MenuItem("Tools/Water Polo/Recovery/Arena/Earlier Arena Passes/Refresh Championship Night Reflection")]
         public static void RefreshReflection(){RequireSaved();OlympicArenaSetup.Open();if(GameObject.Find(Name)==null)throw new InvalidOperationException("Apply the championship venue first.");BakeReflection(Object.FindAnyObjectByType<ArenaQualityController>().transform);EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());EditorSceneManager.SaveScene(SceneManager.GetActiveScene());AssetDatabase.SaveAssets();}
         static void BakeReflection(Transform env)
         {

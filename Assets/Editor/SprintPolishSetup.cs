@@ -19,7 +19,7 @@ namespace ToduStudios.WaterPolo.Editor
         public const string Root="Assets/Arena/SprintPolish",Name="Championship Lighting Refinement";
         public const string Recovery="Assets/Scenes/Recovery/OlympicMatchArena_PreSprintPolish.unity";
         static Material navy,alloy,white,cobalt,ice;
-        [MenuItem("Tools/Water Polo/Arena/Refine Sprint and Championship Lighting")]
+        [MenuItem("Tools/Water Polo/Recovery/Arena/Earlier Arena Passes/Refine Sprint and Championship Lighting")]
         public static void SetUp()
         {
             var scene=SceneManager.GetActiveScene();

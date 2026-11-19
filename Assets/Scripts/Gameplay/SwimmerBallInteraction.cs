@@ -13,6 +13,13 @@ namespace ToduStudios.WaterPolo
         [Tooltip("Distance from swimmer root, beyond the 1.1m capsule plus ball radius.")]
         [SerializeField, Min(0.1f)] private float releaseDistance = 1.5f;
 
+        [SerializeField] private Vector3 raisedGrip = new Vector3(.24f,.44f,.34f);
+        private bool usesRaisedGrip;
+        private void Start() => usesRaisedGrip=GetComponentInChildren<WaterVisuals.RiggedSwimmerVisual>()!=null;
+        public Vector3 HeldBallPoint => usesRaisedGrip
+            ? transform.TransformPoint(raisedGrip)
+            : carryAnchor.position;
+
         public Transform CarryAnchor => carryAnchor;
         public float PickupDistance => pickupDistance;
         public float ReleaseDistance => releaseDistance;

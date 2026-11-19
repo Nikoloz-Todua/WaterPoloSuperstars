@@ -137,6 +137,8 @@ public static class PenaltyVerification
             await Until(()=>match.IsPlaying || match.Phase==MatchPhase.GoalRestart || match.Phase==MatchPhase.QuarterBreak);
             if(outcome=="period")
             {
+                if (match.GoalPresentationActive)
+                    await Until(()=>match.Phase==MatchPhase.QuarterBreak);
                 Check(match.Phase==MatchPhase.QuarterBreak,"Dead ball at period end");
                 return new {periodEnded=true, score=match.BlueScore};
             }
