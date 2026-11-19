@@ -96,7 +96,7 @@ namespace ToduStudios.WaterPolo
             string status=blue==white?"":$"FIELDS {blue} v {white}  |  {(blue>white?"BLUE":"WHITE")} MAN UP";
             string excluded=""; int count=0;
             foreach(var p in roster.Members)
-                if(!p.EligibleForPlay){count++;if(!compactFeed || count<=2)excluded+=$"  {p.Team} #{p.CapNumber} {(p.PermanentlyRemoved?"OUT":Mathf.CeilToInt(p.ExclusionRemaining)+"s")}";}
+                if(!p.EligibleForPlay){count++;if(!compactFeed || count<=2)excluded+=$"  {p.Team} #{p.CapNumber} {(p.PermanentlyRemoved?"OUT":p.EnteringField?"ENTERING":p.ExclusionRemaining>0f?Mathf.CeilToInt(p.ExclusionRemaining)+"s":"TO GATE")}";}
             string text=compactFeed?$"PF {player?.PersonalFouls ?? 0}/{rules.PersonalFoulLimit}   FIELDS {blue} : {white}"+(status.Length>0?$"  {(blue>white?"BLUE":"WHITE")} +{Mathf.Abs(blue-white)}":"")+"\n"+excluded+(count>2?$" +{count-2} more":""):personal+"  "+status+excluded;
             if(rulesLabel.text!=text)rulesLabel.text=text;
         }

@@ -1,3 +1,4 @@
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
@@ -5,7 +6,7 @@ using UnityEngine.InputSystem;
 
 namespace ToduStudios.WaterPolo
 {
-    public enum MatchMenuPage { None, Pause, Settings, RestartConfirmation, ExitConfirmation, Landing, Transition, Controls }
+    public enum MatchMenuPage { None, Pause, Settings, RestartConfirmation, ExitConfirmation, Landing, Transition, Controls, Substitutions }
     /// <summary>UI navigation only. PrototypeMatch owns suspension, resets and all competitive phases.</summary>
     [DefaultExecutionOrder(-110), DisallowMultipleComponent]
     public sealed class MatchMenuController : MonoBehaviour
@@ -18,6 +19,52 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private GameObject continueButton,resultRestartButton;
         [SerializeField] private GameObject controlsPanel;
         [SerializeField] private TMP_Text pauseSummary;
+        [SerializeField] private GameObject substitutionPanel;
+        [SerializeField] private TMP_Text outgoingLabel, incomingLabel, substitutionMessage;
+        private SwimmerIdentity[] substitutionSlots;
+        private string[] available;
+        private int outgoingIndex, incomingIndex;
+
+        public void OpenSubstitutions()
+        {
+            returnPage = Page;
+            substitutionSlots = match.Rules.MatchMembers.Where(p => p.Team == PrototypeTeam.Blue).ToArray();
+            outgoingIndex = 0;
+            RefreshReserves();
+            Show(MatchMenuPage.Substitutions);
+        }
+        public void NextOutgoing()
+        {
+            outgoingIndex = (outgoingIndex + 1) % substitutionSlots.Length;
+            RefreshReserves();
+        }
+        public void NextIncoming()
+        {
+            if (available.Length == 0) return;
+            incomingIndex = (incomingIndex + 1) % available.Length;
+            ShowReserve();
+        }
+        void RefreshReserves()
+        {
+            var slot = substitutionSlots[outgoingIndex];
+            outgoingLabel.text = $"OUT   #{slot.CapNumber}   {slot.FieldPosition}   PF {slot.PersonalFouls}";
+            available = match.Rules.Replacements(slot);
+            incomingIndex = 0;
+            ShowReserve();
+            substitutionMessage.text = slot.Interaction.HasBall ? "The ball carrier must release the ball first." :
+                available.Length == 0 ? "No available replacement for this slot." : "Tap a row to change your selection.";
+        }
+        void ShowReserve()
+        {
+            incomingLabel.text = available.Length == 0 ? "IN   ?" : "IN   " + match.Rules.ReserveName(available[incomingIndex]);
+        }
+        public void ConfirmReplacement()
+        {
+            if (available.Length == 0) return;
+            bool accepted = match.Rules.ReserveReplacement(substitutionSlots[outgoingIndex], available[incomingIndex]);
+            RefreshReserves();
+            substitutionMessage.text = accepted ? "Confirmed. Entry follows the referee?s eligibility decision." : "Unavailable during this phase or while carrying the ball.";
+        }
         private InputAction back;
         private MatchMenuPage returnPage;
         public MatchMenuPage Page {get;private set;}
@@ -66,6 +113,7 @@ namespace ToduStudios.WaterPolo
                 int seconds=Mathf.CeilToInt(match.Clock.DisplayRemaining);
                 pauseSummary.text=$"BLUE {match.BlueScore} : {match.WhiteScore} WHITE   •   Q{match.Clock.Quarter}  {seconds/60:0}:{seconds%60:00}";
             }
+            if (substitutionPanel != null) substitutionPanel.SetActive(page == MatchMenuPage.Substitutions);
             Page=page;pausePanel.SetActive(page==MatchMenuPage.Pause);settingsPanel.SetActive(page==MatchMenuPage.Settings);
             confirmationPanel.SetActive(page==MatchMenuPage.RestartConfirmation || page==MatchMenuPage.ExitConfirmation);
             if(controlsPanel!=null)controlsPanel.SetActive(page==MatchMenuPage.Controls);
@@ -75,7 +123,7 @@ namespace ToduStudios.WaterPolo
             // Avoid a focused Resume button consuming the same Space used to shoot after resuming.
             if(EventSystem.current!=null)EventSystem.current.SetSelectedGameObject(null);
         }
-        public void OpenPause(){if(Page==MatchMenuPage.Settings || Page==MatchMenuPage.Controls || Page==MatchMenuPage.RestartConfirmation || Page==MatchMenuPage.ExitConfirmation)return;match.SetPaused(true);}
+        public void OpenPause(){if(Page==MatchMenuPage.Substitutions || Page==MatchMenuPage.Settings || Page==MatchMenuPage.Controls || Page==MatchMenuPage.RestartConfirmation || Page==MatchMenuPage.ExitConfirmation)return;match.SetPaused(true);}
         public void Resume(){preferences.Save();match.SetPaused(false);}
         public void OpenSettings(){returnPage=Page;Show(MatchMenuPage.Settings);}
         public void OpenControls(){returnPage=Page;Show(MatchMenuPage.Controls);}
@@ -114,7 +162,7 @@ namespace ToduStudios.WaterPolo
         }
         public void Back()
         {
-            if(Page==MatchMenuPage.Settings || Page==MatchMenuPage.Controls || Page==MatchMenuPage.RestartConfirmation || Page==MatchMenuPage.ExitConfirmation)Cancel();
+            if(Page==MatchMenuPage.Substitutions || Page==MatchMenuPage.Settings || Page==MatchMenuPage.Controls || Page==MatchMenuPage.RestartConfirmation || Page==MatchMenuPage.ExitConfirmation)Cancel();
             else if(match.IsPaused)Resume();
             else if(Page==MatchMenuPage.None)OpenPause();
             else if(Page==MatchMenuPage.Transition)Continue();

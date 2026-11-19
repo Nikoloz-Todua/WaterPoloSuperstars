@@ -67,7 +67,7 @@ namespace ToduStudios.WaterPolo
             string player=e.Player!=null?$"{e.Player.Team.ToString().ToUpperInvariant()} #{e.Player.CapNumber}":"";
             switch(e.Decision)
             {
-                case RefereeDecision.Penalty:Show("PENALTY",$"{e.AwardedTeam.ToString().ToUpperInvariant()}  •  Hold / release SHOOT when ready",Gold,90,3.8f);break;
+                case RefereeDecision.Penalty:Show("PENALTY",$"{e.AwardedTeam.ToString().ToUpperInvariant()}  •  Aim with stick or arrows  ?  Hold / release SHOOT",Gold,90,3.8f);break;
                 case RefereeDecision.Exclusion:Show("EXCLUSION",player+(e.Player.PermanentlyRemoved?"  •  Out for the match":$"  •  {Mathf.CeilToInt(e.Player.ExclusionRemaining)} live seconds"),Gold,80,3.4f);break;
                 case RefereeDecision.Ordinary:
                 case RefereeDecision.FreeThrow:Show("FREE THROW",$"{e.AwardedTeam.ToString().ToUpperInvariant()}  •  PASS or LOB after the whistle",Cyan,60,2.8f);break;

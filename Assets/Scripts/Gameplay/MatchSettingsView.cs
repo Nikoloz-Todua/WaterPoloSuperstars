@@ -15,8 +15,11 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private TMP_Text controlOpacityValue,controlSizeValue;
         [SerializeField] private TMP_Text cameraViewValue;
         [SerializeField] private Graphic lengthwiseChoice,sidelineChoice;
+        [SerializeField] private Slider height;
+        [SerializeField] private TMP_Text heightValue;
         private void OnEnable()
         {
+            if(height!=null) height.onValueChanged.AddListener(preferences.SetHeight);
             master.onValueChanged.AddListener(preferences.SetMaster);sfx.onValueChanged.AddListener(preferences.SetSfx);
             crowd.onValueChanged.AddListener(preferences.SetCrowd);zoom.onValueChanged.AddListener(preferences.SetZoom);
             smoothing.onValueChanged.AddListener(preferences.SetSmoothing);preferences.Changed+=Refresh;Refresh();
@@ -24,6 +27,7 @@ namespace ToduStudios.WaterPolo
         }
         private void OnDisable()
         {
+            if(height!=null) height.onValueChanged.RemoveListener(preferences.SetHeight);
             master.onValueChanged.RemoveListener(preferences.SetMaster);sfx.onValueChanged.RemoveListener(preferences.SetSfx);
             crowd.onValueChanged.RemoveListener(preferences.SetCrowd);zoom.onValueChanged.RemoveListener(preferences.SetZoom);
             smoothing.onValueChanged.RemoveListener(preferences.SetSmoothing);preferences.Changed-=Refresh;
@@ -32,6 +36,7 @@ namespace ToduStudios.WaterPolo
         private void Refresh()
         {
             var v=preferences.Current;
+            if(height!=null){height.SetValueWithoutNotify(v.cameraHeight);heightValue.text=$"{v.cameraHeight:0.00}x";}
             master.SetValueWithoutNotify(v.master);sfx.SetValueWithoutNotify(v.sfx);crowd.SetValueWithoutNotify(v.crowd);
             zoom.SetValueWithoutNotify(v.zoom);smoothing.SetValueWithoutNotify(v.smoothing);
             masterValue.text=$"{v.master:P0}";sfxValue.text=$"{v.sfx:P0}";crowdValue.text=$"{v.crowd:P0}";

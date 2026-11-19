@@ -55,8 +55,10 @@ namespace ToduStudios.WaterPolo
         public float LateralLimit => Mathf.Max(0f, defendedGoal.Width * 0.5f - lateralMargin);
         private bool PenaltyPosition => match.Rules != null && match.Rules.PenaltyStation(this);
         private float ActiveStationDepth => PenaltyPosition ? -0.45f : stationDepth;
+        public void ChoosePenaltySide(float input) => penaltyLean = Mathf.Clamp(input, -1f, 1f);
         public void PreparePenalty()
         {
+            penaltyLean = 0f;
             Identity.Motor.SetMovementBounds(this);
             Vector3 point=defendedGoal.transform.position+defendedGoal.transform.forward*0.45f;point.y=poolBounds.Waterline;
             Identity.Motor.ResetPose(point,Quaternion.LookRotation(-defendedGoal.transform.forward));
@@ -85,6 +87,7 @@ namespace ToduStudios.WaterPolo
             local.x = Mathf.Clamp(local.x, -LateralLimit, LateralLimit); local.z = -ActiveStationDepth;
             Vector3 result = defendedGoal.transform.TransformPoint(local); result.y = position.y; return result;
         }
+        private float penaltyLean;
         private void Awake()
         {
             identity = GetComponent<SwimmerIdentity>();
@@ -132,6 +135,8 @@ namespace ToduStudios.WaterPolo
             var carrier = ball.Owner != null ? ball.Owner.GetComponent<SwimmerIdentity>() : null;
             if (Ready && !Recovering && (incoming || (carrier != null && carrier.Team != Identity.Team && local.z > -trackingRange && local.z < 0f)))
                 desired = GoalkeeperPositioning.TrackingX(defendedGoal, ballPoint, velocity, ActiveStationDepth, 2f);
+            if (PenaltyPosition && Identity.Team == selection.HumanTeam)
+                desired = Mathf.Lerp(desired, penaltyLean * LateralLimit, Mathf.Abs(penaltyLean) * .85f);
             targetX = Mathf.SmoothDamp(targetX, Mathf.Clamp(desired, -LateralLimit, LateralLimit), ref targetVelocity, trackingSmoothTime);
             Vector3 target = defendedGoal.transform.TransformPoint(new Vector3(targetX, 0f, -ActiveStationDepth)); target.y = Identity.Motor.Position.y;
             Vector3 delta = target - Identity.Motor.Position;

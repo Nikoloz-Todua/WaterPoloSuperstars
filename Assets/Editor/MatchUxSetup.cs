@@ -141,6 +141,62 @@ namespace ToduStudios.WaterPolo.Editor
             var area=Rect(rect,"HandleArea",Vector2.one*.5f,Vector2.zero,new Vector2(446,44));var handle=Panel(area,"Handle",Vector2.one*.5f,Vector2.zero,new Vector2(30,38),Cyan);
             var slider=Get<UnityEngine.UI.Slider>(rect.gameObject);slider.minValue=.4f;slider.maxValue=1;slider.handleRect=handle;slider.targetGraphic=handle.GetComponent<RoundedPanelGraphic>();slider.navigation=new UnityEngine.UI.Navigation{mode=UnityEngine.UI.Navigation.Mode.None};return slider;
         }
+        [MenuItem("Tools/Water Polo/Match UX/Set Up Milestone 22 Substitutions")]
+        public static void SetUpSubstitutions()
+        {
+            var scene = SceneManager.GetActiveScene();
+            if (EditorApplication.isPlayingOrWillChangePlaymode || scene.isDirty || scene.path != OlympicArenaSetup.ScenePath)
+                throw new InvalidOperationException("Open the saved OlympicMatchArena in Edit Mode.");
+            var menus = UnityEngine.Object.FindAnyObjectByType<MatchMenuController>();
+            var content = menus.transform.Find("MenuOverlay/MenuSafeArea");
+            var safe = menus.transform.Find("MatchSafeArea");
+            if (safe.Find("PenaltyAim") == null)
+            {
+                var mark = Text(safe,"PenaltyAim","+",Vector2.zero,new Vector2(38,38),26,Gold);
+                mark.raycastTarget = false;
+                var aim = mark.gameObject.AddComponent<PenaltyAimIndicator>();
+                aim.match = UnityEngine.Object.FindAnyObjectByType<PrototypeMatch>();
+                aim.selection = UnityEngine.Object.FindAnyObjectByType<PlayerSelection>();
+                aim.lens = aim.match.GameplayView.GetComponent<Camera>();
+                aim.mark = mark;
+                mark.enabled = false;
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+            }
+            var settings = content.Find("SettingsPanel");
+            if (settings.Find("CameraHeightRow") == null)
+            {
+                var row = UnityEngine.Object.Instantiate(settings.Find("zoomRow").gameObject,settings).GetComponent<RectTransform>();
+                row.name = "CameraHeightRow";
+                row.anchoredPosition = new Vector2(280,-297);
+                var slider = row.GetComponentInChildren<UnityEngine.UI.Slider>(true);
+                slider.minValue = .8f; slider.maxValue = 1.25f;
+                var view = settings.GetComponent<MatchSettingsView>();
+                Assign(view,"height",slider);
+                foreach (var label in row.GetComponentsInChildren<TMP_Text>(true))
+                    if (label.text.Contains("DISTANCE")) label.text="SIDELINE HEIGHT"; else Assign(view,"heightValue",label);
+                EditorSceneManager.MarkSceneDirty(scene);
+                EditorSceneManager.SaveScene(scene);
+            }
+            if (content.Find("SubstitutionPanel") != null) return;
+            var pause = content.Find("PausePanel");
+            Button(pause, "Substitutions", "SUBSTITUTIONS", new Vector2(0,-290), new Vector2(530,64), menus.OpenSubstitutions, Card);
+            var panel = Panel(content,"SubstitutionPanel",Vector2.one*.5f,Vector2.zero,new Vector2(760,680),Navy);
+            Text(panel,"Title","SUBSTITUTIONS",new Vector2(0,235),new Vector2(570,60),38,Color.white);
+            var outgoing = Button(panel,"Outgoing","OUT",new Vector2(0,110),new Vector2(570,72),menus.NextOutgoing,Card);
+            var incoming = Button(panel,"Incoming","IN",new Vector2(0,18),new Vector2(570,72),menus.NextIncoming,Card);
+            var message = Text(panel,"Status","",new Vector2(0,-84),new Vector2(590,76),22,Cyan);
+            Button(panel,"Confirm","CONFIRM CHANGE",new Vector2(0,-209),new Vector2(500,75),menus.ConfirmReplacement,Blue);
+            Close(panel,menus.Cancel);
+            Assign(menus,"outgoingLabel",outgoing.GetComponentInChildren<TMP_Text>());
+            Assign(menus,"incomingLabel",incoming.GetComponentInChildren<TMP_Text>());
+            Assign(menus,"substitutionMessage",message);
+            Assign(menus,"substitutionPanel",panel.gameObject);
+            panel.gameObject.SetActive(false);
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+        }
+
         static void Close(Transform parent,UnityAction action){var r=(RectTransform)parent;var b=Button(parent,"Close","X",new Vector2(r.rect.width*.5f-46,r.rect.height*.5f-46),new Vector2(60,60),action,Card);b.GetComponentInChildren<TMP_Text>().fontSize=24;}
         static void Hide(Transform parent,string name){var t=parent.Find(name);if(t!=null)t.gameObject.SetActive(false);}
         static T Get<T>(GameObject go) where T:Component{var component=go.GetComponent<T>();return component!=null?component:go.AddComponent<T>();}

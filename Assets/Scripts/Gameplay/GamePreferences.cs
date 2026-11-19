@@ -14,6 +14,7 @@ namespace ToduStudios.WaterPolo
         [Serializable] public sealed class Values
         {
             public int version=1;
+            public float cameraHeight=1f;
             public float master=1f,sfx=1f,crowd=1f,zoom=1f,smoothing=1f;
             public MatchGraphicsQuality graphics=MatchGraphicsQuality.High;
             public int controlSize=1;
@@ -54,6 +55,7 @@ namespace ToduStudios.WaterPolo
         private void Normalize()
         {
             values.master=Valid(values.master,1f,0f,1f);values.sfx=Valid(values.sfx,1f,0f,1f);values.crowd=Valid(values.crowd,1f,0f,1f);
+            values.cameraHeight=Valid(values.cameraHeight<=0f?1f:values.cameraHeight,1f,.8f,1.25f);
             values.zoom=Valid(values.zoom,1f,0.85f,1.25f);values.smoothing=Valid(values.smoothing,1f,0.65f,1.8f);
             if(!Enum.IsDefined(typeof(MatchGraphicsQuality),values.graphics))values.graphics=MatchGraphicsQuality.High;
             if(!Enum.IsDefined(typeof(MatchCameraView),values.cameraView))values.cameraView=MatchCameraView.Lengthwise;
@@ -63,6 +65,7 @@ namespace ToduStudios.WaterPolo
         public void SetMaster(float v){values.master=v;Commit();}
         public void SetSfx(float v){values.sfx=v;Commit();}
         public void SetCrowd(float v){values.crowd=v;Commit();}
+        public void SetHeight(float v){values.cameraHeight=v;Commit();}
         public void SetZoom(float v){values.zoom=v;Commit();}
         public void SetSmoothing(float v){values.smoothing=v;Commit();}
         public void SetGraphics(int v){values.graphics=(MatchGraphicsQuality)v;Commit();}
@@ -74,7 +77,7 @@ namespace ToduStudios.WaterPolo
         {
             AudioListener.volume=values.master;
             if(atmosphere!=null)atmosphere.SetVolumes(values.sfx,values.crowd);
-            if(gameplayCamera!=null){gameplayCamera.SetView(values.cameraView);gameplayCamera.SetUserPreferences(values.zoom,values.smoothing);}
+            if(gameplayCamera!=null){gameplayCamera.SidelineElevation=values.cameraHeight;gameplayCamera.SetView(values.cameraView);gameplayCamera.SetUserPreferences(values.zoom,values.smoothing);}
             if(effects!=null)effects.Quality=values.graphics==MatchGraphicsQuality.Low?WaterEffectsQuality.Off:
                 values.graphics==MatchGraphicsQuality.Medium?WaterEffectsQuality.Low:WaterEffectsQuality.Standard;
             if(cameraData!=null)

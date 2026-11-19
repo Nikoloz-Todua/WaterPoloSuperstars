@@ -150,6 +150,7 @@ namespace ToduStudios.WaterPolo
         }
 
         /// <summary>One clock path for live physics and deterministic simulation. Never runs during stoppages.</summary>
+        internal bool EndingPenalty { get; private set; }
         public void AdvanceLiveTime(float seconds)
         {
             if(!IsPlaying || awaitingOpeningPossession || seconds<=0f || float.IsNaN(seconds) || float.IsInfinity(seconds))return;
@@ -158,10 +159,21 @@ namespace ToduStudios.WaterPolo
             if(rules!=null)rules.TickLive(step);
             if(clock.Remaining<=0f || clock.Tick(step))
             {
-                Phase=clock.Quarter>=clock.Quarters?MatchPhase.FullTime:clock.Quarter==2?MatchPhase.HalfTime:MatchPhase.QuarterBreak;
-                StopPlay(true);return;
+                EndingPenalty = true;
+                if (rules != null && rules.ResolvePendingPenalty()) return;
+                FinishPeriod();
+                return;
             }
+            if (shotClock != null && step >= shotClock.LiveSecondsRemaining && rules != null && rules.ResolvePendingPenalty()) return;
             if(shotClock!=null)shotClock.Tick(step);
+        }
+
+        private void FinishPeriod()
+        {
+            EndingPenalty = false;
+            Phase = clock.Quarter >= clock.Quarters ? MatchPhase.FullTime :
+                clock.Quarter == 2 ? MatchPhase.HalfTime : MatchPhase.QuarterBreak;
+            StopPlay(true);
         }
 
         private void RegisterGoal(GoalMouth goal)
@@ -173,6 +185,7 @@ namespace ToduStudios.WaterPolo
             else
                 WhiteScore++;
             if(rules!=null)rules.GoalScored();
+            if (EndingPenalty) { FinishPeriod(); return; }
             Phase=MatchPhase.GoalRestart;restartTeam=team==PrototypeTeam.Blue?PrototypeTeam.White:PrototypeTeam.Blue;
             ball.CaptureGoal(goal);
             restartAt = PresentationTime + restartDelay;
@@ -236,6 +249,7 @@ namespace ToduStudios.WaterPolo
         public void EndRuleRestart()
         {
             if (IsPaused || rules == null || !rules.IsRulePhase) return;
+            if (EndingPenalty) { FinishPeriod(); return; }
             Phase = MatchPhase.Playing;
             roster.SetSimulationPaused(false); ball.SetSimulationPaused(false);
             playerSelection.SetInputLocked(false);
@@ -262,6 +276,7 @@ namespace ToduStudios.WaterPolo
         private void PrepareMatch(bool play)
         {
             SetPaused(false);
+            EndingPenalty = false;
             CentreTaker=CentreReceiver=null;CentreSignals=0;awaitingOpeningPossession=false;
             Phase=MatchPhase.PreMatch;StopPlay(true);
             SetEnds(false);EndSwitchCount=0;

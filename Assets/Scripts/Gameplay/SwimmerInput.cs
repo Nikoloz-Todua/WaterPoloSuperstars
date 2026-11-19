@@ -54,6 +54,14 @@ namespace ToduStudios.WaterPolo
             motor.ClearFacingDirection();
             Vector2 keyboard=moveAction.ReadValue<Vector2>();
             Vector2 direction=keyboard.sqrMagnitude>0.0001f?keyboard:mobileControls!=null?mobileControls.MovementFor(motor):Vector2.zero;
+            if (match != null && match.Phase == MatchPhase.PenaltyReady && match.Rules.Taker.Motor == motor)
+            {
+                match.Rules.AimPenalty(direction);
+                Vector3 aim = match.Rules.PenaltyAimPoint - motor.Position;
+                motor.SetFacingDirection(aim);
+                motor.SetMoveInput(Vector2.zero);
+                return;
+            }
             if(match!=null&&match.GameplayView!=null)direction=match.GameplayView.ScreenToWorldMovement(direction);
             bool sprint=sprintAction.IsPressed() || mobileControls!=null && mobileControls.SprintFor(motor);
             if(!sprintAction.IsPressed())sprintTapArmed=true;

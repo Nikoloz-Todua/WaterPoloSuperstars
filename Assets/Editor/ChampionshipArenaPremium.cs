@@ -71,12 +71,11 @@ namespace ToduStudios.WaterPolo.Editor
                     foreach (float d in new[] { 0f, 2f, 5f, 6f })
                     {
                         var color = d == 0 ? white : d == 6 ? yellow : red;
-                        b.Floor(color, new Vector3(s * 11.3f, -.025f, z - end * d), new Vector2(2.55f, .10f));
+                        if (d == 0f) b.Floor(color, new Vector3(s * 11.3f, -.025f, z - end * d), new Vector2(2.55f, .10f));
                         b.Box(color, new Vector3(s * 12.48f, .12f, z - end * d), new Vector3(.055f, .22f, .11f));
                     }
                 }
                 Rope(new Vector3(s * width, .025f, -.09f), new Vector3(s * width, .025f, .09f), white);
-                b.Floor(white, new Vector3(s * 11.3f, -.025f, 0), new Vector2(2.55f, .12f));
                 b.Box(white, new Vector3(s * 12.48f, .12f, 0), new Vector3(.055f, .22f, .13f));
             }
             foreach (int end in new[] { -1, 1 })

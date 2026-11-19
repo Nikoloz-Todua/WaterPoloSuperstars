@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace ToduStudios.WaterPolo
 {
-    public enum IllegalContact { Push, Hold }
+    public enum IllegalContact { Push, Hold, Misconduct }
     public enum RefereeDecision { Ordinary, Exclusion, Penalty, Reentry, FreeThrow }
     public readonly struct RefereeEvent
     {
@@ -16,7 +16,7 @@ namespace ToduStudios.WaterPolo
 
     /// <summary>Prototype rule profile. Decisions/eligibility here; phases in PrototypeMatch; ownership in BallController.</summary>
     [DefaultExecutionOrder(-90), DisallowMultipleComponent]
-    public sealed class MatchRules : MonoBehaviour
+    public sealed partial class MatchRules : MonoBehaviour
     {
         [SerializeField] private PrototypeMatch match;
         [SerializeField] private PrototypeRoster roster;
@@ -38,8 +38,30 @@ namespace ToduStudios.WaterPolo
         private bool penalty;
         private SwimmerIdentity taker;
         private PrototypeGoalkeeper penaltyKeeper;
+        private MobileMatchControls mobile;
         private float nextHold;
+        private float penaltyAimX;
+        public Vector3 PenaltyAimPoint => PenaltyGoal.transform.position + PenaltyGoal.transform.right * penaltyAimX + Vector3.up * PenaltyTargetHeight;
+        public float PenaltyTargetHeight { get; private set; } = .36f;
+        public void AimPenalty(Vector2 input)
+        {
+            if (match.Phase != MatchPhase.PenaltyReady) return;
+            float halfWidth = PenaltyGoal.Width * .5f;
+            penaltyAimX = Mathf.Clamp(penaltyAimX + input.x * Time.deltaTime * 2.2f, -halfWidth * 1.15f, halfWidth * 1.15f);
+            PenaltyTargetHeight = Mathf.Clamp(PenaltyTargetHeight + input.y * Time.deltaTime * .8f, .09f, PenaltyGoal.Height + .12f);
+        }
         public SwimmerIdentity Taker => taker;
+        public GoalMouth PenaltyGoal => Team(taker.Team).AttackingGoal;
+        private SwimmerIdentity advantageOffender, advantageShooter;
+        private float advantageDeadline;
+        private int advantageShot;
+        internal bool ResolvePendingPenalty()
+        {
+            if (advantageShooter == null) return false;
+            var shooter = advantageShooter;
+            advantageShooter = null;
+            return Award(advantageOffender, shooter, shooter, true, false);
+        }
         public int PersonalFoulLimit => personalFoulLimit;
         public bool IsPenalty => penalty && IsRulePhase;
         public bool IsRulePhase => match.Phase == MatchPhase.FreeThrowSetup || match.Phase == MatchPhase.FreeThrowReady ||
@@ -49,6 +71,7 @@ namespace ToduStudios.WaterPolo
 
         private void Awake()
         {
+            mobile = FindAnyObjectByType<MobileMatchControls>();
             colliders = new Collider[roster.Members.Count]; colliderEnabled = new bool[colliders.Length];
             for (int i = 0; i < colliders.Length; i++)
             {
@@ -82,6 +105,7 @@ namespace ToduStudios.WaterPolo
                 match.Phase == MatchPhase.PenaltyReady && kind == BallReleaseKind.Shot);
         }
         public bool KeeperMayAct(PrototypeGoalkeeper keeper) => !match.IsPaused && keeper != null && match.Phase == MatchPhase.PenaltyFlight && keeper == penaltyKeeper;
+        internal bool HoldOutsideAtHorn(SwimmerIdentity player) => match.EndingPenalty && player != taker && (penaltyKeeper == null || player != penaltyKeeper.Identity);
         public bool PenaltyStation(PrototypeGoalkeeper keeper) => IsPenalty && keeper == penaltyKeeper;
         public bool CanMove(SwimmerIdentity player) => match.IsPlaying || match.IsSprintRace&&player.IsFieldPlayer || (!player.IsFieldPlayer && KeeperMayAct(player.GetComponent<PrototypeGoalkeeper>()));
 
@@ -94,9 +118,26 @@ namespace ToduStudios.WaterPolo
                 PrototypeTeamTactics.Planar(offender.Motor.Position - victim.Motor.Position).sqrMagnitude > 1.96f) return false;
             var carrier = ball.Owner != null ? ball.Owner.GetComponent<SwimmerIdentity>() : null;
             if (carrier == null || carrier.Team != victim.Team) return false;
-            bool isPenalty = carrier == victim && ProbableGoal(victim, offender);
-            bool exclusion = contact == IllegalContact.Hold && carrier != victim;
+            bool misconduct = contact == IllegalContact.Misconduct;
+            bool shooting = carrier == victim && IsShooting(victim);
+            bool isPenalty = !misconduct && carrier == victim && ProbableGoal(victim, offender, shooting);
+            if (advantageShooter != null) return false;
+            if (isPenalty && shooting)
+            {
+                advantageOffender = offender;
+                advantageShooter = victim;
+                advantageShot = ball.ShotSequence;
+                advantageDeadline = match.PresentationTime + 1.25f;
+                return true;
+            }
+            bool exclusion = misconduct || (contact == IllegalContact.Hold && carrier != victim);
             if (!isPenalty && !exclusion && !ordinaryFouls) return false;
+            return Award(offender, victim, carrier, isPenalty, exclusion, misconduct);
+        }
+        private bool Award(SwimmerIdentity offender, SwimmerIdentity victim, SwimmerIdentity carrier, bool isPenalty, bool exclusion, bool misconduct = false)
+        {
+            penaltyAimX = 0f;
+            PenaltyTargetHeight = .36f;
             penalty = isPenalty; taker = carrier; penaltyKeeper = null;
             // Capture the restart location before stopping clears the live ball and cancels shot charging.
             Vector3 location = ball.PhysicsPosition;
@@ -104,7 +145,7 @@ namespace ToduStudios.WaterPolo
             if (penalty || exclusion)
             {
                 offender.PersonalFouls++;
-                offender.PermanentlyRemoved = offender.PersonalFouls >= personalFoulLimit;
+                offender.PermanentlyRemoved = misconduct || offender.PersonalFouls >= personalFoulLimit;
                 if (exclusion) offender.ExclusionRemaining = exclusionSeconds;
                 if (!offender.EligibleForPlay) Park(offender);
             }
@@ -136,6 +177,7 @@ namespace ToduStudios.WaterPolo
                 match.ShotClock.AwardFoul(victim.Team, exclusion);
             readyAt = match.PresentationTime + setupSeconds;
             Emit(penalty ? RefereeDecision.Penalty : exclusion ? RefereeDecision.Exclusion : RefereeDecision.Ordinary, offender, victim.Team);
+            if (penalty || exclusion) RecordDiscipline(offender, penalty);
             selection.RefreshEligibility();
             return true;
         }
@@ -146,15 +188,21 @@ namespace ToduStudios.WaterPolo
             { if (p.Team != team || !p.EligibleForPlay) continue; float d = (p.Motor.Position - point).sqrMagnitude; if (d < distance) { best = p; distance = d; } }
             return best;
         }
-        private bool ProbableGoal(SwimmerIdentity victim, SwimmerIdentity offender)
+        private static bool IsShooting(SwimmerIdentity victim)
+        {
+            if (victim.TryGetComponent<ShotCharge>(out var charge) && charge.IsCharging) return true;
+            return victim.TryGetComponent<PrototypeSwimmerAI>(out var ai) && ai.isActiveAndEnabled && ai.Behaviour == SwimmerAIBehaviour.Shoot;
+        }
+
+        private bool ProbableGoal(SwimmerIdentity victim, SwimmerIdentity offender, bool shooting)
         {
             var team = Team(victim.Team); Vector3 toGoal = PrototypeTeamTactics.Planar(team.AttackingGoal.transform.position - victim.Motor.Position);
             float depth = -team.AttackingGoal.transform.InverseTransformPoint(victim.Motor.Position).z;
             if (depth <= 0f || depth > 6f || toGoal.magnitude > 7f || Vector3.Dot(victim.Motor.Facing, toGoal.normalized) < 0.8f ||
                 Vector3.Dot(offender.Motor.Position - victim.Motor.Position, toGoal.normalized) > -0.15f) return false;
-            bool shooting = victim.TryGetComponent<ShotCharge>(out var charge) && charge.IsCharging;
-            if (!shooting && victim.TryGetComponent<PrototypeSwimmerAI>(out var ai)) shooting = ai.Behaviour == SwimmerAIBehaviour.Shoot;
-            if (!shooting) return false;
+            // A non-shooting carrier must have a clear, central close-range chance and be driving forward.
+            if (!shooting && (depth > 2f || Mathf.Abs(team.AttackingGoal.transform.InverseTransformPoint(victim.Motor.Position).x) > team.AttackingGoal.Width * .5f ||
+                Vector3.Dot(victim.Motor.Velocity, toGoal.normalized) < 1f)) return false;
             foreach (var p in roster.FieldPlayers)
             {
                 if (p.Team == victim.Team || p == offender || !p.EligibleForPlay) continue;
@@ -181,13 +229,22 @@ namespace ToduStudios.WaterPolo
             int rank = 0;
             foreach (var p in roster.Members)
             {
-                if (p == taker || !p.EligibleForPlay || p.GetComponent<PrototypeGoalkeeper>() == penaltyKeeper) continue;
+                if (p == taker || !p.EligibleForPlay || (penaltyKeeper != null && p.GetComponent<PrototypeGoalkeeper>() == penaltyKeeper)) continue;
                 Vector3 point = p.Motor.Position;
                 if (penalty)
                 {
                     // All non-participants outside 6m and >=3m from taker, separated into lanes.
                     float x = ((rank % 6) - 2.5f) * 2.7f;
                     point = goal.transform.position - goal.transform.forward * (8f + (rank / 6) * 3f) + goal.transform.right * x;
+                    if (match.EndingPenalty)
+                    {
+                        point.x = pool.Width * .5f + .65f;
+                        point.z = Mathf.Sign(Team(p.Team).DefendedGoal.transform.position.z) * (1f + rank % 7);
+                        point.y = pool.Waterline;
+                        p.GetComponent<Rigidbody>().position = point;
+                        rank++;
+                        continue;
+                    }
                     rank++;
                 }
                 else if (p.Team != taker.Team)
@@ -218,7 +275,18 @@ namespace ToduStudios.WaterPolo
         }
         private void Update()
         {
-            if (match.IsPaused || !IsRulePhase) return;
+            if (match.IsPaused) return;
+            if (advantageShooter != null)
+            {
+                if (!match.IsPlaying) advantageShooter = null;
+                else if (match.PresentationTime >= advantageDeadline ||
+                    (ball.Owner != null && ball.Owner != advantageShooter.Interaction))
+                {
+                    ResolvePendingPenalty();
+                    return;
+                }
+            }
+            if (!IsRulePhase) return;
             if (match.Phase == MatchPhase.FreeThrowSetup || match.Phase == MatchPhase.PenaltySetup)
             {
                 if (match.PresentationTime < readyAt) return;
@@ -228,7 +296,10 @@ namespace ToduStudios.WaterPolo
             }
             if (match.Phase == MatchPhase.PenaltyFlight)
             {
-                if (ball.Owner != null || match.PresentationTime >= flightUntil)
+                var goal = PenaltyGoal.transform;
+                Vector3 local = goal.InverseTransformPoint(ball.PhysicsPosition);
+                bool away = Vector3.Dot(ball.Velocity, goal.forward) < -.25f;
+                if (ball.Owner != null || local.z > .6f || away || match.PresentationTime >= flightUntil)
                 {
                     if (match.ShotClock != null) match.ShotClock.FinishPenalty(taker.Team, ball.Owner);
                     match.EndRuleRestart();
@@ -236,6 +307,14 @@ namespace ToduStudios.WaterPolo
                 return;
             }
             if (taker == null || !taker.EligibleForPlay) { match.EndRuleRestart(); return; }
+            if (match.Phase == MatchPhase.PenaltyReady && penaltyKeeper != null && penaltyKeeper.Identity.Team == selection.HumanTeam)
+            {
+                var keyboard = UnityEngine.InputSystem.Keyboard.current;
+                float lean = mobile != null ? mobile.KeeperLean : 0f;
+                if (keyboard != null && (keyboard.aKey.isPressed || keyboard.leftArrowKey.isPressed)) lean = -1f;
+                if (keyboard != null && (keyboard.dKey.isPressed || keyboard.rightArrowKey.isPressed)) lean = 1f;
+                penaltyKeeper.ChoosePenaltySide(lean);
+            }
             bool human = taker.Team == selection.HumanTeam;
             if (human && match.PresentationTime < throwAt) return;
             var team = Team(taker.Team);
@@ -263,6 +342,8 @@ namespace ToduStudios.WaterPolo
         }
         private void Released(SwimmerBallInteraction player, BallReleaseKind kind)
         {
+            if (advantageShooter != null && player == advantageShooter.Interaction && kind == BallReleaseKind.Shot && ball.ShotSequence != advantageShot)
+                advantageDeadline = match.PresentationTime + 1.5f;
             if (player != taker?.Interaction) return;
             if (match.Phase == MatchPhase.FreeThrowReady) match.EndRuleRestart();
             else if (match.Phase == MatchPhase.PenaltyReady) { flightUntil = match.PresentationTime + 3f; match.LaunchPenalty(); }
@@ -272,19 +353,63 @@ namespace ToduStudios.WaterPolo
             if(!match.IsPlaying || seconds<=0f)return;
             foreach (var p in roster.Members)
             {
-                if (p.ExclusionRemaining <= 0f || p.PermanentlyRemoved) continue;
+                if (p.ExclusionRemaining <= 0f) continue;
                 p.ExclusionRemaining = Mathf.Max(0f, p.ExclusionRemaining - seconds);
-                if (p.ExclusionRemaining <= 0f) Reenter(p);
+                if (p.ExclusionRemaining <= 0f && !p.AwaitingExit && (!p.PermanentlyRemoved || incoming.ContainsKey(p))) Reenter(p);
             }
         }
         private void PossessionChanged(SwimmerBallInteraction previous, SwimmerBallInteraction next)
         { if (match.IsPlaying && next != null) ReleaseTeam(next.GetComponent<SwimmerIdentity>().Team); }
-        public void GoalScored() { ReleaseTeam(PrototypeTeam.Blue); ReleaseTeam(PrototypeTeam.White); }
-        private void ReleaseTeam(PrototypeTeam team)
-        { foreach (var p in roster.Members) if (p.Team == team && p.ExclusionRemaining > 0f && !p.PermanentlyRemoved) { p.ExclusionRemaining = 0f; Reenter(p); } }
-        private void Reenter(SwimmerIdentity player)
+        public void GoalScored()
         {
-            player.Motor.ResetPose(Team(player.Team).DefendedGoal.transform.position - Team(player.Team).DefendedGoal.transform.forward * 4f + Vector3.right * (pool.Width * 0.5f - 1.2f),
+            advantageShooter = null;
+            ReleaseTeam(PrototypeTeam.Blue, true);
+            ReleaseTeam(PrototypeTeam.White, true);
+        }
+        private void ReleaseTeam(PrototypeTeam team, bool goal = false)
+        {
+            foreach (var p in roster.Members)
+            {
+                if (p.Team != team || p.EligibleForPlay || p.EnteringField) continue;
+                p.ExclusionRemaining = 0f;
+                if (p.PermanentlyRemoved && !incoming.ContainsKey(p)) continue;
+                if (goal || !p.AwaitingExit)
+                {
+                    p.AwaitingExit = false;
+                    Reenter(p, goal);
+                }
+            }
+        }
+        private void Reenter(SwimmerIdentity player, bool immediate = false)
+        {
+            bool flying = exchanges.TryGetValue(player, out var exchange) && exchange.Flying;
+            Vector3 entry = flying ? Gate(player, true) - Vector3.right * 1.3f :
+                Team(player.Team).DefendedGoal.transform.position - Team(player.Team).DefendedGoal.transform.forward * .8f + Vector3.right * (pool.Width * .5f - 1.2f);
+            if (player.EnteringField) return;
+            SwapAtEntry(player);
+            if (IsPenalty && player != taker && player != penaltyKeeper?.Identity)
+            {
+                // A replacement admitted before the throw is still a non-participant.
+                entry = PenaltyGoal.transform.TransformPoint(new Vector3(7.6f, 0f, -9.2f));
+                if (match.EndingPenalty)
+                {
+                    entry.x = pool.transform.position.x + pool.Width * .5f + .65f;
+                    entry.z = Team(player.Team).DefendedGoal.transform.position.z * .6f;
+                }
+                entry.y = pool.Waterline;
+            }
+            if (useCompetitionReentryArea && !immediate)
+            {
+                player.EnteringField = true;
+                player.EntryPoint = entry;
+                return;
+            }
+            FinishEntry(player, entry);
+        }
+        private void FinishEntry(SwimmerIdentity player, Vector3 entry)
+        {
+            player.EnteringField = false;
+            player.Motor.ResetPose(entry,
                 Quaternion.LookRotation(Team(player.Team).AttackDirection));
             RestoreCollider(player); selection.RefreshEligibility();
             Emit(RefereeDecision.Reentry, player, player.Team);
@@ -292,6 +417,18 @@ namespace ToduStudios.WaterPolo
         private void Park(SwimmerIdentity player)
         {
             player.Motor.StopMotion(); player.GetComponent<ShotCharge>()?.CancelCharge();
+            if (useCompetitionReentryArea)
+            {
+                player.AwaitingExit = true;
+                var hitbox = player.GetComponent<Collider>();
+                if (hitbox != null) hitbox.enabled = false;
+                return;
+            }
+            player.GetComponent<Rigidbody>().position = WaitingPoint(player);
+            var collider = player.GetComponent<Collider>(); if (collider != null) collider.enabled = false;
+        }
+        private Vector3 WaitingPoint(SwimmerIdentity player)
+        {
             Vector3 point = Team(player.Team).DefendedGoal.transform.position;
             point.x = pool.transform.position.x + pool.Width * 0.5f + 1.5f + player.CapNumber * 0.45f;
             if (useCompetitionReentryArea)
@@ -300,17 +437,48 @@ namespace ToduStudios.WaterPolo
                 point += Team(player.Team).DefendedGoal.transform.forward * (.5f + (player.CapNumber / 3 % 2) * .3f);
             }
             point.y = pool.Waterline;
-            player.GetComponent<Rigidbody>().position = point; player.transform.position = point;
-            var collider = player.GetComponent<Collider>(); if (collider != null) collider.enabled = false;
+            return point;
+        }
+        private void FixedUpdate()
+        {
+            if (!useCompetitionReentryArea || match.IsPaused) return;
+            foreach (var player in roster.Members)
+            {
+                if (player.EligibleForPlay) continue;
+                var body = player.GetComponent<Rigidbody>();
+                bool flying = exchanges.TryGetValue(player, out var exchange) && exchange.Flying;
+                if (player.EnteringField)
+                {
+                    Vector3 arrival = Vector3.MoveTowards(body.position, player.EntryPoint, 3.5f * Time.fixedDeltaTime);
+                    if (arrival == player.EntryPoint) FinishEntry(player, arrival);
+                    else body.MovePosition(arrival);
+                    continue;
+                }
+                Vector3 destination = Gate(player, flying);
+                bool ready = AdvanceReserve(player, destination);
+                Vector3 delta = destination - body.position;
+                if (delta.sqrMagnitude > .0025f)
+                {
+                    body.MovePosition(Vector3.MoveTowards(body.position, destination, 3.5f * Time.fixedDeltaTime));
+                    if (new Vector2(delta.x, delta.z).sqrMagnitude > .01f)
+                        body.MoveRotation(Quaternion.LookRotation(new Vector3(delta.x, 0, delta.z)));
+                    continue;
+                }
+                if (!ready) continue;
+                if (player.AwaitingExit) SubstitutionStage?.Invoke(player, "At exit");
+                player.AwaitingExit = false;
+                if ((!player.PermanentlyRemoved || incoming.ContainsKey(player)) && player.ExclusionRemaining <= 0f) Reenter(player);
+            }
         }
         private void RestoreCollider(SwimmerIdentity player)
         { for (int i = 0; i < colliders.Length; i++) if (roster.Members[i] == player && colliders[i] != null) colliders[i].enabled = colliderEnabled[i]; }
         private void PhaseChanged()
-        { foreach (var p in roster.Members) if (!p.EligibleForPlay) Park(p); }
+        { if (!useCompetitionReentryArea) foreach (var p in roster.Members) if (!p.EligibleForPlay) Park(p); }
         private void ResetMatch()
         {
-            taker = null; penaltyKeeper = null; penalty = false; nextHold = 0f; DecisionCount = 0;
-            foreach (var p in roster.Members) { p.PersonalFouls = 0; p.ExclusionRemaining = 0f; p.PermanentlyRemoved = false; RestoreCollider(p); }
+            ResetBench();
+            advantageShooter = null; taker = null; penaltyKeeper = null; penalty = false; nextHold = 0f; DecisionCount = 0;
+            foreach (var p in roster.Members) { p.EnteringField = false; p.AwaitingExit = false; p.PersonalFouls = 0; p.ExclusionRemaining = 0f; p.PermanentlyRemoved = false; RestoreCollider(p); }
         }
         private void Emit(RefereeDecision decision, SwimmerIdentity player, PrototypeTeam team)
         { DecisionCount++; Decided?.Invoke(new RefereeEvent(decision, player, team)); }

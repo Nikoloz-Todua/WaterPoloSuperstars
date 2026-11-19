@@ -59,8 +59,9 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             for(int i=0;i<athletes.Length;i++)
             {
                 var p=athletes[i];if(p==null)continue;int state=p.PermanentlyRemoved?-1:Mathf.CeilToInt(p.ExclusionRemaining);if(state>0)ActiveExclusions++;
-                if(shownExclusions[i]==state)continue;shownExclusions[i]=state;
-                if(i<capLabels.Length&&capLabels[i]!=null){capLabels[i].text=state<0?$"#{p.CapNumber}\n<size=65%>OUT</size>":state>0?$"#{p.CapNumber}\n<size=65%>{state}s</size>":$"#{p.CapNumber}";capLabels[i].color=state<0?new Color(.72f,.5f,.5f):state>0?Amber:p.Team==PrototypeTeam.Blue?Cyan:Color.white;}
+                int displayKey = p.LastDisqualifiedCap * 10000 + p.CapNumber * 100 + state;
+                if(shownExclusions[i]==displayKey)continue;shownExclusions[i]=displayKey;
+                if(i<capLabels.Length&&capLabels[i]!=null){capLabels[i].text=state<0?$"#{p.CapNumber}\n<size=65%>OUT</size>":state>0?$"#{p.CapNumber}\n<size=65%>{state}s</size>":p.LastDisqualifiedCap>0?$"#{p.CapNumber}\n<size=65%>#{p.LastDisqualifiedCap} OUT</size>":$"#{p.CapNumber}";capLabels[i].color=state<0?new Color(.72f,.5f,.5f):state>0?Amber:p.Team==PrototypeTeam.Blue?Cyan:Color.white;}
                 if(i<exclusionDots.Length&&exclusionDots[i]!=null)exclusionDots[i].enabled=state>0;
             }
         }

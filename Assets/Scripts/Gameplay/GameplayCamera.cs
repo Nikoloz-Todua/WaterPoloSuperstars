@@ -114,6 +114,7 @@ namespace ToduStudios.WaterPolo
             }
         }
 
+        public float SidelineElevation { get; set; } = 1f;
         public float UserZoom { get; private set; } = 1f;
         public float UserSmoothing { get; private set; } = 1f;
         public void SetUserPreferences(float zoom, float smoothing)
@@ -311,8 +312,27 @@ namespace ToduStudios.WaterPolo
                 float t=Mathf.SmoothStep(0,1,openingWeight);position=Vector3.Lerp(position,openingOverview.position,t);
                 rotation=Quaternion.Slerp(rotation,openingOverview.rotation,t);lens.fieldOfView=Mathf.Lerp(lens.fieldOfView,openingFieldOfView,t);
             }
+            var rules = match != null ? match.Rules : null;
+            bool penaltyView = rules != null && rules.IsPenalty && rules.Taker != null;
+            penaltyBlend = Mathf.MoveTowards(penaltyBlend, penaltyView ? 1f : 0f, Time.unscaledDeltaTime * 2.5f);
+            if (penaltyView)
+            {
+                var direction = rules.PenaltyGoal.transform.forward;
+                var shooter = rules.Taker.Motor.Position;
+                penaltyEye = shooter - direction * 3.2f + Vector3.Cross(Vector3.up, direction) * .7f + Vector3.up * 1.9f;
+                penaltyLook = rules.PenaltyGoal.transform.position + Vector3.up * .45f;
+            }
+            if (penaltyBlend > 0f)
+            {
+                float weight = Mathf.SmoothStep(0f, 1f, penaltyBlend);
+                position = Vector3.Lerp(position, penaltyEye, weight);
+                rotation = Quaternion.Slerp(rotation, Quaternion.LookRotation(penaltyLook - penaltyEye), weight);
+                lens.fieldOfView = Mathf.Lerp(lens.fieldOfView, 49f, weight);
+            }
             transform.SetPositionAndRotation(position,rotation);
         }
+        private float penaltyBlend;
+        private Vector3 penaltyEye, penaltyLook;
         private bool Opening=>match!=null&&match.Phase==MatchPhase.SprintSetup;
         private void SidePose(out Vector3 position,out Quaternion rotation)
         {
@@ -322,24 +342,38 @@ namespace ToduStudios.WaterPolo
             wanted.x+=Mathf.Max(0f,Mathf.Max(player.x,point.x)-wanted.x)*.35f;
             if(ball!=null)wanted.z+=Mathf.Clamp(ball.Velocity.z*.10f,-1.2f,1.2f);
             Vector3 center=poolBounds.transform.position;
-            wanted.x=Mathf.Clamp(wanted.x,center.x-3f,center.x+4.5f);wanted.z=Mathf.Clamp(wanted.z,center.z-4f,center.z+4f);wanted.y=poolBounds.Waterline;
+            wanted.x=Mathf.Clamp(wanted.x,center.x-8f,center.x+8f);wanted.z=Mathf.Clamp(wanted.z,center.z-11f,center.z+11f);wanted.y=poolBounds.Waterline;
+            GoalMouth goal = attackingGoal;
+            if (ball != null && ball.Owner != null)
+            {
+                var carrier = ball.Owner.GetComponent<SwimmerIdentity>();
+                foreach (var team in teams) if (team.Team == carrier.Team) goal = team.AttackingGoal;
+                if (goal != null)
+                {
+                    Vector3 toGoal = goal.transform.position - point;
+                    wanted.z += Mathf.Clamp(toGoal.z * .13f, -1f, 1f);
+                    if (toGoal.sqrMagnitude < 90f) wanted = Vector3.Lerp(wanted, goal.transform.position, .13f);
+                }
+            }
             wanted+=sideline.lookAtOffset;
-            if(!sideInitialized){sideFocus=wanted;sideHeight=sideline.height*UserZoom;sideInitialized=true;}
+            float zoom = Mathf.InverseLerp(.85f, 1.25f, UserZoom);
+            float setback = sideline.distance * Mathf.Lerp(.43f, .98f, zoom);
+            float baseHeight = sideline.height * Mathf.Lerp(.48f, 1f, zoom) * Mathf.Clamp(SidelineElevation,.8f,1.25f);
+            if(!sideInitialized){sideFocus=wanted;sideHeight=baseHeight;sideInitialized=true;}
             sideFocus=Vector3.SmoothDamp(sideFocus,wanted,ref sideFocusVelocity,sideline.damping*UserSmoothing,Mathf.Infinity,Time.unscaledDeltaTime);
             int count=0;sidePoints[count++]=player+Vector3.up*.45f;sidePoints[count++]=point;
-            GoalMouth goal=attackingGoal;
-            if(ball!=null&&ball.Owner!=null){var carrier=ball.Owner.GetComponent<SwimmerIdentity>();foreach(var team in teams)if(team.Team==carrier.Team)goal=team.AttackingGoal;}
             if(goal!=null&&(goal.transform.position-point).sqrMagnitude<110f)sidePoints[count++]=goal.transform.position+Vector3.up*.5f;
-            float desiredHeight=sideline.height*UserZoom;
+            float desiredHeight=baseHeight;
             for(int pass=0;pass<5;pass++)
             {
-                position=new Vector3(center.x+Mathf.Min(22.5f,sideline.distance),poolBounds.Waterline+desiredHeight,sideFocus.z)+sideline.positionOffset;
+                position=new Vector3(Mathf.Min(center.x+22.5f,sideFocus.x+setback),poolBounds.Waterline+desiredHeight,sideFocus.z)+sideline.positionOffset;
                 rotation=Quaternion.LookRotation(sideFocus-position);Quaternion inverse=Quaternion.Inverse(rotation);float tan=Mathf.Tan(sideline.fieldOfView*.5f*Mathf.Deg2Rad);bool fits=true;
                 for(int i=0;i<count;i++){Vector3 p=inverse*(sidePoints[i]-position);if(p.z<.1f){fits=false;continue;}float x=.5f+p.x/(2*p.z*tan*lens.aspect),y=.5f+p.y/(2*p.z*tan);if(x<.13f||x>.87f||y<.30f||y>.78f)fits=false;}
-                if(fits)break;desiredHeight=Mathf.Min(26f,Mathf.Min(sideline.height*sideline.maximumZoom*UserZoom,desiredHeight*1.12f));
+                if(fits)break;desiredHeight=Mathf.Min(26f,Mathf.Min(baseHeight*Mathf.Min(1.22f,sideline.maximumZoom),desiredHeight*1.12f));
             }
+            if (Mathf.Abs(desiredHeight - sideHeight) < .16f) desiredHeight = sideHeight;
             sideHeight=Mathf.SmoothDamp(sideHeight,desiredHeight,ref sideHeightVelocity,sideline.damping*.65f,Mathf.Infinity,Time.unscaledDeltaTime);
-            position=new Vector3(center.x+Mathf.Min(22.5f,sideline.distance),poolBounds.Waterline+Mathf.Clamp(sideHeight,12,26),sideFocus.z)+sideline.positionOffset;
+            position=new Vector3(Mathf.Min(center.x+22.5f,sideFocus.x+setback),poolBounds.Waterline+sideHeight,sideFocus.z)+sideline.positionOffset;
             rotation=Quaternion.LookRotation(sideFocus-position);
         }
     }

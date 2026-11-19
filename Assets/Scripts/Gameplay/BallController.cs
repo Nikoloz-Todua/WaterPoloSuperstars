@@ -160,6 +160,7 @@ namespace ToduStudios.WaterPolo
         {
             if (!CanRelease(claimant, BallReleaseKind.Shot) || simulationPaused || State != BallState.Held || Owner != claimant || !Eligible(claimant))
                 return false;
+            bool penaltyThrow = match != null && match.Phase == MatchPhase.PenaltyReady;
             CurrentShot=shot;
             Release(claimant, Mathf.Max(0f, speed), claimant.GetComponent<SwimmerMotor>().Facing, BallReleaseKind.Shot);
             float rise=shot==ShotType.High?flight.highReleaseHeight:shot==ShotType.Skip?flight.skipReleaseHeight:
@@ -171,6 +172,14 @@ namespace ToduStudios.WaterPolo
             {float time=Mathf.Clamp(range/Mathf.Max(1f,speed),0.15f,1.5f);vertical=(0.48f-rise-Physics.gravity.y*time*time*0.5f)/time;}
             else if(shot==ShotType.Skip)
             {float maximum=Mathf.Sqrt(2f*rise/Mathf.Max(0.1f,-Physics.gravity.y))*0.9f;float time=Mathf.Clamp(range*0.55f/Mathf.Max(1f,speed),0.1f,maximum);vertical=(-rise-Physics.gravity.y*time*time*0.5f)/time;}
+            if (penaltyThrow)
+            {
+                var goal = match.Rules.PenaltyGoal.transform;
+                float approach = Vector3.Dot(body.linearVelocity, goal.forward);
+                float depth = -goal.InverseTransformPoint(origin).z;
+                float travel = Mathf.Clamp(depth / Mathf.Max(1f, approach), .06f, 1f);
+                vertical = (goal.position.y + match.Rules.PenaltyTargetHeight - origin.y) / travel - .5f * Physics.gravity.y * travel;
+            }
             BeginFlight(origin,body.linearVelocity+Vector3.up*vertical);
             return true;
         }
@@ -302,6 +311,12 @@ namespace ToduStudios.WaterPolo
             Vector3 releasePoint = speed > 0f
                 ? claimant.GetComponent<SwimmerMotor>().Position + direction * claimant.ReleaseDistance
                 : transform.position;
+            if (kind == BallReleaseKind.Shot && match != null && match.Phase == MatchPhase.PenaltyReady)
+            {
+                // The normal anti-overlap offset would move a five-metre throw inside the line.
+                // Owner collision remains ignored until separation on the existing release path.
+                releasePoint = claimant.GetComponent<SwimmerMotor>().Position;
+            }
             // Keep release spawning on the playing side; a teleport into a net is not a goal.
             Vector3 spawn = poolBounds.ClampPosition(releasePoint, Radius);
             spawn.y = SurfaceHeight;

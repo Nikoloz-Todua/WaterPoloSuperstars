@@ -106,6 +106,7 @@ namespace ToduStudios.WaterPolo
         private void FixedUpdate()
         {
             if (identity != null && !identity.EligibleForPlay) { StopMotion(); return; }
+            if (identity != null && identity.Rules != null && identity.Rules.HoldOutsideAtHorn(identity)) { StopMotion(); return; }
             if (identity != null && identity.Rules != null && !identity.Rules.CanMove(identity))
             {
                 if (moveInput.sqrMagnitude > 0.01f && identity.Rules.IsRulePhase && identity.Rules.Taker == identity)

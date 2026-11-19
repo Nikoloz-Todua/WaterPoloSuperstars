@@ -27,7 +27,8 @@ namespace ToduStudios.WaterPolo
         public ShotType ShotMode {get;private set;}
         public bool SprintHeld {get;private set;}
         private bool Usable=>!match.IsPaused && !menus.Visible && !selection.InputLocked && observed!=null && observed==selection.ActivePlayer && observed.EligibleForPlay;
-        public bool CanMove=>Usable && match.CanSwim;
+        public bool CanMove => Usable && (match.CanSwim || match.Phase == MatchPhase.PenaltyReady);
+        public float KeeperLean => !match.IsPaused && match.Phase == MatchPhase.PenaltyReady ? joystick.Value.x : 0f;
         public Vector2 MovementFor(SwimmerMotor motor)=>CanMove && observed.Motor==motor?joystick.Value:Vector2.zero;
         public bool SprintFor(SwimmerMotor motor)=>CanMove && observed.Motor==motor && SprintHeld;
         private void OnEnable(){match.PauseChanged+=Paused;match.Changed+=Phase;}
@@ -63,6 +64,7 @@ namespace ToduStudios.WaterPolo
                     b.Action==MobileMatchAction.Lob?(refinedLayout?attacking:hasBall) && !centre:
                     b.Action==MobileMatchAction.ShotMode?hasBall && !centre:
                     b.Action==MobileMatchAction.Collect?ball.Owner==null && match.IsPlaying:true;
+                if (match.Rules != null && match.Rules.IsPenalty) show = b.Action == MobileMatchAction.Shoot && match.Rules.Taker.Team == selection.HumanTeam;
                 if(match.IsPeriodSprint)show=b.Action==MobileMatchAction.Sprint||b.Action==MobileMatchAction.Collect&&ball.CanCollect;
                 if(b.gameObject.activeSelf!=show)b.gameObject.SetActive(show);
                 b.SetAvailable(CanUse(b.Action));
