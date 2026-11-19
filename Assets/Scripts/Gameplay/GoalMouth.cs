@@ -25,7 +25,7 @@ namespace ToduStudios.WaterPolo
         {
             // Strict post/crossbar clearance: tangent contact alone must not count.
             return Mathf.Abs(local.x) + radius < Width * 0.5f - 0.001f &&
-                local.y - radius >= 0f && local.y + radius < Height - 0.001f;
+                local.y >= 0f && local.y + radius < Height - 0.001f; // A floating ball may be partially submerged.
         }
 
         public bool TryGetCrossing(Vector3 from, Vector3 to, float radius, out Vector3 crossing)

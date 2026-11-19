@@ -28,6 +28,15 @@ namespace ToduStudios.WaterPolo
             if (exclusion) Remaining = Mathf.Max(Remaining, restartPossessionSeconds);
             // An ordinary foul keeps time. A penalty's retained-possession reset is applied on resolution.
         }
+        internal void AwardBoundaryRestart(PrototypeTeam team, bool shortClock, bool fullClock)
+        {
+            bool changed = PossessionTeam != team;
+            if (changed) TeamChanges++;
+            PossessionTeam = team;
+            if (shortClock) Remaining = restartPossessionSeconds;
+            else if (changed || fullClock) Remaining = possessionSeconds;
+        }
+
         public void FinishPenalty(PrototypeTeam attackingTeam, SwimmerBallInteraction owner)
         {
             if (owner == null || owner.GetComponent<SwimmerIdentity>().Team == attackingTeam)

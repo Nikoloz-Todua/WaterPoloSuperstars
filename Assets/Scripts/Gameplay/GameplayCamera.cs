@@ -4,7 +4,7 @@ namespace ToduStudios.WaterPolo
 {
     public enum MatchCameraView { Lengthwise, SidelineBroadcast }
     // Replay values are reserved camera ownership states, not an implemented playback feature.
-    public enum MatchCameraPresentation { Live, PeriodOpening, Inspection, GoalCelebration, ReplayPlayback, ReplayOrbit, ReturnToLive }
+    public enum MatchCameraPresentation { Live, PeriodOpening, Inspection, GoalCelebration, ReplayPlayback, ReplayOrbit, ReturnToLive, Introduction }
     [System.Serializable] public struct BroadcastCameraSnapshot
     {public Vector3 position;public Quaternion rotation;public float fieldOfView;public MatchCameraView view;public MatchCameraPresentation presentation;}
     [System.Serializable] public sealed class SidelineCameraProfile
@@ -91,9 +91,12 @@ namespace ToduStudios.WaterPolo
         private readonly Vector3[] sidePoints=new Vector3[4];
         public MatchCameraView View=>view;
         public bool CinematicOverride { get; internal set; }
-        public MatchCameraPresentation Presentation=>CinematicOverride?MatchCameraPresentation.ReplayPlayback:!enabled?MatchCameraPresentation.Inspection:match!=null&&match.Phase==MatchPhase.SprintSetup?MatchCameraPresentation.PeriodOpening:MatchCameraPresentation.Live;
+        public MatchCameraPresentation Presentation=>CinematicOverride?(match!=null && match.IsPreMatchPresentation?MatchCameraPresentation.Introduction:MatchCameraPresentation.ReplayPlayback):!enabled?MatchCameraPresentation.Inspection:match!=null&&match.Phase==MatchPhase.SprintSetup?MatchCameraPresentation.PeriodOpening:MatchCameraPresentation.Live;
         public float ViewBlend=>viewBlend;
         public void SetView(MatchCameraView value)=>view=value==MatchCameraView.SidelineBroadcast?value:MatchCameraView.Lengthwise;
+        internal BroadcastCameraSnapshot GetOpeningPresentationPose() => openingOverview==null ? CaptureCameraPose() :
+            new BroadcastCameraSnapshot{position=openingOverview.position,rotation=openingOverview.rotation,
+                fieldOfView=openingFieldOfView,view=view,presentation=MatchCameraPresentation.PeriodOpening};
         public BroadcastCameraSnapshot CaptureCameraPose()=>new BroadcastCameraSnapshot{position=transform.position,rotation=transform.rotation,fieldOfView=GetComponent<Camera>().fieldOfView,view=view,presentation=Presentation};
         public Vector2 ScreenToWorldMovement(Vector2 input)
         {

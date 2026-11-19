@@ -50,7 +50,7 @@ namespace ToduStudios.WaterPolo
                 ResetInputs();observed=selection.ActivePlayer;
                 if(observed!=null){charge=observed.GetComponent<ShotCharge>();passing=observed.GetComponent<SwimmerPassing>();lob=observed.GetComponent<LobPassing>();steal=observed.GetComponent<SwimmerSteal>();stamina=observed.GetComponent<SwimmerStamina>();}
             }
-            bool visible=!match.GoalPresentationActive && !menus.Visible && !match.IsPaused && match.Phase!=MatchPhase.PreMatch && match.Phase!=MatchPhase.FullTime;
+            bool visible=!match.IsPreMatchPresentation && !match.GoalPresentationActive && !menus.Visible && !match.IsPaused && match.Phase!=MatchPhase.PreMatch && match.Phase!=MatchPhase.FullTime;
             if(gameplayRoot.activeSelf!=visible)gameplayRoot.SetActive(visible);
             if(!CanMove)joystick.ResetInput();
             bool centre=match.IsCentreRestart;

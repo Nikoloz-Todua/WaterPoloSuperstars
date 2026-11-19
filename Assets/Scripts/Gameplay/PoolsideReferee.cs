@@ -39,7 +39,7 @@ namespace ToduStudios.WaterPolo
         private void Decision(RefereeEvent e)
         {
             if(e.Decision==RefereeDecision.Reentry || e.Decision==RefereeDecision.FreeThrow)return;
-            Signal=e.Decision==RefereeDecision.Penalty?RefereeSignal.Penalty:e.Decision==RefereeDecision.Exclusion?RefereeSignal.Exclusion:RefereeSignal.Foul;
+            Signal=e.Decision==RefereeDecision.BallOut?RefereeSignal.Restart:e.Decision==RefereeDecision.Penalty?RefereeSignal.Penalty:e.Decision==RefereeDecision.Exclusion?RefereeSignal.Exclusion:RefereeSignal.Foul;
             signalUntil=match.PresentationTime+1.8f;holdUntil=match.PresentationTime+0.8f;
         }
         private void Phase()

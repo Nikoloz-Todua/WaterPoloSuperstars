@@ -4,7 +4,7 @@ using UnityEngine;
 namespace ToduStudios.WaterPolo
 {
     public enum IllegalContact { Push, Hold, Misconduct }
-    public enum RefereeDecision { Ordinary, Exclusion, Penalty, Reentry, FreeThrow }
+    public enum RefereeDecision { Ordinary, Exclusion, Penalty, Reentry, FreeThrow, BallOut }
     public readonly struct RefereeEvent
     {
         public readonly RefereeDecision Decision;
@@ -101,7 +101,7 @@ namespace ToduStudios.WaterPolo
             if (match.IsPlaying) return true;
             if (match.IsCentreRestart) return match.CanCentreRelease(player,kind);
             return identity == taker && (match.Phase == MatchPhase.FreeThrowReady &&
-                (kind == BallReleaseKind.Pass || kind == BallReleaseKind.Lob) ||
+                (kind == BallReleaseKind.Pass || kind == BallReleaseKind.Lob || kind == BallReleaseKind.Shot && CanShootFromBoundary()) ||
                 match.Phase == MatchPhase.PenaltyReady && kind == BallReleaseKind.Shot);
         }
         public bool KeeperMayAct(PrototypeGoalkeeper keeper) => !match.IsPaused && keeper != null && match.Phase == MatchPhase.PenaltyFlight && keeper == penaltyKeeper;
@@ -290,8 +290,20 @@ namespace ToduStudios.WaterPolo
             if (match.Phase == MatchPhase.FreeThrowSetup || match.Phase == MatchPhase.PenaltySetup)
             {
                 if (match.PresentationTime < readyAt) return;
+                if (BoundaryRestart is BoundaryRestartAward restart)
+                {
+                    if (!taker.EligibleForPlay)
+                    {
+                        taker = NearestTaker(restart.Mark, restart.Team);
+                        if (taker == null) return;
+                        taker.Motor.ResetPose(restart.Mark, Quaternion.LookRotation(RestartDirection(restart.Mark)));
+                        ArrangeRestart();
+                    }
+                    if (!ball.TryAwardRestart(taker.Interaction, restart.Mark)) return;
+                }
+                readyAt = match.PresentationTime;
                 match.ReadyRuleRestart(penalty); throwAt = match.PresentationTime + maximumThrowWait;
-                if (!penalty) Emit(RefereeDecision.FreeThrow, taker, taker.Team);
+                if (!penalty && !BoundaryRestart.HasValue) Emit(RefereeDecision.FreeThrow, taker, taker.Team);
                 return;
             }
             if (match.Phase == MatchPhase.PenaltyFlight)
@@ -319,7 +331,7 @@ namespace ToduStudios.WaterPolo
             if (human && match.PresentationTime < throwAt) return;
             var team = Team(taker.Team);
             var receiver = penalty ? null : FindOutlet();
-            Vector3 target = penalty ? team.ShotTarget() : receiver != null ? receiver.Motor.Position : taker.Motor.Position + team.AttackDirection * 5f;
+            Vector3 target = penalty ? team.ShotTarget() : receiver != null ? receiver.Motor.Position : taker.Motor.Position + (BoundaryRestart.HasValue ? RestartDirection(BoundaryRestart.Value.Mark) : team.AttackDirection) * 5f;
             Vector3 aim = PrototypeTeamTactics.Planar(target - taker.Motor.Position).normalized;
             taker.Motor.SetFacingDirection(aim);
             if (Vector3.Dot(taker.Motor.Facing, aim) < 0.998f) return;
@@ -473,7 +485,10 @@ namespace ToduStudios.WaterPolo
         private void RestoreCollider(SwimmerIdentity player)
         { for (int i = 0; i < colliders.Length; i++) if (roster.Members[i] == player && colliders[i] != null) colliders[i].enabled = colliderEnabled[i]; }
         private void PhaseChanged()
-        { if (!useCompetitionReentryArea) foreach (var p in roster.Members) if (!p.EligibleForPlay) Park(p); }
+        {
+            if (!IsRulePhase) BoundaryRestart = null;
+            if (!useCompetitionReentryArea) foreach (var p in roster.Members) if (!p.EligibleForPlay) Park(p);
+        }
         private void ResetMatch()
         {
             ResetBench();

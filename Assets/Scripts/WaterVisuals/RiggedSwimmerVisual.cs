@@ -64,7 +64,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         }
         void Update()
         {
-            bool paused=match!=null&&(match.IsPaused||match.GoalPresentationActive);animator.speed=paused?0:1;if(paused)return;
+            bool paused=match!=null&&(match.IsPaused||match.GoalPresentationActive||match.IsPreMatchPresentation);animator.speed=paused?0:1;if(paused)return;
             if(Preview)
             {
                 var k=Keyboard.current;
@@ -91,7 +91,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         }
         void LateUpdate()
         {
-            if(head==null||alignmentRoot==null||(match!=null&&(match.IsPaused||match.GoalPresentationActive)))return;
+            if(head==null||alignmentRoot==null||(match!=null&&(match.IsPaused||match.GoalPresentationActive||match.IsPreMatchPresentation)))return;
             float surface=pool!=null?pool.Waterline:0;
             float turn=Mathf.SmoothStep(0,1,Mathf.Clamp01((throwAt-Time.time)*5f));
             alignmentRoot.localRotation=restAlignment*Quaternion.Euler(0f,throwTurn*turn,0f);

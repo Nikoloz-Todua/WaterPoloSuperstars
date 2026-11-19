@@ -117,6 +117,9 @@ namespace ToduStudios.WaterPolo.Editor
         static void ConfigureDimensions()
         {
             var pool=Object.FindAnyObjectByType<PoolBounds>(); Set(pool,"width",dimensions.fieldWidth);Set(pool,"length",dimensions.fieldLength);
+            var fieldData=new SerializedObject(pool);
+            fieldData.FindProperty("officiateBallExits").boolValue=true;
+            fieldData.ApplyModifiedPropertiesWithoutUndo();
             var rulesData=new SerializedObject(Object.FindAnyObjectByType<MatchRules>());rulesData.FindProperty("useCompetitionReentryArea").boolValue=true;rulesData.ApplyModifiedPropertiesWithoutUndo();
             var c=pool.transform.position;float half=dimensions.fieldLength*.5f;
             foreach(var goal in Object.FindObjectsByType<GoalMouth>())

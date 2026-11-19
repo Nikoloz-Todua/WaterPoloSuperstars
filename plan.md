@@ -2,7 +2,28 @@
 
 Last updated: 2026-11-20.
 
-## Current handoff — Milestone 24 match technical polish
+## Current handoff — Milestone 26 ball physics and boundary restarts
+
+The saved OlympicMatchArena now absorbs ordinary water impacts and officiates whole-ball exits. [Rules, implementation, tests, Game Views and exact files](docs/BALL_PHYSICS_AND_BOUNDARY_RESTARTS.md).
+
+- BallController keeps the single Rigidbody and owner. Ordinary impacts absorb downward movement and cap residual drift, with stronger surface resistance. Intentional skip shots keep one powered bounce. Disabling ball collision with hidden end barriers removes phantom rebounds. Real goal frames and nets retain their collisions.
+- PrototypeMatch checks GoalMouth before the PoolBounds exit sweep. MatchRules distinguishes touch, a field block and a keeper deflection, then awards a throw-in, goal throw or corner at the event location and current defending end. The stopped sequence hides the old ball and places the same ball with the nearest eligible taker. The optional replacement event carries the location for a future attendant.
+- The existing shot clock preserves a retained passive pass clock, resets eligible short restarts to 18 seconds, and gives new possession 28 seconds. Live clocks resume on release. Five-metre penalty exits and the end-of-period exception use the existing authoritative transitions.
+- Focused Unity 6000.6.7f1 runs passed ordinary drop, dry and wet landings, lob and skip, both sidelines and both ends, physical field contact, keeper deflection and catch, a wide penalty, halftime reversal, live passing after replacement and goal priority. Boot → Lobby → Match → Results → Lobby passed with four physical sprint-offs, accelerated period endings, two replay views of one score, one reward and an unchanged real profile hash. Current Console reported zero errors and warnings. The arena is saved and stopped with Boot restored.
+- Evidence is under `Logs/BallPhysicsPolish/`, including a pre-edit scene recovery outside Assets. Physical-device profiling, explicit field-player parry controls and attendant presentation remain future work. Git changes are unstaged.
+
+## Previous handoff — Pre-match presentation prototype
+
+The saved OlympicMatchArena starts with a skippable, roughly 23-second ceremony. It uses the existing venue, deck routes, fourteen athlete rigs, two official visuals, match Canvas and render camera. [Architecture, controls, game views, verification and exact files](docs/PRE_MATCH_PRESENTATION.md).
+
+- Flow is arena overview → two-lane walkout → formal lineup → captain pennant exchange → ceremony hold → starting lineups → deck huddles → original Q1 sprint. The centre forward acts as captain and the overlay shows collection names where assigned, with role labels as fallback. Deck gait, handoff and officials are provisional.
+- PrototypeMatch owns the pre-match stoppage and the sole entry into the existing sprint. PreMatchPresentation owns the pause-aware presentation timeline, overlays and camera override. PrematchCast uses temporary render-only actors. The shared renderer copier also serves the existing goal replay buffer. Match controllers, replay time history, roster and economy remain under their original authorities.
+- Tap, Enter or gamepad South advances a stage. Skip Intro, Backspace or gamepad East finishes. Pause retains the current shot and stage. Confirmed Restart runs the usual Q1 opening without an intro, and Exit discards the ceremony with the arena scene. The existing camera selection is used at handoff.
+- Scene setup is saved and repeat-safe under **Tools > Water Polo > Match UX > Set Up Pre-Match Presentation**. **Tools > Water Polo > Play Olympic Match Arena** previews directly. **Tools > Water Polo > Play Hub Entry** uses Boot. Native recovery is `Assets/Scenes/Recovery/OlympicMatchArena_PreMatchPresentation.unity`.
+- Focused Windows Editor runs passed the full ceremony, touch and controller bindings, pause, both live camera restorations, restart/exit, Stop Play, goal replay regression and official match loop with four physical sprint acquisitions. Period ends were accelerated. One official reward and receipt retry were verified with an isolated profile. The real profile hash matched. Current Console reported zero errors and warnings. Evidence is under `Logs/PreMatchPresentation/`. Boot entry was restored. All edits remain unstaged.
+- The next presentation pass can add authored deck and water-entry animations, anthem audio and captain metadata. Physical mobile performance, final character art and the optional dead-ball tuning remain future work.
+
+## Previous handoff — Milestone 24 match technical polish
 
 Milestone 24 works in OlympicMatchArena over the saved Milestone 23 local work. Human-only Git writes remain permanent. Native scene recovery `Assets/Scenes/Recovery/OlympicMatchArena_PreMilestone24.unity` was copied byte-for-byte before edits and is outside the build. [Implementation, Editor commands, test results and screens](docs/MATCH_TECHNICAL_POLISH.md).
 

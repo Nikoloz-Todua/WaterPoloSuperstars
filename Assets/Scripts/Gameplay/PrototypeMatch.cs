@@ -4,7 +4,7 @@ using UnityEngine;
 namespace ToduStudios.WaterPolo
 {
     public enum MatchPhase { PreMatch, Playing, GoalRestart, TurnoverRestart, QuarterBreak, FullTime, HalfTime,
-        FreeThrowSetup, FreeThrowReady, PenaltySetup, PenaltyReady, PenaltyFlight, CentreRestartSetup, CentreRestartReady, SprintSetup, SprintRace }
+        FreeThrowSetup, FreeThrowReady, PenaltySetup, PenaltyReady, PenaltyFlight, CentreRestartSetup, CentreRestartReady, SprintSetup, SprintRace, PreMatchPresentation }
     /// <summary>Authoritative phases, score evaluation and transitions. Clocks advance only in Playing.</summary>
     [DefaultExecutionOrder(-100), DisallowMultipleComponent]
     public sealed class PrototypeMatch : MonoBehaviour
@@ -29,6 +29,16 @@ namespace ToduStudios.WaterPolo
         public MatchPhase Phase { get; private set; } = MatchPhase.Playing;
         public bool IsPlaying => !IsPaused && Phase==MatchPhase.Playing;
         public bool IsPaused { get; private set; }
+        private PreMatchPresentation preMatch;
+        public bool IsPreMatchPresentation => Phase==MatchPhase.PreMatchPresentation;
+        internal void AttachPreMatch(PreMatchPresentation presentation) => preMatch=presentation;
+
+        internal void FinishPreMatch(PreMatchPresentation presentation)
+        {
+            if (!IsPreMatchPresentation || IsPaused || presentation!=preMatch) return;
+            BeginPeriodSprint();
+            gameplayCamera?.SnapToTarget();
+        }
         [SerializeField] private PeriodSprintOff periodSprint;
         public PeriodSprintOff SprintOff=>periodSprint;
         public GameplayCamera GameplayView=>gameplayCamera;
@@ -107,7 +117,18 @@ namespace ToduStudios.WaterPolo
             ball.Released += CentreReleased;
             ball.PossessionChanged+=SprintAcquired;
         }
-        private void Start(){if(periodSprint!=null)BeginPeriodSprint();}
+        private void Start()
+        {
+            if(periodSprint==null)return;
+            if(preMatch==null || !preMatch.isActiveAndEnabled || !preMatch.CanBegin)
+            {
+                BeginPeriodSprint();
+                return;
+            }
+            MatchReplayId=Guid.NewGuid();
+            Phase=MatchPhase.PreMatchPresentation;
+            StopPlay(true);
+        }
         private void BeginPeriodSprint()
         {
             Phase=MatchPhase.SprintSetup;awaitingOpeningPossession=true;CentreTaker=CentreReceiver=null;restartTeam=null;
@@ -150,8 +171,13 @@ namespace ToduStudios.WaterPolo
                 if (goal != null && goal.isActiveAndEnabled && goal.TryGetCrossing(from, current, ball.Radius, out _))
                 {
                     RegisterGoal(goal);
-                    break;
+                    return;
                 }
+            }
+            if (ball.Owner == null && rules != null && ball.TryGetFieldExit(from, current, out var exit))
+            {
+                if (EndingPenalty) { FinishPeriod(); return; }
+                if (rules.ResolvePendingPenalty() || rules.AwardBoundaryRestart(exit)) return;
             }
             // A completed crossing observed this step wins over the quarter/shot-clock deadline.
             if(!IsPlaying)return;
@@ -239,6 +265,15 @@ namespace ToduStudios.WaterPolo
             Phase = penalty ? MatchPhase.PenaltySetup : MatchPhase.FreeThrowSetup;
             StopPlay(true);
         }
+        internal void BeginBoundaryStoppage()
+        {
+            if (IsSprintRace) periodSprint.EndUnclaimedContest();
+            awaitingOpeningPossession = false;
+            restartTeam = null;
+            Phase = MatchPhase.FreeThrowSetup;
+            StopPlay(false);
+        }
+
         public void ReadyRuleRestart(bool penalty)
         {
             if (IsPaused || (Phase != MatchPhase.FreeThrowSetup && Phase != MatchPhase.PenaltySetup)) return;
@@ -302,6 +337,11 @@ namespace ToduStudios.WaterPolo
         private void Update()
         {
             if(IsPaused)return;
+            if(IsPreMatchPresentation && (preMatch==null || !preMatch.isActiveAndEnabled))
+            {
+                BeginPeriodSprint();
+                gameplayCamera?.SnapToTarget();
+            }
             if(Phase==MatchPhase.SprintSetup&&periodSprint!=null)
             {if(periodSprint.NeedsRestage)BeginPeriodSprint();if(periodSprint.Ready)ReleasePeriodSprint();}
             if(IsSprintRace){periodSprint.Tick();if(periodSprint.ContestExpired)EndUnclaimedSprint();}

@@ -47,6 +47,14 @@ namespace ToduStudios.WaterPolo
             lastDimensions = new Vector4(w, h, d, pool.Width + p);
         }
 
+        internal void IgnoreBallBarrier(Collider ball)
+        {
+            if (leftBoundary != null && leftBoundary.TryGetComponent<Collider>(out var left))
+                Physics.IgnoreCollision(ball, left);
+            if (rightBoundary != null && rightBoundary.TryGetComponent<Collider>(out var right))
+                Physics.IgnoreCollision(ball, right);
+        }
+
         private static void Place(Transform target, Vector3 position, Vector3 scale)
         {
             if (target == null)

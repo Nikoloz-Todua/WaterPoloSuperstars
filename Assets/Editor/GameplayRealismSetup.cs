@@ -65,7 +65,7 @@ namespace ToduStudios.WaterPolo.Editor
             trail.emitting=false;Assign(effects,"ballTrail",trail);
             const string physicsPath="Assets/Materials/Prototype/RealismBall.asset";
             var physical=AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(physicsPath);
-            if(physical==null){physical=new PhysicsMaterial("RealismBall") {bounciness=0.7f,dynamicFriction=0.04f,staticFriction=0.04f,bounceCombine=PhysicsMaterialCombine.Maximum};AssetDatabase.CreateAsset(physical,physicsPath);}
+            if(physical==null){physical=new PhysicsMaterial("RealismBall") {bounciness=0.36f,dynamicFriction=0.04f,staticFriction=0.04f,bounceCombine=PhysicsMaterialCombine.Maximum};AssetDatabase.CreateAsset(physical,physicsPath);}
             ball.GetComponent<Collider>().sharedMaterial=physical;
             foreach(var keeper in UnityEngine.Object.FindObjectsByType<PrototypeGoalkeeper>())
             {Assign(keeper,"leftArmVisual",keeper.transform.Find("Visual/LeftArm"));Assign(keeper,"rightArmVisual",keeper.transform.Find("Visual/RightArm"));}

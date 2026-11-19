@@ -90,59 +90,11 @@ namespace ToduStudios.WaterPolo
         {
             var actor = new Actor { Root = root, Player = player, RootIndex = sources.Count };
             var map=new Dictionary<Transform,Transform>();
-            actor.Copy=CopyHierarchy(root,stage.transform,map);
-            actor.Copy.localScale=root.lossyScale;
-            foreach (var source in root.GetComponentsInChildren<Renderer>(false))
-            {
-                if (source is SkinnedMeshRenderer skin)
-                {
-                    var destination=map[source.transform].gameObject.AddComponent<SkinnedMeshRenderer>();
-                    destination.sharedMesh=skin.sharedMesh;
-                    var bones=skin.bones;
-                    for (int i=0;i<bones.Length;i++)
-                        if (bones[i] != null) map.TryGetValue(bones[i],out bones[i]);
-                    destination.bones=bones;
-                    if (skin.rootBone != null && map.TryGetValue(skin.rootBone,out var bone)) destination.rootBone=bone;
-                    destination.localBounds=skin.localBounds;
-                    ConfigureRenderer(source,destination);
-                }
-                else if (source is MeshRenderer && source.TryGetComponent<MeshFilter>(out var filter))
-                {
-                    var destination=map[source.transform].gameObject;
-                    destination.AddComponent<MeshFilter>().sharedMesh=filter.sharedMesh;
-                    ConfigureRenderer(source,destination.AddComponent<MeshRenderer>());
-                }
-            }
+            actor.Copy=PresentationVisualCopy.Create(root,stage.transform,map,
+                (source,copy)=>{sources.Add(source);copies.Add(copy);},
+                source=>{originals.Add(source);hidden.Add(false);});
             actors.Add(actor);
             return actor;
-        }
-
-        Transform CopyHierarchy(Transform live, Transform parent, Dictionary<Transform,Transform> map)
-        {
-            var copy = new GameObject(live.name).transform;
-            copy.gameObject.layer=live.gameObject.layer;
-            copy.SetParent(parent,false);
-            copy.SetLocalPositionAndRotation(live.localPosition,live.localRotation);
-            copy.localScale=live.localScale;
-            map.Add(live,copy);
-            sources.Add(live);
-            copies.Add(copy);
-            for (int i=0;i<live.childCount;i++)
-            {
-                var child=live.GetChild(i);
-                if (child.gameObject.activeSelf) CopyHierarchy(child,copy,map);
-            }
-            return copy;
-        }
-
-        void ConfigureRenderer(Renderer source,Renderer destination)
-        {
-            destination.sharedMaterials=source.sharedMaterials;
-            destination.shadowCastingMode=source.shadowCastingMode;
-            destination.receiveShadows=source.receiveShadows;
-            destination.enabled=source.enabled;
-            originals.Add(source);
-            hidden.Add(false);
         }
 
         Transform FindCopy(Transform source)

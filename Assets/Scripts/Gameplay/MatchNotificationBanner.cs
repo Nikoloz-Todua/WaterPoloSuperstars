@@ -15,7 +15,7 @@ namespace ToduStudios.WaterPolo
         private MatchPhase phase;
         private int blue,white,quarter,priority;
         private float until;
-        private bool centre;
+        private bool centre, boundary;
         private static readonly Color Cyan=new Color(0.22f,0.85f,1f),Gold=new Color(1f,0.78f,0.3f);
         public string Title=>title.text;
         private void OnEnable()
@@ -24,7 +24,7 @@ namespace ToduStudios.WaterPolo
             match.Changed+=Changed;match.NewMatch+=Clear;match.Rules.Decided+=Decision;
         }
         private void OnDisable(){match.Changed-=Changed;match.NewMatch-=Clear;match.Rules.Decided-=Decision;group.alpha=0f;}
-        private void Clear(){until=0f;priority=0;centre=false;blue=white=0;quarter=1;group.alpha=0f;title.text=context.text="";}
+        private void Clear(){until=0f;priority=0;centre=boundary=false;blue=white=0;quarter=1;group.alpha=0f;title.text=context.text="";}
         private void Show(string heading,string detail,Color color,int importance,float duration,bool force=false)
         {
             if(!force && match.PresentationTime<until && importance<priority)return;
@@ -48,6 +48,12 @@ namespace ToduStudios.WaterPolo
                     centre=true;bool human=match.CentreTaker!=null && match.CentreTaker.Team==PrototypeTeam.Blue;
                     Show("CENTER RESTART",next==MatchPhase.CentreRestartSetup?"Wait for the referee":human?"BLUE  •  Tap PASS to restart":"WHITE  •  Center pass",Cyan,75,3f,true);
                 }
+                else if(next==MatchPhase.FreeThrowReady && match.Rules.BoundaryRestart is BoundaryRestartAward restart)
+                {
+                    bool human=match.Rules.Taker != null &&
+                        match.Rules.Taker.GetComponent<BallInteractionInput>()?.isActiveAndEnabled == true;
+                    Show(restart.Caption,$"{restart.Team.ToString().ToUpperInvariant()}  /  {(human?"PASS to restart":"Ready to restart")}",Cyan,85,3f,true);
+                }
                 else if(next==MatchPhase.TurnoverRestart)Show("SHOT CLOCK VIOLATION","Possession awarded by the referee",Gold,85,2.8f,true);
                 else if(next==MatchPhase.QuarterBreak)Show("PERIOD END",$"Quarter {quarter} complete",Gold,100,3f,true);
                 else if(next==MatchPhase.HalfTime)Show("HALFTIME","Teams change ends when you continue",Gold,100,3f,true);
@@ -55,7 +61,7 @@ namespace ToduStudios.WaterPolo
                 else if(next==MatchPhase.Playing)
                 {
                     if(phase==MatchPhase.SprintRace)Show("PLAY ON",match.AwaitingOpeningPossession?"Loose ball  •  Swim for possession":"Possession won  •  Pass, shoot or defend",Cyan,35,.9f,true);
-                    if(centre){until=match.PresentationTime+0.2f;centre=false;}
+                    if(centre || boundary){until=match.PresentationTime+0.2f;centre=boundary=false;}
                     if(match.Clock.Quarter!=quarter || phase==MatchPhase.PreMatch)
                         Show($"QUARTER {match.Clock.Quarter}","Neutral ball  •  Swim for possession",Cyan,30,1.8f,true);
                 }
@@ -69,6 +75,13 @@ namespace ToduStudios.WaterPolo
             {
                 case RefereeDecision.Penalty:Show("PENALTY",$"{e.AwardedTeam.ToString().ToUpperInvariant()}  •  Aim with stick or arrows  ?  Hold / release SHOOT",Gold,90,3.8f);break;
                 case RefereeDecision.Exclusion:Show("EXCLUSION",player+(e.Player.PermanentlyRemoved?"  •  Out for the match":$"  •  {Mathf.CeilToInt(e.Player.ExclusionRemaining)} live seconds"),Gold,80,3.4f);break;
+                case RefereeDecision.BallOut:
+                    if(match.Rules.BoundaryRestart is BoundaryRestartAward restart)
+                    {
+                        boundary=true;
+                        Show(restart.Caption,$"{restart.Team.ToString().ToUpperInvariant()}  /  BALL OUT",Gold,85,3f,true);
+                    }
+                    break;
                 case RefereeDecision.Ordinary:
                 case RefereeDecision.FreeThrow:Show("FREE THROW",$"{e.AwardedTeam.ToString().ToUpperInvariant()}  •  PASS or LOB after the whistle",Cyan,60,2.8f);break;
                 case RefereeDecision.Reentry:Show("RE-ENTRY",player+"  •  Back in play",Cyan,20,1.7f);break;
@@ -76,8 +89,8 @@ namespace ToduStudios.WaterPolo
         }
         private void Update()
         {
-            if(menus.Visible || match.GoalPresentationActive){group.alpha=0f;return;}
-            bool show=!menus.Visible && (match.PresentationTime<until || centre && match.IsCentreRestart);
+            if(menus.Visible || match.GoalPresentationActive || match.IsPreMatchPresentation){group.alpha=0f;return;}
+            bool show=!menus.Visible && (match.PresentationTime<until || centre && match.IsCentreRestart || boundary && match.Rules.BoundaryRestart.HasValue);
             group.alpha=Mathf.MoveTowards(group.alpha,show?1f:0f,Time.unscaledDeltaTime/(show?0.12f:0.2f));
         }
     }

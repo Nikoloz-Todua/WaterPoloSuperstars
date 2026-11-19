@@ -65,6 +65,7 @@ namespace ToduStudios.WaterPolo
             string message=e.Decision==RefereeDecision.Ordinary?$"FOUL | {player} | FREE THROW {e.AwardedTeam}":
                 e.Decision==RefereeDecision.Exclusion?$"EXCLUSION | {player} | {(e.Player.PermanentlyRemoved?"OUT":e.Player.ExclusionRemaining.ToString("0")+"s")}":
                 e.Decision==RefereeDecision.Penalty?$"PENALTY | foul by {player}":
+                e.Decision==RefereeDecision.BallOut?$"{rules.BoundaryRestart?.Caption} | {e.AwardedTeam}":
                 e.Decision==RefereeDecision.Reentry?$"RE-ENTRY | {player}":$"FREE THROW | {player} | B / L to pass";
             Say(message);
             if(e.Decision!=RefereeDecision.Reentry && e.Decision!=RefereeDecision.FreeThrow)Play(whistle,e.Decision==RefereeDecision.Ordinary?whistleCue:strongWhistleCue);

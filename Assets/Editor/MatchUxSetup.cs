@@ -12,7 +12,7 @@ using ToduStudios.WaterPolo.WaterVisuals;
 namespace ToduStudios.WaterPolo.Editor
 {
     /// <summary>Upgrades only the existing arena Canvas. Native scene recovery precedes edits; repeat calls preserve tuning.</summary>
-    public static class MatchUxSetup
+    public static partial class MatchUxSetup
     {
         public const string Recovery="Assets/Scenes/Recovery/OlympicMatchArena_PreMatchUX.unity";
         static readonly Color Navy=new Color(.018f,.043f,.082f,.95f),Card=new Color(.045f,.1f,.17f,.96f),Cyan=new Color(.22f,.85f,1f),Muted=new Color(.65f,.76f,.85f),Blue=new Color(.035f,.36f,.57f,.96f),Gold=new Color(1f,.78f,.3f);
