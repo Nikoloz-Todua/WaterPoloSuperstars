@@ -1,0 +1,37 @@
+Milestone 29A exact changed-file inventory
+
+Modified
+Assets/Scenes/OlympicMatchArena.unity
+Assets/Scripts/Gameplay/BallController.cs
+Assets/Scripts/Gameplay/PrototypeSwimmerAI.cs
+Assets/Scripts/WaterVisuals/RiggedSwimmerVisual.cs
+plan.md
+
+New
+Assets/Editor/CompetitionBallSetup.cs
+Assets/Editor/CompetitionBallSetup.cs.meta
+Assets/Equipment.meta
+Assets/Equipment/CompetitionBall.meta
+Assets/Equipment/CompetitionBall/BallColor.png
+Assets/Equipment/CompetitionBall/BallColor.png.meta
+Assets/Equipment/CompetitionBall/BallNormal.png
+Assets/Equipment/CompetitionBall/BallNormal.png.meta
+Assets/Equipment/CompetitionBall/BallSmoothness.png
+Assets/Equipment/CompetitionBall/BallSmoothness.png.meta
+Assets/Equipment/CompetitionBall/Competition Ball Rubber.mat
+Assets/Equipment/CompetitionBall/Competition Ball Rubber.mat.meta
+Assets/Equipment/CompetitionBall/CompetitionBall.fbx
+Assets/Equipment/CompetitionBall/CompetitionBall.fbx.meta
+SourceAssets/Equipment/WPS_Ball_001/Original/Meshy_AI_WP_Superstars_Basketball_20261124_texture.fbx
+SourceAssets/Equipment/WPS_Ball_001/Original/Meshy_AI_WP_Superstars_Basketball_20261124_texture.png
+SourceAssets/Equipment/WPS_Ball_001/Original/Meshy_AI_WP_Superstars_Basketball_20261124_texture_metallic.png
+SourceAssets/Equipment/WPS_Ball_001/Original/Meshy_AI_WP_Superstars_Basketball_20261124_texture_normal.png
+SourceAssets/Equipment/WPS_Ball_001/Original/Meshy_AI_WP_Superstars_Basketball_20261124_texture_roughness.png
+Tools/Art/PrepareCompetitionBall.py
+Tools/Verification/CompetitionBallVerification.cs
+docs/BALL_POSSESSION_AND_DRIBBLING.md
+docs/Evidence/BallDribbling/Branded-Ball.png
+docs/MILESTONE_29A_FILES.txt
+
+Ignored local test results and scene recovery
+Logs/BallDribbling/

@@ -1,6 +1,34 @@
 # Water Polo Superstars — Project Plan and Handoff
 
-Last updated: 2026-11-24.
+Last updated: 2026-11-25.
+
+## Current handoff — Milestone 29A completion and Milestone 29B production update
+
+The saved OlympicMatchArena enables automatic pickup and ball-leading crawl and sprint. The original ball and match authorities remain in use. The 3,014-triangle ball retains the Meshy color and seams, matches the original 0.14 m collider and is copied into recorded goal replays. The initial capsule-push failure was resolved with a 1.20 m nominal reach plus a bounded one-step relative-motion projection. Pickup honors the existing phase, release and athlete eligibility gates. Stop and shot charge gather into the existing raised grip. Pass and shot release use the original timing and physics. [Ball and possession technical guide](docs/BALL_POSSESSION_AND_DRIBBLING.md)
+
+Both original official roots in the saved arena now use the same 8,316-triangle 1.80 m skinned referee prefab. An in-place Humanoid walking take follows the prior deck travel. Standing and upper-body signals observe the existing events. The saved lineup and pennant sequence copy both skinned models. The model and material are shared across both officials. [Officials and swimwear technical guide](docs/PROFESSIONAL_REFEREES_AND_PREMIUM_SWIMWEAR.md)
+
+The actual 2,002-triangle Meshy briefs were fitted and weighted in Blender. Coverage gaps and body intersections failed in standing, freestyle, sprint, eggbeater and ball tread. **The 820-triangle fitted garment remains in production.** The candidate Blender source and audit can be used for a new opening registration and body-cut pass. Team fabrics, cap numbers and the successful eggbeater remain available.
+
+Fresh Windows Editor fixtures exercised saved pickup and dribbling, a legal defender steal, a physical pass and catch, a goal from dribbling, both replay angles, boundary and centre restarts, a penalty catch, Blue/White/own-goal attribution, substitutions, selection and shot-clock expiration, keyboard movement in both cameras, and all eight ceremony stages. The penalty catch test fixes the catch chance in memory. See the individual results under `Logs/Milestone29/Regression/` for fixture scope. [Game View and Blender evidence](docs/Evidence/Milestone29/) · [29B files](docs/MILESTONE_29B_FILES.txt) · [Combined 29A and 29B files](docs/MILESTONE_29_FILES.txt)
+
+The isolated Boot → Lobby → Match → Results → Lobby test passed with accelerated match clocks and the real profile hash unchanged. Final Unity Editor sampling measured 194,180 roster triangles, 16,632 official triangles, 56 athlete plus two official skinned renderers, 13 shared material references and 76.84 MiB of referenced texture object memory across athletes, officials and ball. The average draw calls were 845 lengthwise and 1,023 sideline at 894 × 476. There was no attached Android device.
+
+The existing crawl and eggbeater clips remain in use. Sampled crawl and sprint had submerged hips, and the ball traveled ahead of the head without intersecting the sampled forearm segments. The next art pass can refine sprint recovery, immediate-pass upper-body timing, exact deck foot plants and garment opening registration. An alternate stroke clip and repaired garment require their own visual acceptance.
+
+Use **Tools > Water Polo > Arena > Restore Previous Ball and Carry** to recover the older sphere and possession behavior. Use **Restore Previous Officials** under the same Arena menu for the previous officials. Their matching **Apply Competition Ball and Dribbling** and **Apply Professional Officials** commands restore the production setup. Existing Milestone 27 and 28 athlete recovery commands remain available. **Tools > Water Polo > Recovery > Use Boot as Editor Play Entry** restores normal Play entry after direct arena inspection.
+
+## Milestone 29A checkpoint before Milestone 29B
+
+The saved OlympicMatchArena checkpoint uses the rounded 3,014-triangle Meshy competition shell on the existing Ball visual. Its Game View, scene GUID and unchanged Rigidbody, SphereCollider and root transform records were verified. Pickup and dribbling code is present, with both switches off in the saved arena pending verification. BallController owns claim selection, controlled surface leading and recovery to the existing grip. [Technical guide](docs/BALL_POSSESSION_AND_DRIBBLING.md) · [Exact files](docs/MILESTONE_29A_FILES.txt)
+
+The first pickup fixture found a minimum contact distance of 1.188 m. The initial 1.05 m reach let the capsule push the ball away. The experimental setting is now 1.32 m. Unity’s main-thread API timed out before the retest. Resume M29A in saved Edit Mode with **Tools > Water Polo > Arena > Apply Competition Ball and Dribbling**, run **Tools > Water Polo > Play Olympic Match Arena**, then execute the focused **CompetitionBallVerification.Run** check. Keep the switches off if the gate fails. The last confirmed Play Mode action stopped the Editor. Run **Tools > Water Polo > Recovery > Use Boot as Editor Play Entry** when control returns. **Restore Previous Ball and Carry** restores the old visual and possession settings.
+
+## Milestone 29B — Deferred Work recorded at the 29A checkpoint
+
+- **Referee integration.** Use the Meshy FBX/PBR export under `C:/Users/todua/OneDrive/Desktop/WPS_Referee_001`. The expected 8,316-triangle referee has a white polo, trousers and shoes and a 1.80 m target height. Fit a Humanoid rig and author natural standing, walking, whistle and referee signals before replacing the block officials in the ceremony and poolside.
+- **Premium swimwear geometry.** Use the actual approximately 2,002-triangle Meshy briefs under `C:/Users/todua/OneDrive/Desktop/WPS_Swimwear_001`. M28 used the previous 820-triangle fitted cut to preserve matching weight and coverage boundaries. Investigate fit and deformation of the source shell, keep team customization and check coverage and clipping during freestyle, eggbeater and extreme poses before promotion.
+- **Animation and verification.** Refine head-up stroke recovery, flutter and directional swimming, ball-leading motion after feedback, shooting and directional keeper animation, and exact deck foot planting. Run broader gameplay and mobile performance verification.
 
 ## Current handoff — Milestone 28 authentic athlete motion and equipment
 

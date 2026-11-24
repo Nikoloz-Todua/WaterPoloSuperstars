@@ -8,9 +8,21 @@ namespace ToduStudios.WaterPolo
     public sealed class RefereeVisual : MonoBehaviour, IRefereePresentation
     {
         [SerializeField] private Transform leftArm,rightArm,leftLeg,rightLeg,torso;
+        [SerializeField] private WaterVisuals.ProfessionalRefereePose professional;
+        private Vector3 signalPoint, attackDirection;
+        private bool restartSweep;
         private float gait;
+        public bool UsesProfessional => professional != null && professional.gameObject.activeInHierarchy;
+        public void StandForCeremony() { if (UsesProfessional) professional.Stand(); }
+        public void SetSignalTargets(Vector3 point, Vector3 direction, bool sweep)
+        { signalPoint = point; attackDirection = direction; restartSweep = sweep; }
         public void Animate(float speed,RefereeSignal signal)
         {
+            if (UsesProfessional)
+            {
+                professional.Animate(speed, signal, signalPoint, attackDirection, restartSweep);
+                return;
+            }
             float weight=Mathf.Clamp01(Mathf.Abs(speed)/2.2f);gait+=Mathf.Abs(speed)*Time.deltaTime*5f;
             float swing=Mathf.Sin(gait)*25f*weight;
             leftLeg.localRotation=Quaternion.Euler(swing,0f,0f);rightLeg.localRotation=Quaternion.Euler(-swing,0f,0f);

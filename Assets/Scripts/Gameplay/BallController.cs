@@ -68,6 +68,17 @@ namespace ToduStudios.WaterPolo
         [SerializeField, Min(1f)] private float carrySharpness = 24f;
         [SerializeField,Min(0.1f)] private float receivingHeight = 0.65f;
 
+        [Header("Live possession")]
+        [SerializeField] private bool automaticPickup;
+        [SerializeField, Min(.1f)] private float automaticPickupDistance = 1.20f;
+        [SerializeField, Min(.1f)] private float automaticPickupSpeed = 2.35f;
+        [SerializeField] private bool swimDribbling;
+        [SerializeField, Min(.1f)] private float dribbleStartSpeed = 2.1f;
+        [SerializeField, Min(.0f)] private float dribbleStopSpeed = 1.1f;
+        [SerializeField, Min(0f)] private float dribbleStartDelay = .15f;
+        [SerializeField, Min(.1f)] private float dribbleHeadGap = .36f;
+        [SerializeField] private Transform rollingVisual;
+
         private Rigidbody body;
         private SphereCollider ballCollider;
         private Collider ignoredOwnerCollider;
@@ -76,9 +87,18 @@ namespace ToduStudios.WaterPolo
         private SwimmerPassing intendedReceiver;
         private float receiveAfter, receiveUntil;
         private Vector3 previousPassPosition;
+        private SwimmerMotor carrierMotor;
+        private ShotCharge carrierCharge;
+        private SwimmerStamina carrierStamina;
+        private WaterVisuals.RiggedSwimmerVisual carrierVisual;
+        private float swimmingTime;
+        private Vector3 lastCarrierPosition, lastVisualPosition;
+        private int lastVisualRevision = -1;
 
         public BallState State { get; private set; } = BallState.Free;
         public SwimmerBallInteraction Owner { get; private set; }
+        public bool IsDribbling { get; private set; }
+        internal bool UsesAutomaticPickup => automaticPickup && roster != null && match != null && match.IsPlaying;
         public float OwnershipStartedAt { get; private set; }
         public int MotionRevision { get; private set; }
         public Vector3 MotionOrigin { get; private set; }
@@ -183,6 +203,15 @@ namespace ToduStudios.WaterPolo
             ballCollider.enabled = false;
             if (contact.HasValue) body.position = transform.position = contact.Value;
             Owner = claimant;
+            ClearDribble();
+            if (swimDribbling)
+            {
+                carrierMotor = claimant.GetComponent<SwimmerMotor>();
+                carrierCharge = claimant.GetComponent<ShotCharge>();
+                carrierStamina = claimant.GetComponent<SwimmerStamina>();
+                carrierVisual = claimant.GetComponentInChildren<WaterVisuals.RiggedSwimmerVisual>();
+                lastCarrierPosition = claimant.transform.position;
+            }
             LastTouch = new BallTouch(claimant.GetComponent<SwimmerIdentity>(), false, true, false);
             OwnershipStartedAt = Time.time;
             State = BallState.Held;
@@ -423,7 +452,7 @@ namespace ToduStudios.WaterPolo
             if (poolBounds == null) return;
             if ((match == null || !match.IsPaused) && State == BallState.Held && Owner == claimant && claimant != null)
             {
-                Vector3 held = claimant.HeldBallPoint;
+                Vector3 held = IsDribbling ? transform.position : claimant.HeldBallPoint;
                 Vector3 origin = poolBounds.ClampPosition(held, Radius);
                 origin.y = Mathf.Max(held.y, SurfaceHeight);
                 Vector3 drift = Vector3.ClampMagnitude(claimant.GetComponent<SwimmerMotor>().Velocity, .55f);
@@ -461,6 +490,7 @@ namespace ToduStudios.WaterPolo
             opposingTouch = false;
             if (CanScoreGoal) ShotSequence++;
             Owner = null;
+            ClearDribble();
             State = BallState.Released;
             collectAfter = Time.time + releaseProtection;
             body.isKinematic = false;
@@ -697,6 +727,8 @@ namespace ToduStudios.WaterPolo
             {
                 if (!Eligible(Owner))
                     ResetFree();
+                else if (swimDribbling)
+                    UpdateDribble();
                 return;
             }
 
@@ -736,6 +768,7 @@ namespace ToduStudios.WaterPolo
                 !ignoredOwnerCollider.bounds.Intersects(ballCollider.bounds))
                 RestoreOwnerCollision();
 
+            if (TryAutomaticPickup()) return;
             if (BallCanLeaveField) return;
             body.position = SurfacePosition(body.position);
             Vector3 velocity = body.linearVelocity;
@@ -813,15 +846,145 @@ namespace ToduStudios.WaterPolo
             catcher = player.Interaction;
         }
 
+        private bool TryAutomaticPickup()
+        {
+            float speedSquared = Velocity.sqrMagnitude;
+            if (!UsesAutomaticPickup || match.AwaitingOpeningPossession || State != BallState.Free ||
+                IsAirborne || !CanCollect || speedSquared > automaticPickupSpeed * automaticPickupSpeed ||
+                (IsScoringShot && (speedSquared > .25f || FindPocket(body.position) != null)))
+                return false;
+
+            Vector3 point = body.position;
+            Vector3 inside = poolBounds.ClampPosition(point, Radius);
+            if (Mathf.Abs(point.x - inside.x) > .01f || Mathf.Abs(point.z - inside.z) > .01f ||
+                Mathf.Abs(point.y - SurfaceHeight) > .16f) return false;
+
+            SwimmerBallInteraction nearest = null;
+            float best = float.PositiveInfinity;
+            Vector3 ballVelocity = Velocity;
+            var members = roster.Members;
+            for (int i = 0; i < members.Count; i++)
+            {
+                var player = members[i];
+                if (player == null || !player.EligibleForPlay) continue;
+                var interaction = player.Interaction;
+                if (!interaction.isActiveAndEnabled || interaction.CarryAnchor == null) continue;
+
+                var motor = player.Motor;
+                Vector3 gap = point - motor.Position;
+                gap.y = 0f;
+                float reach = Mathf.Min(automaticPickupDistance, interaction.PickupDistance);
+                float distance = gap.sqrMagnitude;
+                if (distance >= best || distance > interaction.PickupDistance * interaction.PickupDistance ||
+                    (distance > .55f * .55f && Vector3.Dot(gap.normalized, motor.Facing) < .2f))
+                    continue;
+                // Reserve the surface recovery before the swimmer's next kinematic step
+                // can push the ball away. Rank the candidates by current separation.
+                if (distance > reach * reach)
+                {
+                    Vector3 relative = ballVelocity - motor.Velocity;
+                    relative.y = 0f;
+                    Vector3 step = Vector3.ClampMagnitude(relative * Time.fixedDeltaTime, .14f);
+                    float closest = Mathf.Clamp01(-Vector3.Dot(gap, step) / Mathf.Max(step.sqrMagnitude, .000001f));
+                    if ((gap + step * closest).sqrMagnitude > reach * reach) continue;
+                }
+
+                best = distance;
+                nearest = interaction;
+            }
+            return nearest != null && TryCollect(nearest);
+        }
+
+        private void UpdateDribble()
+        {
+            if (match == null || !match.IsPlaying || carrierMotor == null || carrierVisual == null ||
+                (carrierCharge != null && carrierCharge.IsCharging))
+            {
+                IsDribbling = false;
+                swimmingTime = 0f;
+                return;
+            }
+
+            Vector3 velocity = carrierMotor.Velocity;
+            velocity.y = 0f;
+            float forward = Vector3.Dot(velocity, carrierMotor.Facing);
+            bool sprint = carrierStamina != null && carrierStamina.IsSprinting;
+            if (IsDribbling)
+            {
+                if (velocity.sqrMagnitude <= dribbleStopSpeed * dribbleStopSpeed)
+                {
+                    IsDribbling = false;
+                    swimmingTime = 0f;
+                }
+                return;
+            }
+
+            if (forward < (sprint ? dribbleStopSpeed : dribbleStartSpeed))
+            {
+                swimmingTime = 0f;
+                return;
+            }
+            swimmingTime += Time.fixedDeltaTime;
+            IsDribbling = sprint || swimmingTime >= dribbleStartDelay;
+        }
+
+        private Vector3 LeadingPoint(Vector3 root)
+        {
+            Vector3 direction = Vector3.ProjectOnPlane(carrierMotor.Velocity, Vector3.up).normalized;
+            if (direction.sqrMagnitude < .01f) direction = carrierMotor.Facing;
+            float speed = carrierMotor.Velocity.magnitude;
+            float clearance = dribbleHeadGap + (Radius - .14f) + Mathf.Max(0f, speed - 4f) * .022f;
+            float lead = Mathf.Clamp(Vector3.Dot(carrierVisual.HeadPosition - root, direction) + clearance, .68f, 1.09f);
+            float wave = match.PresentationTime * 11f;
+            Vector3 target = root + direction * lead + Vector3.Cross(Vector3.up, direction) * (.035f * Mathf.Sin(wave));
+            target = poolBounds.ClampPosition(target, Radius);
+            target.y = SurfaceHeight + .012f + .01f * Mathf.Sin(wave * .83f);
+            return target;
+        }
+
+        private void ClearDribble()
+        {
+            IsDribbling = false;
+            swimmingTime = 0f;
+            carrierMotor = null;
+            carrierCharge = null;
+            carrierStamina = null;
+            carrierVisual = null;
+        }
+
         private void LateUpdate()
         {
             // timeScale changes do not retroactively zero this frame's deltaTime. Freeze carry immediately.
             if (match!=null && match.IsPaused)return;
-            if (State != BallState.Held || Owner == null)
-                return;
-            // Use the interpolated swimmer pose, after physics, for a smooth visible carry.
-            float blend = 1f - Mathf.Exp(-carrySharpness * Time.deltaTime);
-            transform.position = Vector3.Lerp(transform.position, Owner.HeldBallPoint, blend);
+            if (State == BallState.Held && Owner != null)
+            {
+                Vector3 root = Owner.transform.position;
+                Vector3 target = IsDribbling ? LeadingPoint(root) : Owner.HeldBallPoint;
+                Vector3 origin = transform.position;
+                Vector3 travel = root - lastCarrierPosition;
+                if (IsDribbling && travel.sqrMagnitude < .36f) origin += travel;
+                lastCarrierPosition = root;
+                float blend = 1f - Mathf.Exp(-carrySharpness * Time.deltaTime);
+                transform.position = Vector3.Lerp(origin, target, blend);
+            }
+            RollVisual();
+        }
+
+        private void RollVisual()
+        {
+            if (rollingVisual == null) return;
+            Vector3 point = transform.position;
+            Vector3 travel = point - lastVisualPosition;
+            travel.y = 0f;
+            bool roll = lastVisualRevision == MotionRevision && (IsDribbling ||
+                (State != BallState.Held && !IsAirborne && !simulationPaused && nettedGoal == null));
+            if (roll && travel.sqrMagnitude > .000001f && travel.sqrMagnitude < .25f)
+                rollingVisual.Rotate(Vector3.Cross(Vector3.up, travel), travel.magnitude * Mathf.Rad2Deg / Radius * .55f, Space.World);
+            else if (IsAirborne && !simulationPaused && travel.sqrMagnitude > .000001f && travel.sqrMagnitude < 1f &&
+                     lastVisualRevision == MotionRevision)
+                rollingVisual.Rotate(Vector3.Cross(Vector3.up, travel), travel.magnitude * Mathf.Rad2Deg / Radius * .09f, Space.World);
+            lastVisualPosition = point;
+            lastVisualRevision = MotionRevision;
         }
 
         private void RestoreOwnerCollision()
@@ -844,6 +1007,7 @@ namespace ToduStudios.WaterPolo
             opposingTouch = false;
             ReleaseKind = BallReleaseKind.None; LastReleaser = null; LastTouch = default;
             Owner = null;
+            ClearDribble();
             State = BallState.Free;
             if (body == null || ballCollider == null)
             {

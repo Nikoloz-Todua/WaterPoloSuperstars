@@ -1,0 +1,64 @@
+Milestone 29B exact changed-file inventory
+
+Updated from the Milestone 29A checkpoint
+Assets/Editor/CompetitionBallSetup.cs
+Assets/Scenes/OlympicMatchArena.unity
+Assets/Scripts/Gameplay/BallController.cs
+Tools/Verification/CompetitionBallVerification.cs
+docs/BALL_POSSESSION_AND_DRIBBLING.md
+plan.md
+
+Modified from the Milestone 28 baseline during Milestone 29B
+Assets/Scripts/Gameplay/MatchRules.cs
+Assets/Scripts/Gameplay/PoolsideReferee.cs
+Assets/Scripts/Gameplay/PrematchCast.cs
+Assets/Scripts/Gameplay/RefereeVisual.cs
+
+New in Milestone 29B
+Assets/Editor/ProfessionalRefereeSetup.cs
+Assets/Editor/ProfessionalRefereeSetup.cs.meta
+Assets/Equipment/ProfessionalReferee.meta
+Assets/Equipment/ProfessionalReferee/Official Uniform and Skin.mat
+Assets/Equipment/ProfessionalReferee/Official Uniform and Skin.mat.meta
+Assets/Equipment/ProfessionalReferee/OfficialColor.png
+Assets/Equipment/ProfessionalReferee/OfficialColor.png.meta
+Assets/Equipment/ProfessionalReferee/OfficialNormal.png
+Assets/Equipment/ProfessionalReferee/OfficialNormal.png.meta
+Assets/Equipment/ProfessionalReferee/OfficialSmoothness.png
+Assets/Equipment/ProfessionalReferee/OfficialSmoothness.png.meta
+Assets/Equipment/ProfessionalReferee/PoolsideOfficial.fbx
+Assets/Equipment/ProfessionalReferee/PoolsideOfficial.fbx.meta
+Assets/Equipment/ProfessionalReferee/Professional Official.prefab
+Assets/Equipment/ProfessionalReferee/Professional Official.prefab.meta
+Assets/Scripts/WaterVisuals/ProfessionalRefereePose.cs
+Assets/Scripts/WaterVisuals/ProfessionalRefereePose.cs.meta
+SourceAssets/Athletes/WPS_Swimwear_001/Blender/PremiumCompetitionBriefs_FitCandidate.blend
+SourceAssets/Officials/WPS_Referee_001/Blender/PoolsideOfficial.blend
+SourceAssets/Officials/WPS_Referee_001/Original/Meshy_AI_Man_in_White_Polo_and_Pants_20261124_texture.fbx
+SourceAssets/Officials/WPS_Referee_001/Original/Meshy_AI_Man_in_White_Polo_and_Pants_20261124_texture.png
+SourceAssets/Officials/WPS_Referee_001/Original/Meshy_AI_Man_in_White_Polo_and_Pants_20261124_texture_metallic.png
+SourceAssets/Officials/WPS_Referee_001/Original/Meshy_AI_Man_in_White_Polo_and_Pants_20261124_texture_normal.png
+SourceAssets/Officials/WPS_Referee_001/Original/Meshy_AI_Man_in_White_Polo_and_Pants_20261124_texture_roughness.png
+Tools/Art/FitPremiumCompetitionBriefs.py
+Tools/Art/PrepareProfessionalReferee.py
+Tools/Verification/ProfessionalOfficialsVerification.cs
+docs/Evidence/Milestone29/Ball-Possession.jpg
+docs/Evidence/Milestone29/Ball-and-Replay.jpg
+docs/Evidence/Milestone29/Branded-Ball-In-Goal.png
+docs/Evidence/Milestone29/Briefs-Candidate-Not-Shipped.jpg
+docs/Evidence/Milestone29/Crawl-Sequence.jpg
+docs/Evidence/Milestone29/Live-Match.png
+docs/Evidence/Milestone29/Officials-Ceremony.jpg
+docs/Evidence/Milestone29/Officials-Pose-Samples.jpg
+docs/Evidence/Milestone29/Pass-From-Dribble.jpg
+docs/Evidence/Milestone29/Sprint-Sequence.jpg
+docs/MILESTONE_29B_FILES.txt
+docs/MILESTONE_29_FILES.txt
+docs/PROFESSIONAL_REFEREES_AND_PREMIUM_SWIMWEAR.md
+
+Ignored local results and recovery
+Logs/Milestone29/Arena-Pre29B.unity
+Logs/Milestone29/Ball/
+Logs/Milestone29/BriefsCoverage.txt
+Logs/Milestone29/Officials/
+Logs/Milestone29/Regression/

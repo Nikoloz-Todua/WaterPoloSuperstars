@@ -1,0 +1,86 @@
+Milestone 29A and 29B combined exact changed-file inventory
+
+Modified
+Assets/Scenes/OlympicMatchArena.unity
+Assets/Scripts/Gameplay/BallController.cs
+Assets/Scripts/Gameplay/MatchRules.cs
+Assets/Scripts/Gameplay/PoolsideReferee.cs
+Assets/Scripts/Gameplay/PrematchCast.cs
+Assets/Scripts/Gameplay/PrototypeSwimmerAI.cs
+Assets/Scripts/Gameplay/RefereeVisual.cs
+Assets/Scripts/WaterVisuals/RiggedSwimmerVisual.cs
+plan.md
+
+New
+Assets/Editor/CompetitionBallSetup.cs
+Assets/Editor/CompetitionBallSetup.cs.meta
+Assets/Editor/ProfessionalRefereeSetup.cs
+Assets/Editor/ProfessionalRefereeSetup.cs.meta
+Assets/Equipment.meta
+Assets/Equipment/CompetitionBall.meta
+Assets/Equipment/CompetitionBall/BallColor.png
+Assets/Equipment/CompetitionBall/BallColor.png.meta
+Assets/Equipment/CompetitionBall/BallNormal.png
+Assets/Equipment/CompetitionBall/BallNormal.png.meta
+Assets/Equipment/CompetitionBall/BallSmoothness.png
+Assets/Equipment/CompetitionBall/BallSmoothness.png.meta
+Assets/Equipment/CompetitionBall/Competition Ball Rubber.mat
+Assets/Equipment/CompetitionBall/Competition Ball Rubber.mat.meta
+Assets/Equipment/CompetitionBall/CompetitionBall.fbx
+Assets/Equipment/CompetitionBall/CompetitionBall.fbx.meta
+Assets/Equipment/ProfessionalReferee.meta
+Assets/Equipment/ProfessionalReferee/Official Uniform and Skin.mat
+Assets/Equipment/ProfessionalReferee/Official Uniform and Skin.mat.meta
+Assets/Equipment/ProfessionalReferee/OfficialColor.png
+Assets/Equipment/ProfessionalReferee/OfficialColor.png.meta
+Assets/Equipment/ProfessionalReferee/OfficialNormal.png
+Assets/Equipment/ProfessionalReferee/OfficialNormal.png.meta
+Assets/Equipment/ProfessionalReferee/OfficialSmoothness.png
+Assets/Equipment/ProfessionalReferee/OfficialSmoothness.png.meta
+Assets/Equipment/ProfessionalReferee/PoolsideOfficial.fbx
+Assets/Equipment/ProfessionalReferee/PoolsideOfficial.fbx.meta
+Assets/Equipment/ProfessionalReferee/Professional Official.prefab
+Assets/Equipment/ProfessionalReferee/Professional Official.prefab.meta
+Assets/Scripts/WaterVisuals/ProfessionalRefereePose.cs
+Assets/Scripts/WaterVisuals/ProfessionalRefereePose.cs.meta
+SourceAssets/Athletes/WPS_Swimwear_001/Blender/PremiumCompetitionBriefs_FitCandidate.blend
+SourceAssets/Equipment/WPS_Ball_001/Original/Meshy_AI_WP_Superstars_Basketball_20261124_texture.fbx
+SourceAssets/Equipment/WPS_Ball_001/Original/Meshy_AI_WP_Superstars_Basketball_20261124_texture.png
+SourceAssets/Equipment/WPS_Ball_001/Original/Meshy_AI_WP_Superstars_Basketball_20261124_texture_metallic.png
+SourceAssets/Equipment/WPS_Ball_001/Original/Meshy_AI_WP_Superstars_Basketball_20261124_texture_normal.png
+SourceAssets/Equipment/WPS_Ball_001/Original/Meshy_AI_WP_Superstars_Basketball_20261124_texture_roughness.png
+SourceAssets/Officials/WPS_Referee_001/Blender/PoolsideOfficial.blend
+SourceAssets/Officials/WPS_Referee_001/Original/Meshy_AI_Man_in_White_Polo_and_Pants_20261124_texture.fbx
+SourceAssets/Officials/WPS_Referee_001/Original/Meshy_AI_Man_in_White_Polo_and_Pants_20261124_texture.png
+SourceAssets/Officials/WPS_Referee_001/Original/Meshy_AI_Man_in_White_Polo_and_Pants_20261124_texture_metallic.png
+SourceAssets/Officials/WPS_Referee_001/Original/Meshy_AI_Man_in_White_Polo_and_Pants_20261124_texture_normal.png
+SourceAssets/Officials/WPS_Referee_001/Original/Meshy_AI_Man_in_White_Polo_and_Pants_20261124_texture_roughness.png
+Tools/Art/FitPremiumCompetitionBriefs.py
+Tools/Art/PrepareCompetitionBall.py
+Tools/Art/PrepareProfessionalReferee.py
+Tools/Verification/CompetitionBallVerification.cs
+Tools/Verification/ProfessionalOfficialsVerification.cs
+docs/BALL_POSSESSION_AND_DRIBBLING.md
+docs/Evidence/BallDribbling/Branded-Ball.png
+docs/Evidence/Milestone29/Ball-Possession.jpg
+docs/Evidence/Milestone29/Ball-and-Replay.jpg
+docs/Evidence/Milestone29/Branded-Ball-In-Goal.png
+docs/Evidence/Milestone29/Briefs-Candidate-Not-Shipped.jpg
+docs/Evidence/Milestone29/Crawl-Sequence.jpg
+docs/Evidence/Milestone29/Live-Match.png
+docs/Evidence/Milestone29/Officials-Ceremony.jpg
+docs/Evidence/Milestone29/Officials-Pose-Samples.jpg
+docs/Evidence/Milestone29/Pass-From-Dribble.jpg
+docs/Evidence/Milestone29/Sprint-Sequence.jpg
+docs/MILESTONE_29A_FILES.txt
+docs/MILESTONE_29B_FILES.txt
+docs/MILESTONE_29_FILES.txt
+docs/PROFESSIONAL_REFEREES_AND_PREMIUM_SWIMWEAR.md
+
+Ignored local results and recovery
+Logs/BallDribbling/
+Logs/Milestone29/Arena-Pre29B.unity
+Logs/Milestone29/Ball/
+Logs/Milestone29/BriefsCoverage.txt
+Logs/Milestone29/Officials/
+Logs/Milestone29/Regression/

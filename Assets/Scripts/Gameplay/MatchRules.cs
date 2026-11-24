@@ -52,6 +52,7 @@ namespace ToduStudios.WaterPolo
         }
         public SwimmerIdentity Taker => taker;
         public GoalMouth PenaltyGoal => Team(taker.Team).AttackingGoal;
+        internal Vector3 AttackDirection(PrototypeTeam team) => Team(team).AttackingGoal.transform.forward;
         private SwimmerIdentity advantageOffender, advantageShooter;
         private float advantageDeadline;
         private int advantageShot;

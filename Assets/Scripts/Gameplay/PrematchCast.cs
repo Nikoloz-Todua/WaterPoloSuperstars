@@ -231,8 +231,10 @@ namespace ToduStudios.WaterPolo
                 officials=new Transform[Mathf.Min(2,referees.Length)];
                 for(int i=0;i<officials.Length;i++)
                 {
+                    referees[i].StandForCeremony();
                     officials[i]=PresentationVisualCopy.Create(referees[i].transform,stage.transform,new Dictionary<Transform,Transform>());
                     officials[i].SetPositionAndRotation(centre+new Vector3(i==0?-.35f:.35f,0,-.66f),Quaternion.identity);
+                    if (referees[i].UsesProfessional) SetCastExposure(officials[i]);
                 }
                 pennantMesh=CreatePennant();
                 pennants=new[]{AddPennant("Blue pennant",blue),AddPennant("White pennant",white)};
@@ -248,34 +250,37 @@ namespace ToduStudios.WaterPolo
         {
             foreach (var team in teams)
                 foreach (var athlete in team)
-                    foreach (var renderer in athlete.Root.GetComponentsInChildren<Renderer>(true))
+                    SetCastExposure(athlete.Root);
+        }
+
+        void SetCastExposure(Transform root)
+        {
+            foreach (var renderer in root.GetComponentsInChildren<Renderer>(true))
+            {
+                var materials = renderer.sharedMaterials;
+                for (int i = 0; i < materials.Length; i++)
+                {
+                    var material = materials[i];
+                    if (material == null || !material.HasProperty("_EmissionColor") ||
+                        material.IsKeywordEnabled("_ALPHATEST_ON")) continue;
+                    if (!castMaterials.TryGetValue(material, out var exposure))
                     {
-                        var materials = renderer.sharedMaterials;
-                        for (int i = 0; i < materials.Length; i++)
+                        // Share stage-only exposure copies across the cast.
+                        exposure = new Material(material) { name = material.name + " (ceremony)" };
+                        exposure.EnableKeyword("_EMISSION");
+                        exposure.SetTexture("_EmissionMap", material.GetTexture("_BaseMap"));
+                        exposure.SetColor("_EmissionColor", material.GetColor("_BaseColor") * .37f);
+                        if (material.HasProperty("_EnvironmentReflections"))
                         {
-                            var material = materials[i];
-                            if (material == null || !material.HasProperty("_EmissionColor") ||
-                                material.IsKeywordEnabled("_ALPHATEST_ON")) continue;
-                            if (!castMaterials.TryGetValue(material, out var exposure))
-                            {
-                                // The tunnel leaves the cast to arena reflections and
-                                // its per-renderer light limit. Lift diffuse detail
-                                // with a shared, stage-only copy of the same material.
-                                exposure = new Material(material) { name = material.name + " (ceremony)" };
-                                exposure.EnableKeyword("_EMISSION");
-                                exposure.SetTexture("_EmissionMap", material.GetTexture("_BaseMap"));
-                                exposure.SetColor("_EmissionColor", material.GetColor("_BaseColor") * .37f);
-                                if (material.HasProperty("_EnvironmentReflections"))
-                                {
-                                    exposure.SetFloat("_EnvironmentReflections", 0f);
-                                    exposure.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
-                                }
-                                castMaterials.Add(material, exposure);
-                            }
-                            materials[i] = exposure;
+                            exposure.SetFloat("_EnvironmentReflections", 0f);
+                            exposure.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
                         }
-                        renderer.sharedMaterials = materials;
+                        castMaterials.Add(material, exposure);
                     }
+                    materials[i] = exposure;
+                }
+                renderer.sharedMaterials = materials;
+            }
         }
 
         Transform AddPennant(string name,Material material)

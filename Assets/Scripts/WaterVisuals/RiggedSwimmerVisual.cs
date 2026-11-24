@@ -36,6 +36,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         public Animator Animator=>animator;
         public Transform LeftHand=>leftHand;
         public Transform RightHand=>rightHand;
+        public Vector3 HeadPosition => head != null ? head.position : transform.position;
         public int StrokeEmissions { get; private set; }
         public int ReleaseAnimations { get; private set; }
         public int SaveAnimations { get; private set; }
@@ -83,7 +84,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                 Locomotion=identity.EligibleForPlay?Mathf.Clamp01(speed/2.8f):0;
                 if(stamina!=null&&stamina.IsSprinting&&speed>3)Locomotion=1+Mathf.Clamp01((speed-3)/2.5f);
                 reaching=ball.ShowReceivingHand(identity.Interaction);
-                animator.SetBool(Hold,identity.Interaction.HasBall||(charge!=null&&charge.IsCharging));
+                animator.SetBool(Hold,(identity.Interaction.HasBall && !ball.IsDribbling)||(charge!=null&&charge.IsCharging));
                 animator.SetBool(Block,keeper!=null&&keeper.ThreateningShot);
                 if(keeper!=null&&keeper.SaveAttempts!=saveAttempts){saveAttempts=keeper.SaveAttempts;animator.SetTrigger("Save");SaveAnimations++;}
             }
@@ -134,7 +135,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         void OnAnimatorIK(int layer)
         {
             if(layer!=1||identity==null||ball==null)return;
-            bool holding=identity.Interaction.HasBall;
+            bool holding=identity.Interaction.HasBall && (!ball.IsDribbling || (charge != null && charge.IsCharging));
             if (!holding && !reaching) { animator.SetIKPositionWeight(AvatarIKGoal.RightHand,0); return; }
             Vector3 target=holding?identity.Interaction.HeldBallPoint:ball.RaisedHand(identity.Interaction,ball.PhysicsPosition);
             var shoulder=animator.GetBoneTransform(HumanBodyBones.RightUpperArm);

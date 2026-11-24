@@ -25,6 +25,9 @@ namespace ToduStudios.WaterPolo
         private float targetZ,speed,nextDecision,signalUntil,holdUntil;
         private int lastScore;
         private bool walking;
+        private SwimmerIdentity signalPlayer;
+        private PrototypeTeam? signalTeam;
+        private bool restartSweep;
         public RefereeSignal Signal {get;private set;}
         public float Speed=>speed;
         public float TargetZ=>targetZ;
@@ -32,24 +35,26 @@ namespace ToduStudios.WaterPolo
         private void Awake(){presentation=visual as IRefereePresentation;targetZ=transform.position.z;lastScore=match.BlueScore+match.WhiteScore;}
         private void OnEnable(){rules.Decided+=Decision;match.Changed+=Phase;match.NewMatch+=ResetObserver;match.CentreRestartSignalled+=CentreSignal;match.SprintStarted+=SprintSignal;}
         private void OnDisable(){rules.Decided-=Decision;match.Changed-=Phase;match.NewMatch-=ResetObserver;match.CentreRestartSignalled-=CentreSignal;match.SprintStarted-=SprintSignal;}
-        private void SprintSignal(){Signal=RefereeSignal.Restart;signalUntil=match.PresentationTime+1.2f;holdUntil=signalUntil;}
-        private void ResetObserver(){targetZ=pool.transform.position.z;walking=false;speed=0f;Signal=RefereeSignal.None;lastScore=0;holdUntil=0f;}
+        private void SprintSignal(){ClearSignalTarget();restartSweep=true;Signal=RefereeSignal.Restart;signalUntil=match.PresentationTime+1.2f;holdUntil=signalUntil;}
+        private void ResetObserver(){ClearSignalTarget();targetZ=pool.transform.position.z;walking=false;speed=0f;Signal=RefereeSignal.None;lastScore=0;holdUntil=0f;}
         private void CentreSignal(SwimmerIdentity taker)
-        {Signal=RefereeSignal.Restart;signalUntil=match.PresentationTime+1.6f;holdUntil=signalUntil;}
+        {ClearSignalTarget();restartSweep=true;Signal=RefereeSignal.Restart;signalUntil=match.PresentationTime+1.6f;holdUntil=signalUntil;}
         private void Decision(RefereeEvent e)
         {
             if(e.Decision==RefereeDecision.Reentry || e.Decision==RefereeDecision.FreeThrow)return;
+            signalPlayer=e.Player;signalTeam=e.AwardedTeam;restartSweep=false;
             Signal=e.Decision==RefereeDecision.BallOut?RefereeSignal.Restart:e.Decision==RefereeDecision.Penalty?RefereeSignal.Penalty:e.Decision==RefereeDecision.Exclusion?RefereeSignal.Exclusion:RefereeSignal.Foul;
             signalUntil=match.PresentationTime+1.8f;holdUntil=match.PresentationTime+0.8f;
         }
         private void Phase()
         {
             int score=match.BlueScore+match.WhiteScore;
-            if(score!=lastScore){Signal=RefereeSignal.Goal;signalUntil=match.PresentationTime+2f;holdUntil=signalUntil;}
+            if(score!=lastScore){ClearSignalTarget();Signal=RefereeSignal.Goal;signalUntil=match.PresentationTime+2f;holdUntil=signalUntil;}
             else if(match.Phase==MatchPhase.QuarterBreak || match.Phase==MatchPhase.HalfTime || match.Phase==MatchPhase.FullTime)
-            {Signal=RefereeSignal.Period;signalUntil=match.PresentationTime+1.6f;targetZ=pool.transform.position.z;}
+            {ClearSignalTarget();Signal=RefereeSignal.Period;signalUntil=match.PresentationTime+1.6f;targetZ=pool.transform.position.z;}
             lastScore=score;nextDecision=0f;
         }
+        private void ClearSignalTarget() { signalPlayer=null;signalTeam=null;restartSweep=false; }
         private void Update()
         {
             if (match.IsPaused) return;
@@ -78,6 +83,14 @@ namespace ToduStudios.WaterPolo
             transform.position=point;
             Vector3 look=action-point;look.y=0f;
             if(look.sqrMagnitude>0.1f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(look),100f*Time.deltaTime);
+            if(visual is RefereeVisual model && model.UsesProfessional)
+            {
+                Vector3 mark=Signal==RefereeSignal.Goal||restartSweep?pool.transform.position:
+                    Signal==RefereeSignal.Exclusion&&signalPlayer!=null?signalPlayer.Motor.Position:
+                    rules.BoundaryRestart is BoundaryRestartAward award?award.Mark:action;
+                Vector3 attack=signalTeam.HasValue?rules.AttackDirection(signalTeam.Value):Vector3.zero;
+                model.SetSignalTargets(mark,attack,restartSweep);
+            }
             presentation?.Animate(speed,Signal);
         }
     }
