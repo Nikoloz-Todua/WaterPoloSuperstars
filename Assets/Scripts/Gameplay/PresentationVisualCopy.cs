@@ -12,6 +12,7 @@ namespace ToduStudios.WaterPolo
         {
             var root=CopyHierarchy(source,parent,map,register);
             root.localScale=source.lossyScale;
+            MaterialPropertyBlock properties=null;
             foreach (var live in source.GetComponentsInChildren<Renderer>(false))
             {
                 if (!map.TryGetValue(live.transform,out var node)) continue;
@@ -26,6 +27,7 @@ namespace ToduStudios.WaterPolo
                     mesh.bones=bones;
                     if (skin.rootBone!=null && map.TryGetValue(skin.rootBone,out var bone)) mesh.rootBone=bone;
                     mesh.localBounds=skin.localBounds;
+                    mesh.quality=skin.quality;
                     copy=mesh;
                 }
                 else if (live is MeshRenderer && live.TryGetComponent<MeshFilter>(out var filter))
@@ -39,6 +41,12 @@ namespace ToduStudios.WaterPolo
                 copy.shadowCastingMode=live.shadowCastingMode;
                 copy.receiveShadows=live.receiveShadows;
                 copy.enabled=live.enabled;
+                if (live.HasPropertyBlock())
+                {
+                    properties ??= new MaterialPropertyBlock();
+                    live.GetPropertyBlock(properties);
+                    copy.SetPropertyBlock(properties);
+                }
                 observe?.Invoke(live);
             }
             return root;

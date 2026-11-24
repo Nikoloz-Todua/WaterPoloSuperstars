@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using ToduStudios.WaterPolo.WaterVisuals;
 using Object = UnityEngine.Object;
 
 namespace ToduStudios.WaterPolo
@@ -30,6 +31,8 @@ namespace ToduStudios.WaterPolo
             public int RootIndex;
             public SwimmerIdentity Player;
             public Transform Arm, Forearm, Head;
+            public Renderer Number;
+            public int LastDisplayedCap = -1;
         }
 
         readonly List<Transform> sources = new();
@@ -42,6 +45,7 @@ namespace ToduStudios.WaterPolo
         readonly Pose[] poses;
         readonly Frame[] frames;
         readonly ushort[] appearances;
+        MaterialPropertyBlock numberProperties;
         int next, count;
         bool showing;
         public int Count => count;
@@ -93,6 +97,9 @@ namespace ToduStudios.WaterPolo
             actor.Copy=PresentationVisualCopy.Create(root,stage.transform,map,
                 (source,copy)=>{sources.Add(source);copies.Add(copy);},
                 source=>{originals.Add(source);hidden.Add(false);});
+            var kit=root.GetComponentInChildren<AthleteEquipment>();
+            if (kit != null && kit.NumberRenderer != null && map.TryGetValue(kit.NumberRenderer.transform,out var label))
+                actor.Number=label.GetComponent<Renderer>();
             actors.Add(actor);
             return actor;
         }
@@ -167,7 +174,14 @@ namespace ToduStudios.WaterPolo
             {
                 var actor=actors[i];
                 ushort oldCap=appearances[first*actors.Count+i], newCap=appearances[second*actors.Count+i];
-                actor.Copy.gameObject.SetActive((weight>=.999f?newCap:oldCap)>0);
+                int cap=weight>=.999f?newCap:oldCap;
+                actor.Copy.gameObject.SetActive(cap>0);
+                if (cap>0 && actor.Number!=null && actor.LastDisplayedCap!=cap)
+                {
+                    numberProperties ??= new MaterialPropertyBlock();
+                    AthleteEquipment.SetNumber(actor.Number,cap,numberProperties);
+                    actor.LastDisplayedCap=cap;
+                }
                 if (oldCap!=newCap && weight<.999f)
                 {
                     Pose pose=poses[a+actor.RootIndex];

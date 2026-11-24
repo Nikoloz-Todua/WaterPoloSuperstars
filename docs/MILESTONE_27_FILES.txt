@@ -1,0 +1,103 @@
+﻿Milestone 27 exact changed-file inventory
+
+Modified production scene and shared presentation bindings
+Assets/Scenes/OlympicMatchArena.unity
+Assets/Scripts/Gameplay/GoalReplayBuffer.cs
+Assets/Scripts/Gameplay/MatchRules.Substitutions.cs
+Assets/Scripts/Gameplay/PresentationVisualCopy.cs
+
+Created runtime and development assets
+Assets/ProductionAthletes.meta
+Assets/ProductionAthletes/AthletePreview.unity
+Assets/ProductionAthletes/AthletePreview.unity.meta
+Assets/ProductionAthletes/Materials.meta
+Assets/ProductionAthletes/Materials/Atlas Skin.mat
+Assets/ProductionAthletes/Materials/Atlas Skin.mat.meta
+Assets/ProductionAthletes/Materials/Blue Binding and Guards.mat
+Assets/ProductionAthletes/Materials/Blue Binding and Guards.mat.meta
+Assets/ProductionAthletes/Materials/Blue Cap Fabric.mat
+Assets/ProductionAthletes/Materials/Blue Cap Fabric.mat.meta
+Assets/ProductionAthletes/Materials/Blue Competition Briefs.mat
+Assets/ProductionAthletes/Materials/Blue Competition Briefs.mat.meta
+Assets/ProductionAthletes/Materials/Blue Team Kit.asset
+Assets/ProductionAthletes/Materials/Blue Team Kit.asset.meta
+Assets/ProductionAthletes/Materials/Chalk Number.mat
+Assets/ProductionAthletes/Materials/Chalk Number.mat.meta
+Assets/ProductionAthletes/Materials/Ink Number.mat
+Assets/ProductionAthletes/Materials/Ink Number.mat.meta
+Assets/ProductionAthletes/Materials/Keeper Red Fabric.mat
+Assets/ProductionAthletes/Materials/Keeper Red Fabric.mat.meta
+Assets/ProductionAthletes/Materials/White Binding and Guards.mat
+Assets/ProductionAthletes/Materials/White Binding and Guards.mat.meta
+Assets/ProductionAthletes/Materials/White Cap Fabric.mat
+Assets/ProductionAthletes/Materials/White Cap Fabric.mat.meta
+Assets/ProductionAthletes/Materials/White Competition Briefs.mat
+Assets/ProductionAthletes/Materials/White Competition Briefs.mat.meta
+Assets/ProductionAthletes/Materials/White Team Kit.asset
+Assets/ProductionAthletes/Materials/White Team Kit.asset.meta
+Assets/ProductionAthletes/Models.meta
+Assets/ProductionAthletes/Models/Athlete001.fbx
+Assets/ProductionAthletes/Models/Athlete001.fbx.meta
+Assets/ProductionAthletes/Textures.meta
+Assets/ProductionAthletes/Textures/CapNumbers.png
+Assets/ProductionAthletes/Textures/CapNumbers.png.meta
+Assets/ProductionAthletes/Textures/SkinAlbedo.png
+Assets/ProductionAthletes/Textures/SkinAlbedo.png.meta
+Assets/ProductionAthletes/Textures/SkinMetallicSmoothness.png
+Assets/ProductionAthletes/Textures/SkinMetallicSmoothness.png.meta
+Assets/ProductionAthletes/Textures/SkinNormal.png
+Assets/ProductionAthletes/Textures/SkinNormal.png.meta
+
+Created runtime components and Editor tools
+Assets/Scripts/WaterVisuals/AthleteEquipment.cs
+Assets/Scripts/WaterVisuals/AthleteEquipment.cs.meta
+Assets/Scripts/WaterVisuals/AthleteKitStyle.cs
+Assets/Scripts/WaterVisuals/AthleteKitStyle.cs.meta
+Assets/Scripts/WaterVisuals/AthletePreviewCamera.cs
+Assets/Scripts/WaterVisuals/AthletePreviewCamera.cs.meta
+Assets/Editor/ProductionAthleteSetup.cs
+Assets/Editor/ProductionAthleteSetup.cs.meta
+Tools/Art/BuildAthleteCapNumberAtlas.ps1
+Tools/Art/PrepareProductionAthlete.py
+Tools/Verification/ProductionAthleteVerification.cs
+
+Created athlete source files outside Unity
+SourceAssets/Athletes/WPS_Athlete_001/Blender/WPS_Athlete_001.blend
+SourceAssets/Athletes/WPS_Athlete_001/Original/Meshy_AI_Atlas_Form_20261124_texture.fbx
+SourceAssets/Athletes/WPS_Athlete_001/Original/Meshy_AI_Atlas_Form_20261124_texture.png
+SourceAssets/Athletes/WPS_Athlete_001/Original/Meshy_AI_Atlas_Form_20261124_texture_metallic.png
+SourceAssets/Athletes/WPS_Athlete_001/Original/Meshy_AI_Atlas_Form_20261124_texture_normal.png
+SourceAssets/Athletes/WPS_Athlete_001/Original/Meshy_AI_Atlas_Form_20261124_texture_roughness.png
+
+Created exact pre-rollout scene recovery outside builds
+Assets/Scenes/Recovery/OlympicMatchArena_PreProductionAthletes.unity
+Assets/Scenes/Recovery/OlympicMatchArena_PreProductionAthletes.unity.meta
+
+Documentation
+plan.md (modified)
+docs/PRODUCTION_ATHLETES_AND_MODULAR_CUSTOMIZATION.md
+docs/MILESTONE_27_FILES.txt
+
+Durable Unity Game View evidence
+docs/Evidence/ProductionAthletes/Blue-Cap.png
+docs/Evidence/ProductionAthletes/Competition-Briefs.png
+docs/Evidence/ProductionAthletes/Fourteen-Athlete-Lineup.png
+docs/Evidence/ProductionAthletes/Full-Roster-Broadcast.png
+docs/Evidence/ProductionAthletes/Goal-Line-Replay.png
+docs/Evidence/ProductionAthletes/Held-Ball-IK.png
+docs/Evidence/ProductionAthletes/Keeper-Cap.png
+docs/Evidence/ProductionAthletes/Live-Shot.png
+docs/Evidence/ProductionAthletes/Live-Sprint.png
+docs/Evidence/ProductionAthletes/Live-Swim.png
+docs/Evidence/ProductionAthletes/Live-Tread.png
+docs/Evidence/ProductionAthletes/Own-Goal-Reaction.png
+docs/Evidence/ProductionAthletes/Pennant-Exchange.png
+docs/Evidence/ProductionAthletes/Physical-Keeper-Save.png
+docs/Evidence/ProductionAthletes/Raised-Arm-Block.png
+docs/Evidence/ProductionAthletes/Replacement.png
+docs/Evidence/ProductionAthletes/Standing-Back.png
+docs/Evidence/ProductionAthletes/Standing-Front.png
+docs/Evidence/ProductionAthletes/White-Cap.png
+
+Local verification evidence
+Logs/ProductionAthletes/ (ignored by repository; full captures, diagnostics, reports and a second exact recovery)

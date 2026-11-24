@@ -88,6 +88,7 @@ namespace ToduStudios.WaterPolo
             // The clone contains only the animated skin. Gameplay stays on the original slot.
             var driver = actor.GetComponent<WaterVisuals.RiggedSwimmerVisual>();
             driver.enabled = false;
+            if (actor.TryGetComponent<WaterVisuals.AthleteEquipment>(out var kit)) kit.SetDetachedNumber(staged.Cap);
             var animator = actor.GetComponent<Animator>();
             var head = animator.GetBoneTransform(HumanBodyBones.Head);
             actor.transform.localScale = source.transform.lossyScale;
@@ -211,7 +212,11 @@ namespace ToduStudios.WaterPolo
             leaving.Fouls = slot.PersonalFouls;
             bench.Remove(replacement);
             bench.Add(leaving);
-            if (exchanges.Remove(slot, out var exchange)) StartCoroutine(ReturnToBench(slot, leaving, exchange));
+            if (exchanges.Remove(slot, out var exchange))
+            {
+                if (exchange.Visual.TryGetComponent<WaterVisuals.AthleteEquipment>(out var kit)) kit.SetDetachedNumber(leaving.Cap);
+                StartCoroutine(ReturnToBench(slot, leaving, exchange));
+            }
             occupants[slot] = replacement;
             replacement.Reserved = false;
             slot.SetCollectionDefinition(replacement.Definition.id);

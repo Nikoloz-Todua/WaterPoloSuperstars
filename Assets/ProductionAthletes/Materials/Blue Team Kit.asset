@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b13f68c8d929dfc4185dc71282a72ad1, type: 3}
+  m_Name: Blue Team Kit
+  m_EditorClassIdentifier: Assembly-CSharp::ToduStudios.WaterPolo.WaterVisuals.AthleteKitStyle
+  cap:
+  - {fileID: 2100000, guid: ff8563b8cd38e7d4e8f4d71439c06cd5, type: 2}
+  - {fileID: 2100000, guid: 19d1f4cb589e28849881ae85fb9191d5, type: 2}
+  goalkeeperCap:
+  - {fileID: 2100000, guid: d3388f4be1ead9d428bee1a13f68a704, type: 2}
+  - {fileID: 2100000, guid: 19d1f4cb589e28849881ae85fb9191d5, type: 2}
+  briefs: {fileID: 2100000, guid: 6eaed594ec9ccbd46bd5724f4a128a3e, type: 2}
+  fieldNumber: {fileID: 2100000, guid: 963a9f09e458e9c48bec1b04430c72bb, type: 2}
+  goalkeeperNumber: {fileID: 2100000, guid: 963a9f09e458e9c48bec1b04430c72bb, type: 2}

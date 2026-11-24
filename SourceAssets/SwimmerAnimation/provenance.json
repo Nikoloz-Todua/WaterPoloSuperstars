@@ -1,0 +1,31 @@
+{
+  "retrieved": "2026-11-15",
+  "license": "CC0-1.0",
+  "author": "Quaternius",
+  "distribution": "KinemIQ",
+  "model_url": "https://kinemiq.app/studio/assets/character_ual.glb",
+  "clip_base_url": "https://kinemiq.app/wp-content/kinemiq-app/library/clips/",
+  "license_evidence": [
+    "https://kinemiq.app/sources/",
+    "https://kinemiq.app/animations/move-swimming/",
+    "https://kinemiq.app/animations/idle-in-water/",
+    "https://quaternius.com/packs/universalanimationlibrary.html"
+  ],
+  "files": [
+    {
+      "file": "character_ual.glb",
+      "bytes": 2420520,
+      "sha256": "29686708df20ef9b35d487076bc44b765f9924a7759d33a4e49012b076d11951"
+    },
+    {
+      "file": "swim_fwd_loop.glb",
+      "bytes": 172408,
+      "sha256": "e71f0c29509e2b452a94576483f60a8933172026291f38a3fb746991c3983c16"
+    },
+    {
+      "file": "swim_idle_loop.glb",
+      "bytes": 331564,
+      "sha256": "7ab249e5580e0e23717e7d8b5f739f07758285d4c2653a19ee9efbed5d097bd5"
+    }
+  ]
+}
