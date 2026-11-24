@@ -201,10 +201,13 @@ public static class ProductionAthleteVerification
         }
         foreach (var kit in kits)
         {
-            var id = kit.GetComponent<RiggedSwimmerVisual>().identity;
+            var visual = kit.GetComponent<RiggedSwimmerVisual>();
+            var id = visual.identity;
             Check(Printed(kit)==id.CapNumber,"Printed cap uses the match number.");
             var cap=kit.transform.Find("WaterPoloCap").GetComponent<Renderer>();
-            string expected=id.IsFieldPlayer ? id.Team+" Cap Fabric" : "Keeper Red Fabric";
+            string expected = visual.useAuthoredWaterline
+                ? (id.IsFieldPlayer ? id.Team + " Cap" : "Red Keeper Cap")
+                : (id.IsFieldPlayer ? id.Team + " Cap Fabric" : "Keeper Red Fabric");
             Check(cap.sharedMaterial.name==expected,"Cap shell material is the field or red keeper color.");
         }
 

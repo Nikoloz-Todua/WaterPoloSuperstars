@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!221 &22100000
+AnimatorOverrideController:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Authentic Athlete Preview
+  m_Controller: {fileID: 9100000, guid: 6355b9c85fb37a140bbb56cb9de3170d, type: 2}
+  m_Clips:
+  - m_OriginalClip: {fileID: -623603649343465320, guid: a34fdc695a14642499264f003b710460, type: 3}
+    m_OverrideClip: {fileID: -623603649343465320, guid: 46f2e2e11b0fc5b44b08195034983f21, type: 3}
+  - m_OriginalClip: {fileID: -623603649343465320, guid: ed7d7213469c36b4eaeb06097c563e8e, type: 3}
+    m_OverrideClip: {fileID: -623603649343465320, guid: bd37738c50376b343a07318bd2a49b71, type: 3}
+  - m_OriginalClip: {fileID: -623603649343465320, guid: 356588717e2971f4ca89e17398e845b2, type: 3}
+    m_OverrideClip: {fileID: -623603649343465320, guid: 1e597fb383c21d74489775352d53c414, type: 3}
+  - m_OriginalClip: {fileID: -623603649343465320, guid: d6cd3cfc22316e34c8e5b753a5b9eef9, type: 3}
+    m_OverrideClip: {fileID: -623603649343465320, guid: 14dedc4be221e3c4694eacd8d50c38ae, type: 3}

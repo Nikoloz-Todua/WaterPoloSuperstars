@@ -2760,9 +2760,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 2047010069}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -2771,6 +2779,10 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -3227,8 +3239,8 @@ MonoBehaviour:
   - {fileID: 44059794}
   - {fileID: 44059793}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -7163,7 +7175,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 639140399}
   - {fileID: 639140398}
@@ -8904,7 +8916,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 1598273085}
   - {fileID: 1598273084}
@@ -11807,9 +11819,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 619928584}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -11826,6 +11846,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 791d9893116d5f445a7dc439e1d1c466, type: 2}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -12286,8 +12310,8 @@ MonoBehaviour:
   - {fileID: 157841531}
   - {fileID: 157841530}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -17048,7 +17072,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 777347354}
   - {fileID: 777347353}
@@ -18455,7 +18479,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 44059792}
   - {fileID: 44059791}
@@ -21636,7 +21660,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 773299136}
   - {fileID: 773299135}
@@ -22777,9 +22801,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 726814772}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -22788,6 +22820,10 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -23244,8 +23280,8 @@ MonoBehaviour:
   - {fileID: 289552154}
   - {fileID: 289552153}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -31491,7 +31527,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 705810934}
   - {fileID: 705810933}
@@ -32897,7 +32933,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 914145162}
   - {fileID: 914145161}
@@ -34046,7 +34082,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 157841529}
   - {fileID: 157841528}
@@ -46307,9 +46343,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 1218628261}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -46318,6 +46362,10 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -46774,8 +46822,8 @@ MonoBehaviour:
   - {fileID: 639140401}
   - {fileID: 639140400}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -47212,7 +47260,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 1757705510}
   - {fileID: 1757705509}
@@ -51030,9 +51078,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 87476086}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -51049,6 +51105,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 791d9893116d5f445a7dc439e1d1c466, type: 2}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -51509,8 +51569,8 @@ MonoBehaviour:
   - {fileID: 705810936}
   - {fileID: 705810935}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -55017,9 +55077,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 1139668985}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -55028,6 +55096,10 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -55484,8 +55556,8 @@ MonoBehaviour:
   - {fileID: 773299138}
   - {fileID: 773299137}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -55647,9 +55719,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 677469403}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -55666,6 +55746,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 791d9893116d5f445a7dc439e1d1c466, type: 2}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -56126,8 +56210,8 @@ MonoBehaviour:
   - {fileID: 777347356}
   - {fileID: 777347355}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -61789,7 +61873,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 2144092301}
   - {fileID: 2144092300}
@@ -61947,7 +62031,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 705810934}
   - {fileID: 705810933}
@@ -62759,9 +62843,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 1666093142}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -62770,6 +62862,10 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -63226,8 +63322,8 @@ MonoBehaviour:
   - {fileID: 914145164}
   - {fileID: 914145163}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -65062,7 +65158,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 1757705510}
   - {fileID: 1757705509}
@@ -69323,7 +69419,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 639140399}
   - {fileID: 639140398}
@@ -70465,7 +70561,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 2056965370}
   - {fileID: 2056965369}
@@ -71634,7 +71730,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 1281511632}
   - {fileID: 1281511631}
@@ -74809,7 +74905,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 289552152}
   - {fileID: 289552151}
@@ -76028,7 +76124,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 157841529}
   - {fileID: 157841528}
@@ -83697,7 +83793,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 44059792}
   - {fileID: 44059791}
@@ -84995,7 +85091,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 1281511632}
   - {fileID: 1281511631}
@@ -86463,9 +86559,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 1449607062}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -86478,6 +86582,10 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -86938,8 +87046,8 @@ MonoBehaviour:
   - {fileID: 1281511634}
   - {fileID: 1281511633}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -89231,7 +89339,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 777347354}
   - {fileID: 777347353}
@@ -92270,7 +92378,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 914145162}
   - {fileID: 914145161}
@@ -94092,7 +94200,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 773299136}
   - {fileID: 773299135}
@@ -107030,9 +107138,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 1502215303}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -107049,6 +107165,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 791d9893116d5f445a7dc439e1d1c466, type: 2}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -107509,8 +107629,8 @@ MonoBehaviour:
   - {fileID: 1598273087}
   - {fileID: 1598273086}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -114041,7 +114161,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 2144092301}
   - {fileID: 2144092300}
@@ -118840,9 +118960,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 594443252}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -118859,6 +118987,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 791d9893116d5f445a7dc439e1d1c466, type: 2}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -119319,8 +119451,8 @@ MonoBehaviour:
   - {fileID: 1757705512}
   - {fileID: 1757705511}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -120200,7 +120332,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 289552152}
   - {fileID: 289552151}
@@ -124051,9 +124183,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 1217614244}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -124062,6 +124202,10 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -124518,8 +124662,8 @@ MonoBehaviour:
   - {fileID: 1828449555}
   - {fileID: 1828449554}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -141416,7 +141560,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 1828449553}
   - {fileID: 1828449552}
@@ -145164,7 +145308,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 1828449553}
   - {fileID: 1828449552}
@@ -145275,9 +145419,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 202861645}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -145294,6 +145446,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 791d9893116d5f445a7dc439e1d1c466, type: 2}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -145754,8 +145910,8 @@ MonoBehaviour:
   - {fileID: 2056965372}
   - {fileID: 2056965371}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -146734,7 +146890,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 2056965370}
   - {fileID: 2056965369}
@@ -148942,7 +149098,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 1598273085}
   - {fileID: 1598273084}
@@ -150134,9 +150290,17 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 649703363}
     - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: deckWalk
+      value: 
+      objectReference: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: identity
       value: 
       objectReference: {fileID: 593132166}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -150153,6 +150317,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 791d9893116d5f445a7dc439e1d1c466, type: 2}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -150613,8 +150781,8 @@ MonoBehaviour:
   - {fileID: 2144092303}
   - {fileID: 2144092302}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7

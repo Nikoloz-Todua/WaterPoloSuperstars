@@ -2,13 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Animations;
+using UnityEngine.Playables;
 using ToduStudios.WaterPolo.Hub;
 using ToduStudios.WaterPolo.WaterVisuals;
 using Object=UnityEngine.Object;
 
 namespace ToduStudios.WaterPolo
 {
-    // Replace this adapter with a presentation animator when the deck animation set exists.
     internal sealed class PrematchCast : IDisposable
     {
         internal sealed class Athlete
@@ -22,6 +23,14 @@ namespace ToduStudios.WaterPolo
             public readonly bool Captain;
             public readonly string DisplayName;
             public Transform Hand => Joint(HumanBodyBones.RightHand);
+            public bool UsesDeckWalk => deckWalk != null;
+            readonly Animator deckAnimator;
+            readonly AnimationClip deckWalk;
+            readonly (Transform Joint, Vector3 Position, Quaternion Rotation)[] deckRest;
+            PlayableGraph walkGraph;
+            AnimationClipPlayable walkPlayable;
+            Vector3 previousFeet;
+            float previousTime, routeDistance;
 
             public Athlete(SwimmerIdentity player, Transform parent, Transform mark, Vector3 entry, bool captain, HubCatalog catalog)
             {
@@ -42,6 +51,17 @@ namespace ToduStudios.WaterPolo
                         rest[i]=joint.localRotation;
                     }
                 }
+                if (visual.deckWalk != null && visual.deckWalk.humanMotion &&
+                    bones.TryGetValue(visual.transform, out var modelRoot))
+                {
+                    deckWalk = visual.deckWalk;
+                    deckRest = modelRoot.GetComponentsInChildren<Transform>(true)
+                        .Select(t => (t, t.localPosition, t.localRotation)).ToArray();
+                    deckAnimator = modelRoot.gameObject.AddComponent<Animator>();
+                    deckAnimator.avatar = visual.Animator.avatar;
+                    deckAnimator.applyRootMotion = false;
+                    deckAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                }
             }
 
             Transform Joint(HumanBodyBones bone)=>joints[(int)bone];
@@ -54,9 +74,20 @@ namespace ToduStudios.WaterPolo
                 if (current.sqrMagnitude>.00001f) joint.rotation=Quaternion.FromToRotation(current,direction)*joint.rotation;
             }
 
-            public void Pose(Vector3 feet,Vector3 facing,float time,float gait,float offer=0f)
+            public void Pose(Vector3 feet,Vector3 facing,float time,float gait,float offer,bool useWalk)
             {
                 Root.SetPositionAndRotation(feet,Quaternion.LookRotation(facing));
+                if (deckAnimator != null && useWalk && gait > .01f)
+                {
+                    Walk(feet, time);
+                    return;
+                }
+                if (walkGraph.IsValid())
+                {
+                    Dispose();
+                    foreach (var bone in deckRest)
+                        bone.Joint.SetLocalPositionAndRotation(bone.Position, bone.Rotation);
+                }
                 foreach(var bone in PoseJoints)
                 {
                     var joint=Joint(bone);
@@ -83,6 +114,47 @@ namespace ToduStudios.WaterPolo
                 if (head!=null) head.rotation=Quaternion.AngleAxis(Mathf.Sin(time*1.45f)*2f,Root.up)*head.rotation;
             }
 
+            void Walk(Vector3 feet, float time)
+            {
+                if (!walkGraph.IsValid())
+                {
+                    walkGraph = PlayableGraph.Create("Ceremony athlete walk");
+                    walkGraph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
+                    walkPlayable = AnimationClipPlayable.Create(walkGraph, deckWalk);
+                    walkPlayable.SetApplyFootIK(true);
+                    AnimationPlayableOutput.Create(walkGraph, "Deck athlete", deckAnimator).SetSourcePlayable(walkPlayable);
+                    walkGraph.Play();
+                    routeDistance = 0;
+                }
+                else if (time >= previousTime && time - previousTime < .25f)
+                {
+                    routeDistance += Vector3.ProjectOnPlane(feet - previousFeet, Vector3.up).magnitude;
+                }
+                previousFeet = feet;
+                previousTime = time;
+
+                // Match the in-place stride to distance along the existing deck route.
+                const float cycleDistance = 1.36f;
+                walkPlayable.SetTime(Mathf.Repeat(routeDistance / cycleDistance, 1f) * deckWalk.length);
+                walkGraph.Evaluate(0f);
+                float floor = Mathf.Min(EstimateSole(HumanBodyBones.LeftFoot, HumanBodyBones.LeftToes),
+                    EstimateSole(HumanBodyBones.RightFoot, HumanBodyBones.RightToes));
+                if (!float.IsPositiveInfinity(floor)) Root.position += Vector3.up * Mathf.Clamp(feet.y - floor, -.13f, .13f);
+            }
+
+            float EstimateSole(HumanBodyBones ankleBone, HumanBodyBones toeBone)
+            {
+                var ankle = Joint(ankleBone);
+                var toe = Joint(toeBone);
+                if (ankle == null || toe == null) return float.PositiveInfinity;
+                return Mathf.Min(ankle.position.y - .065f, toe.position.y - .016f);
+            }
+
+            public void Dispose()
+            {
+                if (walkGraph.IsValid()) walkGraph.Destroy();
+            }
+
             private static readonly HumanBodyBones[] PoseJoints=
             {
                 HumanBodyBones.LeftUpperLeg,HumanBodyBones.LeftLowerLeg,HumanBodyBones.LeftFoot,
@@ -97,6 +169,7 @@ namespace ToduStudios.WaterPolo
         private readonly Transform[] pennants;
         private readonly Transform[] officials;
         private readonly Athlete[][] teams;
+        private readonly Dictionary<Material, Material> castMaterials = new();
         private readonly Vector3 centre;
         public IReadOnlyList<Athlete> Blue=>teams[0];
         public IReadOnlyList<Athlete> White=>teams[1];
@@ -152,6 +225,8 @@ namespace ToduStudios.WaterPolo
                         teams[side][i]=new Athlete(players[i],stage.transform,marks[i],entry,i==6,catalog);
                     }
                 }
+                if (teams.Any(team => team.Any(athlete => athlete.UsesDeckWalk)))
+                    SetCastExposure();
 
                 officials=new Transform[Mathf.Min(2,referees.Length)];
                 for(int i=0;i<officials.Length;i++)
@@ -167,6 +242,40 @@ namespace ToduStudios.WaterPolo
                 Dispose();
                 throw;
             }
+        }
+
+        void SetCastExposure()
+        {
+            foreach (var team in teams)
+                foreach (var athlete in team)
+                    foreach (var renderer in athlete.Root.GetComponentsInChildren<Renderer>(true))
+                    {
+                        var materials = renderer.sharedMaterials;
+                        for (int i = 0; i < materials.Length; i++)
+                        {
+                            var material = materials[i];
+                            if (material == null || !material.HasProperty("_EmissionColor") ||
+                                material.IsKeywordEnabled("_ALPHATEST_ON")) continue;
+                            if (!castMaterials.TryGetValue(material, out var exposure))
+                            {
+                                // The tunnel leaves the cast to arena reflections and
+                                // its per-renderer light limit. Lift diffuse detail
+                                // with a shared, stage-only copy of the same material.
+                                exposure = new Material(material) { name = material.name + " (ceremony)" };
+                                exposure.EnableKeyword("_EMISSION");
+                                exposure.SetTexture("_EmissionMap", material.GetTexture("_BaseMap"));
+                                exposure.SetColor("_EmissionColor", material.GetColor("_BaseColor") * .37f);
+                                if (material.HasProperty("_EnvironmentReflections"))
+                                {
+                                    exposure.SetFloat("_EnvironmentReflections", 0f);
+                                    exposure.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+                                }
+                                castMaterials.Add(material, exposure);
+                            }
+                            materials[i] = exposure;
+                        }
+                        renderer.sharedMaterials = materials;
+                    }
         }
 
         Transform AddPennant(string name,Material material)
@@ -232,7 +341,7 @@ namespace ToduStudios.WaterPolo
                     facing=Vector3.Slerp(Vector3.Slerp(Vector3.forward,-offset,gather),Vector3.forward,depart);
                     gait=(progress<.62f||progress>.79f)?.68f:0;
                 }
-                athlete.Pose(feet,facing,timeline+i*.11f,gait,offer);
+                athlete.Pose(feet,facing,timeline+i*.11f,gait,offer,phase==PreMatchStage.TeamWalkout);
             }
 
             foreach(var official in officials) official.gameObject.SetActive(phase!=PreMatchStage.TeamHuddle);
@@ -255,8 +364,14 @@ namespace ToduStudios.WaterPolo
 
         public void Dispose()
         {
+            if (teams != null)
+                foreach (var team in teams)
+                    if (team != null)
+                        foreach (var athlete in team) athlete?.Dispose();
             if(stage!=null) {stage.SetActive(false);Object.Destroy(stage);}
             if(pennantMesh!=null) Object.Destroy(pennantMesh);
+            foreach (var material in castMaterials.Values) Object.Destroy(material);
+            castMaterials.Clear();
         }
     }
 }

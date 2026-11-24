@@ -18,6 +18,9 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         [Range(0,7)] public int previewState;
         [Min(.02f)] public float idleRippleInterval=2.4f, strokeCooldown=.32f;
         public float headHeight=.26f;
+        [Tooltip("Use the lower visual waterline authored for the Milestone 28 pose set.")]
+        public bool useAuthoredWaterline;
+        public AnimationClip deckWalk;
         Animator animator;
         SwimmerStamina stamina;
         PrototypeGoalkeeper keeper;
@@ -38,6 +41,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         public int SaveAnimations { get; private set; }
         public float Locomotion { get; private set; }
         public bool Preview=>identity==null;
+        public float PreviewPlaybackSpeed { get; set; } = 1f;
         void Awake()
         {
             if(alignmentRoot!=null)restAlignment=alignmentRoot.localRotation;
@@ -64,7 +68,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         }
         void Update()
         {
-            bool paused=match!=null&&(match.IsPaused||match.GoalPresentationActive||match.IsPreMatchPresentation);animator.speed=paused?0:1;if(paused)return;
+            bool paused=match!=null&&(match.IsPaused||match.GoalPresentationActive||match.IsPreMatchPresentation);animator.speed=paused?0:Preview?PreviewPlaybackSpeed:1f;if(paused)return;
             if(Preview)
             {
                 var k=Keyboard.current;
@@ -96,8 +100,16 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             float turn=Mathf.SmoothStep(0,1,Mathf.Clamp01((throwAt-Time.time)*5f));
             alignmentRoot.localRotation=restAlignment*Quaternion.Euler(0f,throwTurn*turn,0f);
             // Outside the animated hierarchy: correct the mesh waterline, never the swimmer root.
-            Vector3 p=alignmentRoot.position;p.y+=surface+headHeight-head.position.y;alignmentRoot.position=p;
             float now=match!=null?match.PresentationTime:Time.time;
+            float elevation = headHeight;
+            if (useAuthoredWaterline)
+            {
+                float moving = Mathf.Clamp01(animator.GetFloat(Move));
+                float support = Mathf.Max(turn, animator.GetBool(Block) ? animator.GetLayerWeight(1) : 0f);
+                elevation = Mathf.Lerp(.15f, .12f, moving) + .038f * support +
+                    Mathf.Sin(now * 5.4f) * Mathf.Lerp(.009f, .003f, moving);
+            }
+            Vector3 p=alignmentRoot.position;p.y+=surface+elevation-head.position.y;alignmentRoot.position=p;
             if(water!=null&&(identity==null||identity.EligibleForPlay))
             {
                 float speed=Preview?Locomotion*2.5f:motor.Velocity.magnitude;

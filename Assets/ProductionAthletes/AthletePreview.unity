@@ -151,10 +151,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ToduStudios.WaterPolo.WaterVisuals.AthletePreviewCamera
   athlete: {fileID: 458991797}
-  equipment: {fileID: 458991798}
   angle: 15
   framing: 0
   dry: 1
+  elevation: 0
+  walk: {fileID: -1610863427237328480, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+  run: {fileID: -9121621101649706817, guid: 2f2dd0d202c02de488698b241652421f, type: 3}
+  playbackRate: 1
 --- !u!81 &268209123
 AudioListener:
   m_ObjectHideFlags: 0
@@ -241,6 +244,10 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 1602925489443566045, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: useAuthoredWaterline
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3804629240407266171, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -249,6 +256,10 @@ PrefabInstance:
       propertyPath: m_Enabled
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6223075947773957284, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 22100000, guid: 9e55a6aa6529f524095a8e66b6d3f101, type: 2}
     - target: {fileID: 7280949914946008907, guid: 953f6727163c3254fbb8010c9dfcd1f1, type: 3}
       propertyPath: m_Enabled
       value: 0
@@ -711,8 +722,8 @@ MonoBehaviour:
   - {fileID: 458991793}
   - {fileID: 458991725}
   skin: {fileID: 2100000, guid: 82605b366fb40a34f980ed5a299417a9, type: 2}
-  blue: {fileID: 11400000, guid: efe215c3cd14a0a429444167e8927283, type: 2}
-  white: {fileID: 11400000, guid: ed127c35d67df304ab2bc38adb0134d2, type: 2}
+  blue: {fileID: 11400000, guid: 759047ad2fac0e34b932d97a60fdf7b7, type: 2}
+  white: {fileID: 11400000, guid: 9626474442d55b4429da193d70ead9d7, type: 2}
   previewTeam: 0
   previewGoalkeeper: 0
   previewNumber: 7
@@ -1213,7 +1224,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -7055040371900264031, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 4471037650614420266, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 458991791}
   - {fileID: 458991790}
@@ -1372,7 +1383,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: -3029020208953782644, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: -7000032561640182162, guid: 762d9cd20da37d342a18279add85ec6c, type: 3}
   m_Bones:
   - {fileID: 458991791}
   - {fileID: 458991790}

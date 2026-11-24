@@ -1,0 +1,125 @@
+Milestone 28 exact changed-file inventory
+
+Modified after Milestone 27
+Assets/ProductionAthletes/AthletePreview.unity
+Assets/Scenes/OlympicMatchArena.unity
+Assets/Scripts/Gameplay/PrematchCast.cs
+Assets/Scripts/WaterVisuals/AthletePreviewCamera.cs
+Assets/Scripts/WaterVisuals/RiggedSwimmerVisual.cs
+plan.md
+Tools/Verification/ProductionAthleteVerification.cs
+
+New Unity project files and native recovery
+Assets/Editor/AuthenticAthleteEquipmentSetup.cs
+Assets/Editor/AuthenticAthleteEquipmentSetup.cs.meta
+Assets/Editor/AuthenticAthleteMotionSetup.cs
+Assets/Editor/AuthenticAthleteMotionSetup.cs.meta
+Assets/Editor/AuthenticAthleteRollout.cs
+Assets/Editor/AuthenticAthleteRollout.cs.meta
+Assets/ProductionAthletes/AuthenticEquipment.meta
+Assets/ProductionAthletes/AuthenticEquipment/Blue Briefs.mat
+Assets/ProductionAthletes/AuthenticEquipment/Blue Briefs.mat.meta
+Assets/ProductionAthletes/AuthenticEquipment/Blue Cap.mat
+Assets/ProductionAthletes/AuthenticEquipment/Blue Cap.mat.meta
+Assets/ProductionAthletes/AuthenticEquipment/Blue Guards.mat
+Assets/ProductionAthletes/AuthenticEquipment/Blue Guards.mat.meta
+Assets/ProductionAthletes/AuthenticEquipment/Blue Premium Kit.asset
+Assets/ProductionAthletes/AuthenticEquipment/Blue Premium Kit.asset.meta
+Assets/ProductionAthletes/AuthenticEquipment/PremiumHeadgear.fbx
+Assets/ProductionAthletes/AuthenticEquipment/PremiumHeadgear.fbx.meta
+Assets/ProductionAthletes/AuthenticEquipment/Red Keeper Cap.mat
+Assets/ProductionAthletes/AuthenticEquipment/Red Keeper Cap.mat.meta
+Assets/ProductionAthletes/AuthenticEquipment/Red Keeper Guards.mat
+Assets/ProductionAthletes/AuthenticEquipment/Red Keeper Guards.mat.meta
+Assets/ProductionAthletes/AuthenticEquipment/Textures.meta
+Assets/ProductionAthletes/AuthenticEquipment/Textures/BriefsNeutral.png
+Assets/ProductionAthletes/AuthenticEquipment/Textures/BriefsNeutral.png.meta
+Assets/ProductionAthletes/AuthenticEquipment/Textures/BriefsNormal.png
+Assets/ProductionAthletes/AuthenticEquipment/Textures/BriefsNormal.png.meta
+Assets/ProductionAthletes/AuthenticEquipment/Textures/BriefsSmoothness.png
+Assets/ProductionAthletes/AuthenticEquipment/Textures/BriefsSmoothness.png.meta
+Assets/ProductionAthletes/AuthenticEquipment/Textures/CapNeutral.png
+Assets/ProductionAthletes/AuthenticEquipment/Textures/CapNeutral.png.meta
+Assets/ProductionAthletes/AuthenticEquipment/Textures/CapNormal.png
+Assets/ProductionAthletes/AuthenticEquipment/Textures/CapNormal.png.meta
+Assets/ProductionAthletes/AuthenticEquipment/Textures/CapSmoothness.png
+Assets/ProductionAthletes/AuthenticEquipment/Textures/CapSmoothness.png.meta
+Assets/ProductionAthletes/AuthenticEquipment/White Briefs.mat
+Assets/ProductionAthletes/AuthenticEquipment/White Briefs.mat.meta
+Assets/ProductionAthletes/AuthenticEquipment/White Cap.mat
+Assets/ProductionAthletes/AuthenticEquipment/White Cap.mat.meta
+Assets/ProductionAthletes/AuthenticEquipment/White Guards.mat
+Assets/ProductionAthletes/AuthenticEquipment/White Guards.mat.meta
+Assets/ProductionAthletes/AuthenticEquipment/White Premium Kit.asset
+Assets/ProductionAthletes/AuthenticEquipment/White Premium Kit.asset.meta
+Assets/ProductionAthletes/AuthenticMotion.meta
+Assets/ProductionAthletes/AuthenticMotion/Authentic Athlete Preview.overrideController
+Assets/ProductionAthletes/AuthenticMotion/Authentic Athlete Preview.overrideController.meta
+Assets/ProductionAthletes/AuthenticMotion/MeshyDeckSource.fbx
+Assets/ProductionAthletes/AuthenticMotion/MeshyDeckSource.fbx.meta
+Assets/ProductionAthletes/AuthenticMotion/WaterPoloBallTread.fbx
+Assets/ProductionAthletes/AuthenticMotion/WaterPoloBallTread.fbx.meta
+Assets/ProductionAthletes/AuthenticMotion/WaterPoloEggbeater.fbx
+Assets/ProductionAthletes/AuthenticMotion/WaterPoloEggbeater.fbx.meta
+Assets/ProductionAthletes/AuthenticMotion/WaterPoloFreestyle.fbx
+Assets/ProductionAthletes/AuthenticMotion/WaterPoloFreestyle.fbx.meta
+Assets/ProductionAthletes/AuthenticMotion/WaterPoloSprint.fbx
+Assets/ProductionAthletes/AuthenticMotion/WaterPoloSprint.fbx.meta
+Assets/Scenes/Recovery/OlympicMatchArena_PreAuthenticAthletes.unity
+Assets/Scenes/Recovery/OlympicMatchArena_PreAuthenticAthletes.unity.meta
+
+New source art and Blender projects
+SourceAssets/Athletes/WPS_Animations_001/Blender/WPS_AquaticMotion_001.blend
+SourceAssets/Athletes/WPS_Animations_001/Original/Meshy_AI_Atlas_Form_20261124_animated_unity_humanoid_without_skin_60fps_All_animation.fbx
+SourceAssets/Athletes/WPS_Cap_001/Blender/WPS_EquipmentFit_001.blend
+SourceAssets/Athletes/WPS_Cap_001/Original/Meshy_AI_Blue_Water_Polo_Cap_20261124_texture.fbx
+SourceAssets/Athletes/WPS_Cap_001/Original/Meshy_AI_Blue_Water_Polo_Cap_20261124_texture.png
+SourceAssets/Athletes/WPS_Cap_001/Original/Meshy_AI_Blue_Water_Polo_Cap_20261124_texture_metallic.png
+SourceAssets/Athletes/WPS_Cap_001/Original/Meshy_AI_Blue_Water_Polo_Cap_20261124_texture_normal.png
+SourceAssets/Athletes/WPS_Cap_001/Original/Meshy_AI_Blue_Water_Polo_Cap_20261124_texture_roughness.png
+SourceAssets/Athletes/WPS_Swimwear_001/Original/Meshy_AI_Blue_Swim_Briefs_20261124_texture.fbx
+SourceAssets/Athletes/WPS_Swimwear_001/Original/Meshy_AI_Blue_Swim_Briefs_20261124_texture.png
+SourceAssets/Athletes/WPS_Swimwear_001/Original/Meshy_AI_Blue_Swim_Briefs_20261124_texture_metallic.png
+SourceAssets/Athletes/WPS_Swimwear_001/Original/Meshy_AI_Blue_Swim_Briefs_20261124_texture_normal.png
+SourceAssets/Athletes/WPS_Swimwear_001/Original/Meshy_AI_Blue_Swim_Briefs_20261124_texture_roughness.png
+
+New authoring and verification scripts
+Tools/Art/AuthorWaterPoloCycles.py
+Tools/Art/FitWaterPoloEquipment.py
+Tools/Verification/AuthenticAthletePreviewVerification.cs
+
+New documentation and selected durable evidence
+docs/AUTHENTIC_WATER_POLO_ANIMATIONS_AND_EQUIPMENT.md
+docs/Evidence/AuthenticWaterPoloAnimations/Block.png
+docs/Evidence/AuthenticWaterPoloAnimations/CapCloseups.png
+docs/Evidence/AuthenticWaterPoloAnimations/Ceremony-Exposure.png
+docs/Evidence/AuthenticWaterPoloAnimations/Ceremony-Stages.png
+docs/Evidence/AuthenticWaterPoloAnimations/Competition-Briefs.png
+docs/Evidence/AuthenticWaterPoloAnimations/Eggbeater-Side.png
+docs/Evidence/AuthenticWaterPoloAnimations/Eggbeater-Under.png
+docs/Evidence/AuthenticWaterPoloAnimations/Freestyle-Front.png
+docs/Evidence/AuthenticWaterPoloAnimations/Freestyle-Side.png
+docs/Evidence/AuthenticWaterPoloAnimations/Freestyle-Top.png
+docs/Evidence/AuthenticWaterPoloAnimations/Freestyle-Under.png
+docs/Evidence/AuthenticWaterPoloAnimations/Full-Roster-Game-View.png
+docs/Evidence/AuthenticWaterPoloAnimations/Match-Broadcast-Crawl.png
+docs/Evidence/AuthenticWaterPoloAnimations/Match-Possession.png
+docs/Evidence/AuthenticWaterPoloAnimations/Match-Replay-Broadcast.png
+docs/Evidence/AuthenticWaterPoloAnimations/Match-Replay-Goal-Line.png
+docs/Evidence/AuthenticWaterPoloAnimations/Match-Sprint.png
+docs/Evidence/AuthenticWaterPoloAnimations/Match-Tread.png
+docs/Evidence/AuthenticWaterPoloAnimations/Physical-Keeper-Catch.png
+docs/Evidence/AuthenticWaterPoloAnimations/Running.png
+docs/Evidence/AuthenticWaterPoloAnimations/Save.png
+docs/Evidence/AuthenticWaterPoloAnimations/Shot.png
+docs/Evidence/AuthenticWaterPoloAnimations/Sprint-Side.png
+docs/Evidence/AuthenticWaterPoloAnimations/Standing.png
+docs/Evidence/AuthenticWaterPoloAnimations/Walking.png
+docs/MILESTONE_28_FILES.txt
+
+Local verification logs (ignored by repository)
+Logs/AuthenticWaterPoloAnimations/
+
+Pre-existing untracked files excluded from this inventory
+old-plan.md
+tatus
