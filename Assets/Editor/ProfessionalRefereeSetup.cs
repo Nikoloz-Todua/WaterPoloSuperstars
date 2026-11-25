@@ -55,6 +55,32 @@ namespace ToduStudios.WaterPolo.Editor
             Save(scene);
         }
 
+        [MenuItem(Menu + "Apply Milestone 30 Deck Presentation")]
+        public static void ApplyDeckPresentation() => SetDeckPresentation(true);
+
+        [MenuItem(Menu + "Restore Milestone 29 Deck Presentation")]
+        public static void RestoreDeckPresentation() => SetDeckPresentation(false);
+
+        static void SetDeckPresentation(bool enabled)
+        {
+            var scene = OpenArena();
+            var intro = Object.FindAnyObjectByType<PreMatchPresentation>();
+            var observers = Object.FindObjectsByType<PoolsideReferee>();
+            if (intro == null || observers.Length != 2)
+                throw new InvalidOperationException("Expected the ceremony director and two existing officials.");
+
+            SetFlag(intro, "useRefinedDeckWalking", enabled);
+            foreach (var observer in observers) SetFlag(observer, "useMatchTrackingPresentation", enabled);
+            Save(scene);
+        }
+
+        static void SetFlag(Object target, string property, bool value)
+        {
+            var settings = new SerializedObject(target);
+            settings.FindProperty(property).boolValue = value;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         static Scene OpenArena()
         {
             if (EditorApplication.isPlayingOrWillChangePlaymode ||

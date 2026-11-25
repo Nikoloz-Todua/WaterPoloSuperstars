@@ -18,6 +18,8 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         [Tooltip("Enable only in WaterVisualTest. Restores the previous pipeline when disabled/unloaded.")]
         public bool useIsolatedTestPipeline = true;
         public bool keyboardShortcuts = true;
+        [Tooltip("Use the arena's interactive water finish on the existing quality materials.")]
+        public bool interactiveWaterFinish;
 
         private Material originalMaterial, runtimeMaterial;
         private RenderPipelineAsset originalPipeline, appliedPipeline;
@@ -56,6 +58,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             if (reflectionManager != null) reflectionManager.enabled = false;
             var old = runtimeMaterial;
             runtimeMaterial = new Material(profile.waterMaterial) { name = profile.waterMaterial.name + " (runtime)", hideFlags = HideFlags.DontSave };
+            if (interactiveWaterFinish) TuneInteractiveFinish(runtimeMaterial, index);
             if (!profile.planarReflections || reflectionManager == null || reflectionVolume == null)
             {
                 runtimeMaterial.DisableKeyword("_ENABLEPLANERREFLECTION");
@@ -80,6 +83,24 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                 reflectionVolume.reflectionLayer = ~(1 << 4);
             }
             if (reflectionManager != null) reflectionManager.enabled = profile.planarReflections;
+        }
+
+        private static void TuneInteractiveFinish(Material material, int index)
+        {
+            // Keep baked reflections, the existing depth blend and each tier's texture/keyword budget.
+            material.SetColor("_Color_Deep", new Color(.013f, .24f, .40f, .71f));
+            material.SetColor("_Color_Shallow", new Color(.064f, .46f, .59f, .205f));
+            material.SetFloat("_Water_Depth", 1.72f);
+            material.SetColor("_Specular_Color", new Color(1.12f, 1.18f, 1.20f, 1f));
+            material.SetFloat("_Specular_Spread", .08f);
+            material.SetFloat("_Reflection_Strength", index == 2 ? .43f : .32f);
+            material.SetFloat("_Reflection_Distortion", .41f);
+            material.SetFloat("_Normal_Scale", index == 2 ? 2.36f : 2.05f);
+            material.SetFloat("_Normal_Pan", .038f);
+            material.SetFloat("_Normal_Strength", index == 0 ? .38f : .46f);
+            material.SetFloat("_Caustics_Strength", index == 2 ? 3.85f : 3.25f);
+            material.SetFloat("_Caustics_Pan", .06f);
+            material.SetFloat("_Refraction_Strength", index == 2 ? .034f : .025f);
         }
 
         private void OnDisable()

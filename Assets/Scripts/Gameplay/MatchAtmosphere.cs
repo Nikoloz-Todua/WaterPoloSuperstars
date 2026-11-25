@@ -73,11 +73,15 @@ namespace ToduStudios.WaterPolo
         private void PhaseChanged()
         {
             if(match.BlueScore+match.WhiteScore!=score)
-            {score=match.BlueScore+match.WhiteScore;Play(goal,goalCue);if(crowd!=null && crowdSource!=null)crowdSource.PlayOneShot(crowd,volume*0.5f);if(!compactFeed)Say("GOAL");else{if(eventLabel!=null)eventLabel.text="";if(eventPanel!=null)eventPanel.SetActive(false);}}
+            {score=match.BlueScore+match.WhiteScore;Play(whistle,whistleCue);Play(goal,goalCue);if(crowd!=null && crowdSource!=null)crowdSource.PlayOneShot(crowd,volume*0.5f);if(!compactFeed)Say("GOAL");else{if(eventLabel!=null)eventLabel.text="";if(eventPanel!=null)eventPanel.SetActive(false);}}
             else if(match.Phase==MatchPhase.FullTime && previousPhase!=MatchPhase.FullTime){Play(finalWhistle,strongWhistleCue);Say("FULL TIME");}
             else if((match.Phase==MatchPhase.QuarterBreak || match.Phase==MatchPhase.HalfTime) && previousPhase!=match.Phase)Play(period,strongWhistleCue);
             else if(match.Phase==MatchPhase.Playing && (quarter!=match.Clock.Quarter || previousPhase==MatchPhase.PreMatch))Play(period,whistleCue);
-            if(match.Phase==MatchPhase.PenaltyReady)Say($"PENALTY | {rules.Taker.Team} #{rules.Taker.CapNumber} | Aim, hold/release SPACE");
+            if(match.Phase==MatchPhase.PenaltyReady && previousPhase!=MatchPhase.PenaltyReady)
+            {
+                Play(whistle,whistleCue);
+                Say($"PENALTY | {rules.Taker.Team} #{rules.Taker.CapNumber} | Aim, hold/release SPACE");
+            }
             previousPhase=match.Phase;quarter=match.Clock.Quarter;
         }
         private void CentreSignal(SwimmerIdentity taker){Play(whistle,whistleCue);}

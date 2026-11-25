@@ -20,6 +20,7 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private PrototypeRoster roster;
         [SerializeField] private VenueIntroductionAnchors anchors;
         [SerializeField] private RefereeVisual[] referees;
+        [SerializeField] private bool useRefinedDeckWalking = true;
         [SerializeField] private Material bluePennant, whitePennant;
         [SerializeField] private GameObject overlay, lineups;
         [SerializeField] private TMP_Text title, subtitle, blueLines, whiteLines;
@@ -74,7 +75,7 @@ namespace ToduStudios.WaterPolo
             if (!match.IsPreMatchPresentation) return;
             try
             {
-                cast=new PrematchCast(roster,anchors,referees,bluePennant,whitePennant);
+                cast=new PrematchCast(roster,anchors,referees,bluePennant,whitePennant,useRefinedDeckWalking);
                 stageCentre=(anchors.blueLineup[6].position+anchors.whiteLineup[6].position)*.5f;
                 blueLines.text=RosterText(cast.Blue);
                 whiteLines.text=RosterText(cast.White);

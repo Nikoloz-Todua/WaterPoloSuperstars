@@ -8,6 +8,15 @@ namespace ToduStudios.WaterPolo
     {
         [SerializeField] private BallController ball;
         [SerializeField] private Transform groundMarker;
+        internal void UseSubtleWaterMarker(Material transparentMaterial)
+        {
+            if (groundMarker == null || transparentMaterial == null || !groundMarker.TryGetComponent<Renderer>(out var marker)) return;
+            marker.sharedMaterial = transparentMaterial;
+            var properties = new MaterialPropertyBlock();
+            properties.SetColor("_BaseColor", new Color(.10f, .30f, .37f, .20f));
+            marker.SetPropertyBlock(properties);
+        }
+
         private void LateUpdate()
         {
             bool visible=ball.IsAirborne;

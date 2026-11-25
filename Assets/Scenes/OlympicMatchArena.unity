@@ -10061,7 +10061,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 1598273085}
   - {fileID: 1598273084}
@@ -10702,7 +10702,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 289552152}
   - {fileID: 289552151}
@@ -11285,7 +11285,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 1281511632}
   - {fileID: 1281511631}
@@ -13540,7 +13540,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 2144092301}
   - {fileID: 2144092300}
@@ -43946,6 +43946,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 248bae66ad9f8c1429ce2cdf7555aef9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ToduStudios.WaterPolo.BallController
+  professionalThrows: 1
   poolBounds: {fileID: 174644617}
   match: {fileID: 253662436}
   flight:
@@ -44505,6 +44506,8 @@ MonoBehaviour:
   deckOffset: 2.65
   deckHeight: 0.61999995
   travelFraction: 0.49
+  useMatchTrackingPresentation: 1
+  professionalDeckOffset: 0.08
 --- !u!1 &619928577
 GameObject:
   m_ObjectHideFlags: 0
@@ -47469,6 +47472,11 @@ MonoBehaviour:
   material: {fileID: 2100000, guid: cb6ab0cafe3397e4c9dadb51a7a04ec2, type: 2}
   ballTrail: {fileID: 616080033}
   quality: 2
+  interactiveWaterMaterial: {fileID: 2100000, guid: d7baaa52002987c48a469bfeceb65185, type: 2}
+  useContactSampling: 1
+  surfaceBudget: 96
+  dropletBudget: 144
+  contactViewRange: 66
 --- !u!4 &649703364
 Transform:
   m_ObjectHideFlags: 0
@@ -63586,6 +63594,7 @@ MonoBehaviour:
   qualityIndex: 2
   useIsolatedTestPipeline: 0
   keyboardShortcuts: 0
+  interactiveWaterFinish: 1
 --- !u!4 &925601322
 Transform:
   m_ObjectHideFlags: 0
@@ -71523,7 +71532,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 773299136}
   - {fileID: 773299135}
@@ -72309,7 +72318,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 705810934}
   - {fileID: 705810933}
@@ -73984,7 +73993,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 157841529}
   - {fileID: 157841528}
@@ -79472,7 +79481,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 639140399}
   - {fileID: 639140398}
@@ -83213,6 +83222,7 @@ MonoBehaviour:
   referees:
   - {fileID: 1791261408}
   - {fileID: 950903127}
+  useRefinedDeckWalking: 1
   bluePennant: {fileID: 2100000, guid: fa62a9f9996b6ab41a5148fcfd2733d7, type: 2}
   whitePennant: {fileID: 2100000, guid: 791d9893116d5f445a7dc439e1d1c466, type: 2}
   overlay: {fileID: 344836293}
@@ -83314,7 +83324,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 1757705510}
   - {fileID: 1757705509}
@@ -84840,6 +84850,8 @@ MonoBehaviour:
   deckOffset: 2.65
   deckHeight: 0.61999995
   travelFraction: 0.49
+  useMatchTrackingPresentation: 1
+  professionalDeckOffset: 0.08
 --- !u!1 &1253392666
 GameObject:
   m_ObjectHideFlags: 0
@@ -98988,7 +99000,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 44059792}
   - {fileID: 44059791}
@@ -101963,7 +101975,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 777347354}
   - {fileID: 777347353}
@@ -103716,7 +103728,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 2056965370}
   - {fileID: 2056965369}
@@ -138911,7 +138923,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 914145162}
   - {fileID: 914145161}
@@ -141988,7 +142000,7 @@ SkinnedMeshRenderer:
   m_Quality: 4
   m_UpdateWhenOffscreen: 0
   m_SkinnedMotionVectors: 1
-  m_Mesh: {fileID: 6109869421155470617, guid: 2abd79c4a28313b42b6b21e6beced53e, type: 3}
+  m_Mesh: {fileID: 8267002366178123093, guid: d90b6e111d8a3af49acc50f6bfec70c6, type: 3}
   m_Bones:
   - {fileID: 1828449553}
   - {fileID: 1828449552}

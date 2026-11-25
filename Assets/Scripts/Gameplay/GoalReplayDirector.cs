@@ -236,6 +236,7 @@ namespace ToduStudios.WaterPolo
             buffer?.Clear();
             if (broadcast != null && restore)
             {
+                effects?.EndRecordedContacts();
                 broadcast.CinematicOverride=false;
                 if (match != null)
                 {
@@ -305,10 +306,11 @@ namespace ToduStudios.WaterPolo
                 {
                     animatedSplash=true;
 
-                    if(effects!=null)effects.EmitAthleteSurface(buffer.ActorPosition(scorer),.45f,true);
+                    effects?.Celebrate(buffer.ActorPosition(scorer),.45f);
                 }
             }
             FrameCamera(celebrating,elapsed);
+            if (!celebrating) effects?.ShowRecordedContacts(PlaybackTime);
         }
 
         void FrameCamera(bool celebrating, float elapsed)

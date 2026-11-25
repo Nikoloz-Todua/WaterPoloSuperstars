@@ -18,6 +18,7 @@ namespace ToduStudios.WaterPolo
         public bool IsCharging { get; private set; }
         public float NormalizedCharge => IsCharging ? Mathf.Clamp01((Time.time - startedAt) / chargeDuration) : 0f;
         private bool CanCharge => selection != null && !selection.InputLocked && selection.ActivePlayer == identity && identity.EligibleForPlay && interaction.HasBall &&
+            !interaction.Ball.HasPendingThrow &&
             (identity.Rules==null || identity.Rules.CanRelease(interaction,BallReleaseKind.Shot));
 
         private void Awake()

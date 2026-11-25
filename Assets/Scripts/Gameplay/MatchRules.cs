@@ -10,8 +10,22 @@ namespace ToduStudios.WaterPolo
         public readonly RefereeDecision Decision;
         public readonly SwimmerIdentity Player;
         public readonly PrototypeTeam AwardedTeam;
+        public readonly Vector3? IncidentPoint;
+        public readonly Vector3? RestartPoint;
+        public readonly IllegalContact? Contact;
         public RefereeEvent(RefereeDecision decision, SwimmerIdentity player, PrototypeTeam team)
-        { Decision = decision; Player = player; AwardedTeam = team; }
+            : this(decision, player, team, null, null, null) { }
+
+        internal RefereeEvent(RefereeDecision decision, SwimmerIdentity player, PrototypeTeam team,
+            Vector3? incidentPoint, Vector3? restartPoint, IllegalContact? contact)
+        {
+            Decision = decision;
+            Player = player;
+            AwardedTeam = team;
+            IncidentPoint = incidentPoint;
+            RestartPoint = restartPoint;
+            Contact = contact;
+        }
     }
 
     /// <summary>Prototype rule profile. Decisions/eligibility here; phases in PrototypeMatch; ownership in BallController.</summary>
@@ -133,15 +147,17 @@ namespace ToduStudios.WaterPolo
             }
             bool exclusion = misconduct || (contact == IllegalContact.Hold && carrier != victim);
             if (!isPenalty && !exclusion && !ordinaryFouls) return false;
-            return Award(offender, victim, carrier, isPenalty, exclusion, misconduct);
+            return Award(offender, victim, carrier, isPenalty, exclusion, misconduct, contact);
         }
-        private bool Award(SwimmerIdentity offender, SwimmerIdentity victim, SwimmerIdentity carrier, bool isPenalty, bool exclusion, bool misconduct = false)
+        private bool Award(SwimmerIdentity offender, SwimmerIdentity victim, SwimmerIdentity carrier, bool isPenalty,
+            bool exclusion, bool misconduct = false, IllegalContact? contact = null)
         {
             penaltyAimX = 0f;
             PenaltyTargetHeight = .36f;
             penalty = isPenalty; taker = carrier; penaltyKeeper = null;
             // Capture the restart location before stopping clears the live ball and cancels shot charging.
             Vector3 location = ball.PhysicsPosition;
+            Vector3 incident = offender.Motor.Position;
             match.BeginRuleRestart(penalty);
             if (penalty || exclusion)
             {
@@ -177,7 +193,8 @@ namespace ToduStudios.WaterPolo
             if (match.ShotClock != null)
                 match.ShotClock.AwardFoul(victim.Team, exclusion);
             readyAt = match.PresentationTime + setupSeconds;
-            Emit(penalty ? RefereeDecision.Penalty : exclusion ? RefereeDecision.Exclusion : RefereeDecision.Ordinary, offender, victim.Team);
+            Emit(penalty ? RefereeDecision.Penalty : exclusion ? RefereeDecision.Exclusion : RefereeDecision.Ordinary,
+                offender, victim.Team, incident, location, contact);
             if (penalty || exclusion) RecordDiscipline(offender, penalty);
             selection.RefreshEligibility();
             return true;
@@ -496,7 +513,11 @@ namespace ToduStudios.WaterPolo
             advantageShooter = null; taker = null; penaltyKeeper = null; penalty = false; nextHold = 0f; DecisionCount = 0;
             foreach (var p in roster.Members) { p.EnteringField = false; p.AwaitingExit = false; p.PersonalFouls = 0; p.ExclusionRemaining = 0f; p.PermanentlyRemoved = false; RestoreCollider(p); }
         }
-        private void Emit(RefereeDecision decision, SwimmerIdentity player, PrototypeTeam team)
-        { DecisionCount++; Decided?.Invoke(new RefereeEvent(decision, player, team)); }
+        private void Emit(RefereeDecision decision, SwimmerIdentity player, PrototypeTeam team,
+            Vector3? incident = null, Vector3? restart = null, IllegalContact? contact = null)
+        {
+            DecisionCount++;
+            Decided?.Invoke(new RefereeEvent(decision, player, team, incident, restart, contact));
+        }
     }
 }

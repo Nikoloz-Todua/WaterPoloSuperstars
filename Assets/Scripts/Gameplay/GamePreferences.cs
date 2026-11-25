@@ -81,8 +81,12 @@ namespace ToduStudios.WaterPolo
             AudioListener.volume=values.master;
             if(atmosphere!=null)atmosphere.SetVolumes(values.sfx,values.crowd);
             if(gameplayCamera!=null){gameplayCamera.SidelineElevation=values.cameraHeight;gameplayCamera.SetView(values.cameraView);gameplayCamera.SetUserPreferences(values.zoom,values.smoothing);}
-            if(effects!=null)effects.Quality=values.graphics==MatchGraphicsQuality.Low?WaterEffectsQuality.Off:
-                values.graphics==MatchGraphicsQuality.Medium?WaterEffectsQuality.Low:WaterEffectsQuality.Standard;
+            if(effects!=null)
+                effects.Quality=effects.UsesContactSampling
+                    ? values.graphics==MatchGraphicsQuality.Low?WaterEffectsQuality.Low:
+                        values.graphics==MatchGraphicsQuality.Medium?WaterEffectsQuality.Standard:WaterEffectsQuality.High
+                    : values.graphics==MatchGraphicsQuality.Low?WaterEffectsQuality.Off:
+                        values.graphics==MatchGraphicsQuality.Medium?WaterEffectsQuality.Low:WaterEffectsQuality.Standard;
             if(cameraData!=null)
             {cameraData.renderShadows=values.graphics==MatchGraphicsQuality.High && originalShadows;cameraData.renderPostProcessing=values.graphics==MatchGraphicsQuality.High && originalPost;}
         }

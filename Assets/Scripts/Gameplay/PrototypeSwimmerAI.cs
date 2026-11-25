@@ -26,6 +26,7 @@ namespace ToduStudios.WaterPolo
         private SwimmerBallInteraction previousOwner;
         private float nextDecision;
         private float committedUntil;
+        private BallReleaseKind awaitingRelease;
         private SwimmerStamina stamina;
         public SwimmerAIBehaviour Behaviour { get; private set; }
         public Vector3 Target => decision.Target;
@@ -41,12 +42,28 @@ namespace ToduStudios.WaterPolo
             if (roster == null || selection == null || ball == null || pool == null || match == null || tacticalTeam == null || tacticalTeam.Team != identity.Team)
             { Debug.LogError("PrototypeSwimmerAI requires the matching tactical team and gameplay references.", this); enabled = false; }
         }
-        private void OnEnable() { if (match != null) match.Changed += ResetDecisions; nextDecision = 0f; }
+        private void OnEnable()
+        {
+            if (match != null) match.Changed += ResetDecisions;
+            if (ball != null) ball.Released += CountRelease;
+            nextDecision = 0f;
+        }
         private void ResetDecisions()
         {
             nextDecision = committedUntil = 0f; previousOwner = null; decision = default;
+            awaitingRelease = BallReleaseKind.None;
             if (identity != null && selection.ActivePlayer != identity) identity.Motor.StopMotion();
         }
+
+        private void CountRelease(SwimmerBallInteraction player, BallReleaseKind kind)
+        {
+            if (player != identity.Interaction || kind != awaitingRelease) return;
+            awaitingRelease = BallReleaseKind.None;
+            if (kind == BallReleaseKind.Shot) ShotsExecuted++;
+            else { PassesExecuted++; tacticalTeam.RecordPass(); }
+            nextDecision = 0f;
+        }
+
         private void Update()
         {
             if (match.IsPaused) return;
@@ -55,6 +72,8 @@ namespace ToduStudios.WaterPolo
             {Behaviour=SwimmerAIBehaviour.PursueLooseBall;match.SprintOff.DriveAI(identity);return;}
             if (!identity.EligibleForPlay || !match.IsPlaying || selection.InputLocked || !identity.Motor.enabled)
             { Behaviour = SwimmerAIBehaviour.Stopped; nextDecision = 0f; return; }
+            if (identity.Interaction.HasBall && ball.HasPendingThrow) return;
+            awaitingRelease = BallReleaseKind.None;
             if (Time.time >= nextDecision || previousOwner != ball.Owner)
             {
                 bool ownershipChanged=previousOwner!=ball.Owner;
@@ -81,13 +100,10 @@ namespace ToduStudios.WaterPolo
                     float goalDistance=Vector3.Distance(identity.Motor.Position,tacticalTeam.AttackingGoal.transform.position);
                     if(goalDistance>6f && goalDistance<9f && tacticalTeam.Pressure(identity.Motor.Position)>0.3f)shot=ShotType.High;
                     else if(goalDistance>5f && goalDistance<8f && identity.FieldPosition==FieldPositionRole.CentreForward && tacticalTeam.LaneClear(identity.Motor.Position,point))shot=ShotType.Skip;
-                    bool released = Behaviour == SwimmerAIBehaviour.Shoot ? identity.Interaction.TryShoot(tacticalTeam.AIShotSpeed,shot) : passing.TryPassTo(decision.Receiver);
-                    if (released)
-                    {
-                        if (Behaviour == SwimmerAIBehaviour.Shoot) ShotsExecuted++;
-                        else { PassesExecuted++; tacticalTeam.RecordPass(); }
-                        nextDecision = 0f;
-                    }
+                    bool shooting = Behaviour == SwimmerAIBehaviour.Shoot;
+                    awaitingRelease = shooting ? BallReleaseKind.Shot : BallReleaseKind.Pass;
+                    bool accepted = shooting ? identity.Interaction.TryShoot(tacticalTeam.AIShotSpeed, shot) : passing.TryPassTo(decision.Receiver);
+                    if (!accepted) awaitingRelease = BallReleaseKind.None;
                 }
                 return;
             }
@@ -120,6 +136,8 @@ namespace ToduStudios.WaterPolo
         private void OnDisable()
         {
             if (match != null) match.Changed -= ResetDecisions;
+            if (ball != null) ball.Released -= CountRelease;
+            awaitingRelease = BallReleaseKind.None;
             if (identity != null && selection != null && selection.ActivePlayer != identity) identity.Motor.StopMotion();
         }
     }

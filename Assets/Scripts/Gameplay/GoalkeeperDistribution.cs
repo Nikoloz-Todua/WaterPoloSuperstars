@@ -15,6 +15,7 @@ namespace ToduStudios.WaterPolo
         private SwimmerPassing passing;
         private SwimmerIdentity receiver;
         private float nextDecision;
+        private bool awaitingRelease;
         public int Distributions { get; private set; }
         public SwimmerIdentity IntendedOutlet => receiver;
 
@@ -24,14 +25,32 @@ namespace ToduStudios.WaterPolo
             if (tacticalTeam == null || match == null || tacticalTeam.Team != keeper.Identity.Team)
             { Debug.LogError("GoalkeeperDistribution requires matching team and match references.", this); enabled = false; }
         }
-        private void OnEnable() { if (match != null) match.Changed += ResetDecision; }
-        private void OnDisable() { if (match != null) match.Changed -= ResetDecision; receiver = null; }
-        private void ResetDecision() { receiver = null; nextDecision = 0f; }
+        private void OnEnable()
+        {
+            if (match != null) match.Changed += ResetDecision;
+            if (keeper.Ball != null) keeper.Ball.Released += CountRelease;
+        }
+        private void OnDisable()
+        {
+            if (match != null) match.Changed -= ResetDecision;
+            if (keeper.Ball != null) keeper.Ball.Released -= CountRelease;
+            ResetDecision();
+        }
+        private void ResetDecision() { receiver = null; nextDecision = 0f; awaitingRelease = false; }
+        private void CountRelease(SwimmerBallInteraction player, BallReleaseKind kind)
+        {
+            if (!awaitingRelease || kind != BallReleaseKind.Pass || player != keeper.Identity.Interaction) return;
+            Distributions++;
+            ResetDecision();
+        }
+
         private void Update()
         {
             if (match.IsPaused) return;
             if (!keeper.isActiveAndEnabled || keeper.Stopped || keeper.HumanControlled) { ResetDecision(); return; }
             if (!keeper.Identity.Interaction.HasBall) { ResetDecision(); return; }
+            if (keeper.Ball.HasPendingThrow) return;
+            awaitingRelease = false;
             float held = Time.time - keeper.Ball.OwnershipStartedAt;
             keeper.Identity.Motor.SetMoveInput(Vector2.zero);
             if (held < holdDuration) { keeper.Identity.Motor.SetFacingDirection(-keeper.DefendedGoal.transform.forward); return; }
@@ -45,10 +64,11 @@ namespace ToduStudios.WaterPolo
             Vector3 aim = receiver != null ? PrototypeTeamTactics.Planar(receiver.Motor.Position - keeper.Identity.Motor.Position).normalized : -keeper.DefendedGoal.transform.forward;
             keeper.Identity.Motor.SetFacingDirection(aim);
             if (Vector3.Dot(transform.forward, aim) < 0.9995f || keeper.Identity.Motor.Velocity.sqrMagnitude > 0.04f) return;
-            bool released = false;
-            if (receiver != null && (fallback || tacticalTeam.LaneClear(keeper.Identity.Motor.Position, receiver.Motor.Position))) released = passing.TryPassTo(receiver);
-            if (!released && fallback) released = passing.TryPass();
-            if (released) { Distributions++; ResetDecision(); }
+            awaitingRelease = true;
+            bool accepted = false;
+            if (receiver != null && (fallback || tacticalTeam.LaneClear(keeper.Identity.Motor.Position, receiver.Motor.Position))) accepted = passing.TryPassTo(receiver);
+            if (!accepted && fallback) accepted = passing.TryPass();
+            if (!accepted) awaitingRelease = false;
         }
         private SwimmerIdentity ChooseOutlet()
         {

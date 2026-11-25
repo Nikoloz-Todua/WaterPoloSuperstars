@@ -16,6 +16,12 @@ namespace ToduStudios.WaterPolo
         public void StandForCeremony() { if (UsesProfessional) professional.Stand(); }
         public void SetSignalTargets(Vector3 point, Vector3 direction, bool sweep)
         { signalPoint = point; attackDirection = direction; restartSweep = sweep; }
+        public bool FacesTravel(float direction) => !UsesProfessional || professional.FacesTravel(direction);
+        public void AnimateMatchOfficial(float travelled, float travelDirection, float deck,
+            Vector3 observation, RefereePoseCue cue)
+        {
+            if (UsesProfessional) professional.AnimateMatchOfficial(travelled, travelDirection, deck, observation, cue);
+        }
         public void Animate(float speed,RefereeSignal signal)
         {
             if (UsesProfessional)

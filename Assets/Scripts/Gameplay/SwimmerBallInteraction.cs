@@ -16,9 +16,9 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private Vector3 raisedGrip = new Vector3(.24f,.44f,.34f);
         private bool usesRaisedGrip;
         private void Start() => usesRaisedGrip=GetComponentInChildren<WaterVisuals.RiggedSwimmerVisual>()!=null;
-        public Vector3 HeldBallPoint => usesRaisedGrip
-            ? transform.TransformPoint(raisedGrip)
-            : carryAnchor.position;
+        public Vector3 HeldBallPoint => ball != null && ball.TryReadEvaluatedGrip(this, out Vector3 grip)
+            ? grip
+            : usesRaisedGrip ? transform.TransformPoint(raisedGrip) : carryAnchor.position;
 
         public Transform CarryAnchor => carryAnchor;
         public float PickupDistance => pickupDistance;

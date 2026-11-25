@@ -2,9 +2,9 @@ using UnityEngine;
 
 namespace ToduStudios.WaterPolo
 {
-    public enum WaterEffectsQuality { Off, Low, Standard }
+    public enum WaterEffectsQuality { Off, Low, Standard, High }
     /// <summary>Bounded cosmetic pool. No effect colliders, ownership changes, timers or scoring decisions.</summary>
-    [DisallowMultipleComponent]
+    [DefaultExecutionOrder(330), DisallowMultipleComponent]
     public sealed class WaterInteractionEffects : MonoBehaviour
     {
         [SerializeField] private BallController ball;
@@ -14,6 +14,24 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private Material material;
         [SerializeField] private TrailRenderer ballTrail;
         [SerializeField] private WaterEffectsQuality quality=WaterEffectsQuality.Standard;
+        [SerializeField] private Material interactiveWaterMaterial;
+        [SerializeField] private bool useContactSampling;
+        [SerializeField, Range(8, WaterContactMesh.MaximumSurfaces)] private int surfaceBudget = 96;
+        [SerializeField, Range(8, WaterContactMesh.MaximumParticles)] private int dropletBudget = 144;
+        [SerializeField, Range(25f, 100f)] private float contactViewRange = 66f;
+        private WaterContactPresentation contacts;
+        public bool UsesContactSampling => useContactSampling && interactiveWaterMaterial != null;
+        public int LeftHandEntries => contacts?.LeftEntries ?? 0;
+        public int RightHandEntries => contacts?.RightEntries ?? 0;
+        public int WaterImpacts => contacts?.ImpactCount ?? 0;
+        public int VisibleBallImpacts => contacts?.ImpactSurfaceCount ?? 0;
+        public int WakeEmissions => contacts?.WakeCount ?? 0;
+        public int TreadEmissions => contacts?.TreadCount ?? 0;
+        public int RecordedContacts => contacts?.HistoryCount ?? 0;
+        public bool PlayingRecordedContacts => contacts?.IsPlayback ?? false;
+        public Vector3 LastWaterImpactPoint => contacts?.LatestImpact.Point ?? Vector3.zero;
+        public float LastWaterImpactStrength => contacts?.LatestImpact.Strength ?? 0f;
+        public Vector3 LastHandEntryPoint => contacts?.LatestEntry.Point ?? Vector3.zero;
         private const int Capacity=48, BallCapacity=16;
         private sealed class Ripple
         { public Transform root,splash; public MeshRenderer ringRenderer,splashRenderer; public float age=10f,size,strength; }
@@ -28,14 +46,22 @@ namespace ToduStudios.WaterPolo
         private Camera view;
         public int AthleteEmissions {get;private set;}
         public int BubbleEmissions {get;private set;}
-        public int BubbleCount=>bubbles!=null?bubbles.particleCount:0;
+        public int BubbleCount=>contacts?.ParticleCount ?? (bubbles!=null?bubbles.particleCount:0);
         private WaterEffectsQuality appliedQuality;
         private static readonly int BaseColor=Shader.PropertyToID("_BaseColor");
         public int ActiveEffects {get;private set;}
-        public int PoolCapacity=>Capacity;
+        public int PoolCapacity=>contacts!=null?surfaceBudget:Capacity;
         public WaterEffectsQuality Quality {get=>quality;set{if(quality==value)return;quality=appliedQuality=value;Clear();}}
         private void Awake()
         {
+            if (UsesContactSampling && ball != null && match != null && roster != null && pool != null)
+            {
+                contacts = new WaterContactPresentation(transform, ball, match, roster, pool, interactiveWaterMaterial);
+                appliedQuality = quality;
+                DisableTrail();
+                if (ball.TryGetComponent<BallHeightCue>(out var heightCue)) heightCue.UseSubtleWaterMarker(material);
+                return;
+            }
             appliedQuality=quality;colors=new MaterialPropertyBlock();ringMesh=Ring();splashMesh=Splash();ripples=new Ripple[Capacity];
             for(int i=0;i<Capacity;i++)
             {
@@ -65,18 +91,47 @@ namespace ToduStudios.WaterPolo
                 wakeStamina[i]=roster.Members[i].GetComponent<SwimmerStamina>();
             }
         }
-        private void OnEnable(){if(ball!=null)ball.Contact+=Impact;if(match!=null){match.Changed+=Phase;match.NewMatch+=Clear;}}
-        private void OnDisable(){if(ball!=null)ball.Contact-=Impact;if(match!=null){match.Changed-=Phase;match.NewMatch-=Clear;}Clear();}
-        private void Phase(){if(match.Phase!=MatchPhase.GoalRestart)Clear();}
+        private void OnEnable()
+        {
+            if(ball!=null){ball.Contact+=Impact;ball.Released+=Release;}
+            if(match!=null){match.Changed+=Phase;match.NewMatch+=Clear;}
+        }
+        private void OnDisable()
+        {
+            if(ball!=null){ball.Contact-=Impact;ball.Released-=Release;}
+            if(match!=null){match.Changed-=Phase;match.NewMatch-=Clear;}
+            Clear();
+        }
+        private void Release(SwimmerBallInteraction owner, BallReleaseKind kind)
+        {
+            if(quality!=WaterEffectsQuality.Off) contacts?.Release(kind);
+        }
+        private void Phase()
+        {
+            if(contacts!=null) contacts.PhaseChanged();
+            else if(match.Phase!=MatchPhase.GoalRestart) Clear();
+        }
+        private void DisableTrail()
+        {
+            if(ballTrail==null)return;
+            ballTrail.emitting=false;
+            ballTrail.Clear();
+        }
         private void Clear()
         {
+            contacts?.Clear();
             if(ripples!=null)foreach(var r in ripples){r.age=10f;r.root.gameObject.SetActive(false);}
             if(wakes!=null)foreach(var w in wakes)w.enabled=false;
-            if(ballTrail!=null){ballTrail.emitting=false;ballTrail.Clear();}ActiveEffects=0;
+            DisableTrail();ActiveEffects=0;
             if(bubbles!=null)bubbles.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
         }
         private void Impact(BallImpactEvent e)
         {
+            if (contacts != null)
+            {
+                if (quality != WaterEffectsQuality.Off) contacts.Contact(e);
+                return;
+            }
             if(quality==WaterEffectsQuality.Off || ripples==null)return;
             int limit=quality==WaterEffectsQuality.Low?8:BallCapacity;var r=ripples[cursor++%limit];
             Vector3 point=e.Position;point.y=pool.Waterline+0.018f;
@@ -94,6 +149,11 @@ namespace ToduStudios.WaterPolo
         }
         public void EmitAthleteSurface(Vector3 point,float strength,bool splash)
         {
+            if(contacts!=null)
+            {
+                if(quality!=WaterEffectsQuality.Off)contacts.ExternalSurface(point,Mathf.Clamp01(strength),splash);
+                return;
+            }
             if(!DetailVisible(point))return;
             int limit=quality==WaterEffectsQuality.Low?12:Capacity-BallCapacity;
             var r=ripples[BallCapacity+athleteCursor++%limit];point.y=(pool!=null?pool.Waterline:0)+.022f;
@@ -111,6 +171,17 @@ namespace ToduStudios.WaterPolo
         }
         private void LateUpdate()
         {
+            if (contacts != null)
+            {
+                if (appliedQuality != quality) { appliedQuality = quality; Clear(); }
+                int surfaces = Mathf.Min(surfaceBudget, quality == WaterEffectsQuality.Low ? 32 :
+                    quality == WaterEffectsQuality.Standard ? 64 : WaterContactMesh.MaximumSurfaces);
+                int droplets = Mathf.Min(dropletBudget, quality == WaterEffectsQuality.Low ? 38 :
+                    quality == WaterEffectsQuality.Standard ? 84 : WaterContactMesh.MaximumParticles);
+                contacts.Tick(quality, surfaces, droplets, quality == WaterEffectsQuality.Low ? Mathf.Min(44f, contactViewRange) : contactViewRange);
+                ActiveEffects = contacts.SurfaceCount;
+                return;
+            }
             if (match!=null&&match.IsPaused){if(bubbles!=null&&!bubbles.isPaused)bubbles.Pause();return;}
             if(bubbles!=null&&bubbles.isPaused)bubbles.Play();
             if(appliedQuality!=quality){appliedQuality=quality;Clear();}
@@ -160,6 +231,22 @@ namespace ToduStudios.WaterPolo
             }
             var mesh=new Mesh {name="Reusable splash spokes",vertices=v,triangles=t};mesh.RecalculateNormals();mesh.RecalculateBounds();return mesh;
         }
-        private void OnDestroy(){Destroy(ringMesh);Destroy(splashMesh);}
+        internal void ShowRecordedContacts(float playbackTime) => contacts?.SetPlayback(playbackTime);
+        internal void EndRecordedContacts() => contacts?.EndPlayback();
+        internal void Celebrate(Vector3 point, float strength) => EmitAthleteSurface(point, strength, true);
+#if UNITY_EDITOR
+        private void OnDrawGizmosSelected()
+        {
+            if (!Application.isPlaying || contacts == null || pool == null) return;
+            var plane = pool.transform.position;
+            plane.y = pool.Waterline;
+            Gizmos.color = new Color(.1f, .9f, 1f, .55f);
+            Gizmos.DrawWireCube(plane, new Vector3(pool.Width, .002f, pool.Length));
+            if (LeftHandEntries + RightHandEntries > 0) Gizmos.DrawWireSphere(LastHandEntryPoint, .13f);
+            Gizmos.color = new Color(1f, .83f, .20f, .9f);
+            if (WaterImpacts > 0) Gizmos.DrawWireSphere(LastWaterImpactPoint, .13f);
+        }
+#endif
+        private void OnDestroy(){contacts?.Dispose();Destroy(ringMesh);Destroy(splashMesh);}
     }
 }
