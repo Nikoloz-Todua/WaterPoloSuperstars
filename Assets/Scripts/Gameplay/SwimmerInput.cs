@@ -13,7 +13,9 @@ namespace ToduStudios.WaterPolo
         private SwimmerMotor motor;
         private InputAction moveAction;
         private InputAction sprintAction;
+        private InputAction aimAction;
         private SwimmerStamina stamina;
+        private SwimmerBallInteraction interaction;
         private PrototypeMatch match;
         [SerializeField] private MobileMatchControls mobileControls;
         private bool sprintTapArmed;
@@ -24,10 +26,12 @@ namespace ToduStudios.WaterPolo
         private void Awake()
         {
             motor = GetComponent<SwimmerMotor>();
-            match = GetComponent<SwimmerBallInteraction>()?.Ball?.Match;
+            interaction = GetComponent<SwimmerBallInteraction>();
+            match = interaction?.Ball?.Match;
             stamina = GetComponent<SwimmerStamina>();
             sprintAction = new InputAction("Sprint",InputActionType.Button,"<Keyboard>/leftShift");
             sprintAction.wantsInitialStateCheck=true;
+            aimAction = new InputAction("Aim in place", InputActionType.Button, "<Keyboard>/leftAlt");
         }
 
         private void OnEnable()
@@ -49,6 +53,7 @@ namespace ToduStudios.WaterPolo
             RefreshKeyboardLayout();
             moveAction.Enable();
             sprintAction.Enable();
+            aimAction.Enable();
             sprintTapArmed=false;
         }
 
@@ -68,6 +73,17 @@ namespace ToduStudios.WaterPolo
                 return;
             }
             if(match!=null&&match.GameplayView!=null)direction=match.GameplayView.ScreenToWorldMovement(direction);
+            if (interaction != null && interaction.HasBall && match != null && match.IsPlaying)
+            {
+                var move = new Vector3(direction.x, 0f, direction.y);
+                bool aimOnly = aimAction.IsPressed();
+                bool touchAim = mobileControls != null && mobileControls.IsPassAiming(motor);
+                bool retreat = move.sqrMagnitude > .035f && Vector3.Dot(move.normalized, motor.Facing) < -.66f;
+                if (!touchAim && (aimOnly || !retreat)) motor.SetControlAim(move);
+                if (aimOnly) direction = Vector2.zero;
+                if (direction.sqrMagnitude < .035f) motor.SetFacingDirection(motor.ControlAim);
+            }
+            else motor.ClearControlAim();
             bool sprint=sprintAction.IsPressed() || mobileControls!=null && mobileControls.SprintFor(motor);
             if(!sprintAction.IsPressed())sprintTapArmed=true;
             if(match!=null&&match.IsSprintRace)
@@ -108,6 +124,7 @@ namespace ToduStudios.WaterPolo
         private void OnDisable()
         {
             moveAction?.Disable();
+            aimAction?.Disable();
             sprintAction?.Disable();if(stamina!=null)stamina.StopSprint();
             if (motor != null)
                 motor.SetMoveInput(Vector2.zero);
@@ -116,6 +133,7 @@ namespace ToduStudios.WaterPolo
         private void OnDestroy()
         {
             moveAction?.Dispose();
+            aimAction?.Dispose();
             sprintAction?.Dispose();
         }
     }

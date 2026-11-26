@@ -15,22 +15,25 @@ namespace ToduStudios.WaterPolo
         private Vector3 poseDirection, gatherLocalPoint, evaluatedGrip;
         private Vector3 gatherArrival;
         private float throwStart, throwDuration, gatherUntil;
+        private float shotLean;
         private bool gripSampled;
 
         private readonly struct PendingThrow
         {
             public readonly BallReleaseKind Kind;
+            public readonly BallActionSource Source;
             public readonly ShotType Shot;
             public readonly Vector3 Direction;
             public readonly float Power, FlightParameter, ReceiveWindow;
             public readonly SwimmerPassing Receiver;
             public readonly PassDelivery Delivery;
 
-            public PendingThrow(BallReleaseKind kind, Vector3 direction, float power,
+            public PendingThrow(BallReleaseKind kind, BallActionSource source, Vector3 direction, float power,
                 SwimmerPassing receiver = null, float flightParameter = 0f, float receiveWindow = 0f,
                 PassDelivery delivery = PassDelivery.Dry, ShotType shot = ShotType.Normal)
             {
                 Kind = kind;
+                Source = source;
                 Direction = direction;
                 Power = power;
                 Receiver = receiver;
@@ -47,7 +50,8 @@ namespace ToduStudios.WaterPolo
         public bool IsEvaluatedRelease { get; private set; }
 
         private bool UsesEvaluatedGrip => professionalThrows && Owner != null &&
-            (match == null || match.Phase == MatchPhase.Playing) &&
+            (match == null || match.Phase == MatchPhase.Playing ||
+                match.Rules != null && match.Rules.OrdinaryFreeThrow && match.Rules.Taker.Interaction == Owner) &&
             carrierVisual != null && carrierVisual.SupportsEvaluatedGrip;
         private bool CanScheduleThrow => UsesEvaluatedGrip;
 
@@ -67,12 +71,46 @@ namespace ToduStudios.WaterPolo
             return gripSampled && ControlsEvaluatedGrip(player);
         }
 
-        private bool CanRequestThrow(SwimmerBallInteraction player, BallReleaseKind kind) =>
-            !HasPendingThrow && CanPerformThrow(player, kind);
+        private bool CanRequestThrow(SwimmerBallInteraction player, BallReleaseKind kind, BallActionSource source) =>
+            !HasPendingThrow && CanPerformThrow(player, kind, source);
 
-        private bool CanPerformThrow(SwimmerBallInteraction player, BallReleaseKind kind) =>
+        private bool CanPerformThrow(SwimmerBallInteraction player, BallReleaseKind kind, BallActionSource source) =>
             !simulationPaused && State == BallState.Held && Owner == player &&
-            Eligible(player) && CanRelease(player, kind);
+            Eligible(player) && CanRelease(player, kind) && HasThrowAuthority(player, source);
+
+        private bool HasThrowAuthority(SwimmerBallInteraction player, BallActionSource source)
+        {
+#if UNITY_EDITOR
+            if (source == BallActionSource.Verification)
+                return !Hub.HubMatchBridge.Active;
+#endif
+            var selection = match != null ? match.Selection : null;
+            if (selection == null)
+                return source == BallActionSource.HumanInput || source == BallActionSource.TacticalAI ||
+                    source == BallActionSource.VoluntaryRelease;
+            var identity = player.GetComponent<SwimmerIdentity>();
+            if (identity == null) return false;
+            bool humanTeam = identity.Team == selection.HumanTeam;
+            switch (source)
+            {
+                case BallActionSource.HumanInput:
+                case BallActionSource.VoluntaryRelease:
+                    return humanTeam && !selection.InputLocked && selection.ActivePlayer == identity;
+                case BallActionSource.TacticalAI:
+                    return !humanTeam && match.IsPlaying;
+                case BallActionSource.RuleRestart:
+                    return !humanTeam && (match.IsCentreRestart ||
+                        match.Rules != null && match.Rules.IsRulePhase && match.Rules.Taker == identity);
+                default:
+                    return false;
+            }
+        }
+
+        internal void CancelHumanThrowFrom(SwimmerBallInteraction player)
+        {
+            if (Owner == player && preparation.Source == BallActionSource.HumanInput)
+                CancelPendingThrow();
+        }
 
         private void BeginGather(Vector3 from, Vector3 arrival = default)
         {
@@ -93,7 +131,8 @@ namespace ToduStudios.WaterPolo
         private void QueueThrow(PendingThrow action)
         {
             bool compact = IsDribbling || IsGathering ||
-                action.Kind == BallReleaseKind.Pass && action.Power < 7.5f;
+                action.Kind == BallReleaseKind.Pass && action.Power < 7.5f ||
+                action.Kind == BallReleaseKind.Shot && action.Source == BallActionSource.HumanInput && action.Power < 13f;
             EndDribble();
             preparation = action;
             throwStart = Mathf.Max(gatherUntil, Time.time);
@@ -104,6 +143,13 @@ namespace ToduStudios.WaterPolo
                 aim.y = 0f;
                 if (aim.sqrMagnitude > .01f) poseDirection = aim.normalized;
             }
+            var motor = Owner.GetComponent<SwimmerMotor>();
+            float signedYaw = Vector3.SignedAngle(motor.Facing, poseDirection, Vector3.up);
+            float yaw = Mathf.Abs(signedYaw);
+            shotLean = Mathf.Clamp(signedYaw / 46f + Vector3.Dot(motor.Velocity,
+                Vector3.Cross(Vector3.up, motor.Facing)) * .18f, -1f, 1f);
+            if (action.Source == BallActionSource.HumanInput && yaw > 55f)
+                throwStart = Mathf.Max(throwStart, Time.time + (yaw - 48f) / 560f);
 
             switch (action.Kind)
             {
@@ -120,6 +166,24 @@ namespace ToduStudios.WaterPolo
                     throwDuration = compact ? .12f : .18f;
                     break;
             }
+        }
+
+        internal bool TryGetThrowFacing(SwimmerBallInteraction player, out Vector3 facing)
+        {
+            facing = poseDirection;
+            return HasPendingThrow && Owner == player && preparation.Source == BallActionSource.HumanInput;
+        }
+
+        internal float ShotRise(SwimmerBallInteraction player, out float lean, out float phase)
+        {
+            lean = phase = 0f;
+            if (Owner != player || preparation.Kind != BallReleaseKind.Shot) return 0f;
+            phase = Mathf.Clamp01((Time.time - throwStart) / throwDuration);
+            lean = shotLean;
+            float effort = Mathf.InverseLerp(10f, 22f, preparation.Power);
+            float peak = throwMotion == ThrowMotion.QuickShot ? Mathf.Lerp(.19f, .32f, effort)
+                : Mathf.Lerp(.32f, .60f, effort);
+            return peak * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.08f, .87f, phase));
         }
 
         internal ThrowMotion GetThrowMotion(out float phase, out Vector3 aim)
@@ -171,7 +235,8 @@ namespace ToduStudios.WaterPolo
             evaluatedGrip = grip;
             gripSampled = true;
             float gather = GetGatherProgress(out Vector3 start, out _);
-            Vector3 point = gather >= 1f ? grip : Vector3.Lerp(start, grip, Mathf.SmoothStep(0f, 1f, gather));
+            Vector3 point = gather >= 1f || (gatherArrival.sqrMagnitude > .01f && (grip - start).sqrMagnitude < .0049f)
+                ? grip : Vector3.Lerp(start, grip, Mathf.SmoothStep(0f, 1f, gather));
             body.position = transform.position = point;
             lastCarrierPosition = player.transform.position;
             RollVisual();
@@ -181,7 +246,7 @@ namespace ToduStudios.WaterPolo
             PendingThrow action = preparation;
             // Clear before passing through the release path, which can synchronously notify rules and selection.
             CancelPendingThrow();
-            if (!CanPerformThrow(player, action.Kind) ||
+            if (!CanPerformThrow(player, action.Kind, action.Source) ||
                 (action.Receiver != null && !action.Receiver.CanReceiveFrom(player)))
                 return false;
 
@@ -193,14 +258,14 @@ namespace ToduStudios.WaterPolo
                 switch (action.Kind)
                 {
                     case BallReleaseKind.Shot:
-                        LaunchShot(player, action.Direction, action.Power, action.Shot, release);
+                        LaunchShot(player, action.Direction, action.Power, action.Shot, release, action.Source);
                         break;
                     case BallReleaseKind.Lob:
-                        LaunchLob(player, action.Direction, action.Power, action.FlightParameter, action.Receiver, release);
+                        LaunchLob(player, action.Direction, action.Power, action.FlightParameter, action.Receiver, release, action.Source);
                         break;
                     default:
                         LaunchDirectedPass(player, action.Direction, action.Power, action.Receiver, action.FlightParameter,
-                            action.ReceiveWindow, action.Delivery, release);
+                            action.ReceiveWindow, action.Delivery, release, action.Source);
                         break;
                 }
             }
@@ -217,7 +282,7 @@ namespace ToduStudios.WaterPolo
 
         private void Update()
         {
-            if (HasPendingThrow && (!UsesEvaluatedGrip || !CanPerformThrow(Owner, preparation.Kind)))
+            if (HasPendingThrow && (!UsesEvaluatedGrip || !CanPerformThrow(Owner, preparation.Kind, preparation.Source)))
                 CancelPendingThrow();
         }
     }

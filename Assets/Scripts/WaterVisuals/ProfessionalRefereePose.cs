@@ -51,7 +51,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             neck = animator.GetBoneTransform(HumanBodyBones.Neck);
             leftFoot = animator.GetBoneTransform(HumanBodyBones.LeftFoot);
             rightFoot = animator.GetBoneTransform(HumanBodyBones.RightFoot);
-            footPlacement = new DeckFootPlacement(animator.GetBoneTransform,
+            footPlacement = new DeckFootPlacement(animator.GetBoneTransform, transform,
                 .073f * transform.lossyScale.y, .019f * transform.lossyScale.y);
             Stand();
         }
@@ -61,7 +61,6 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             RestoreRest();
             transform.localRotation = modelFacing;
             bodyHeading = transform.rotation;
-            footPlacement?.Reset();
             RelaxArms();
         }
 
@@ -87,15 +86,18 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                 bodyHeading = Quaternion.RotateTowards(bodyHeading, Quaternion.LookRotation(facing), Time.deltaTime * 210f);
             transform.rotation = bodyHeading;
 
+            var feet = new Vector3(transform.position.x, deck, transform.position.z);
+            float strideLength = 1.36f * transform.lossyScale.y;
             if (Mathf.Abs(travelled) > .0002f && walking != null)
             {
-                SampleWalk(Mathf.Abs(travelled), 1.36f * transform.lossyScale.y);
-                footPlacement.Apply(transform, new Vector3(transform.position.x, deck, transform.position.z));
+                SampleWalk(Mathf.Abs(travelled), strideLength, false);
+                float speed = Mathf.Abs(travelled) / Mathf.Max(.001f, Time.deltaTime);
+                footPlacement.Apply(transform, feet, Vector3.forward * travelDirection, stride,
+                    strideLength, Mathf.InverseLerp(.03f, .55f, speed));
             }
             else
             {
-                footPlacement.Reset();
-                footPlacement.AlignHeight(transform, deck);
+                footPlacement.Apply(transform, feet, transform.forward, stride, strideLength, 0f);
                 RelaxArms();
             }
 
@@ -251,17 +253,17 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             transform.position += Vector3.up * Mathf.Clamp(deck - sole, -.12f, .12f);
         }
 
-        void SampleWalk(float distance, float strideDistance)
+        void SampleWalk(float distance, float strideDistance, bool useFootIK = true)
         {
             if (!graph.IsValid())
             {
                 graph = PlayableGraph.Create("Official deck gait");
                 graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
                 gait = AnimationClipPlayable.Create(graph, walking);
-                gait.SetApplyFootIK(true);
                 AnimationPlayableOutput.Create(graph, "Deck walking", animator).SetSourcePlayable(gait);
                 graph.Play();
             }
+            gait.SetApplyFootIK(useFootIK);
             stride = Mathf.Repeat(stride + distance / strideDistance, 1f);
             gait.SetTime(stride * walking.length);
             graph.Evaluate(0f);

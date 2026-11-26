@@ -24,13 +24,24 @@ namespace ToduStudios.WaterPolo
         private LobPassing lob;
         private SwimmerSteal steal;
         private SwimmerStamina stamina;
+        private bool passAim;
         public ShotType ShotMode {get;private set;}
         public bool SprintHeld {get;private set;}
         private bool Usable=>!match.IsPaused && !menus.Visible && !selection.InputLocked && observed!=null && observed==selection.ActivePlayer && observed.EligibleForPlay;
-        public bool CanMove => Usable && (match.CanSwim || match.Phase == MatchPhase.PenaltyReady);
+        public bool CanMove => Usable && (match.CanSwim || match.Phase == MatchPhase.PenaltyReady ||
+            match.Rules.OrdinaryFreeThrow && match.Rules.CanMove(observed));
         public float KeeperLean => !match.IsPaused && match.Phase == MatchPhase.PenaltyReady ? joystick.Value.x : 0f;
         public Vector2 MovementFor(SwimmerMotor motor)=>CanMove && observed.Motor==motor?joystick.Value:Vector2.zero;
         public bool SprintFor(SwimmerMotor motor)=>CanMove && observed.Motor==motor && SprintHeld;
+        internal bool IsPassAiming(SwimmerMotor motor) => passAim && Usable && observed.Motor == motor;
+        internal void SetPassAim(Vector2 screenDirection)
+        {
+            if (!CanUse(MobileMatchAction.Pass)) return;
+            Vector2 direction = match.GameplayView.ScreenToWorldMovement(screenDirection.normalized);
+            observed.Motor.SetControlAim(new Vector3(direction.x, 0f, direction.y));
+            passAim = true;
+        }
+        internal void EndPassAim() => passAim = false;
         private void OnEnable(){match.PauseChanged+=Paused;match.Changed+=Phase;}
         private void OnDisable(){match.PauseChanged-=Paused;match.Changed-=Phase;ResetInputs();}
         private void Paused(bool paused){if(paused)ResetInputs();}
@@ -39,7 +50,7 @@ namespace ToduStudios.WaterPolo
         private void OnApplicationPause(bool paused){if(paused)ResetInputs();}
         private void ResetInputs()
         {
-            SprintHeld=false;joystick?.ResetInput();
+            SprintHeld=false;passAim=false;joystick?.ResetInput();
             if(heldCharge!=null)heldCharge.CancelCharge();heldCharge=null;
             if(buttons!=null)foreach(var b in buttons)if(b!=null)b.CancelInput();
         }

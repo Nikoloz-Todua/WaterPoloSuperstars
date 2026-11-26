@@ -20339,7 +20339,6 @@ MonoBehaviour:
   exclusionSeconds: 18
   personalFoulLimit: 3
   setupSeconds: 0.8
-  maximumThrowWait: 6
   clearance: 2.2
   useCompetitionReentryArea: 1
 --- !u!114 &253662439
@@ -108766,6 +108765,7 @@ MonoBehaviour:
   - {fileID: 1449607062}
   - {fileID: 593132166}
   poolBounds: {fileID: 174644617}
+  resolvePlayerContact: 1
 --- !u!1 &1620189926
 GameObject:
   m_ObjectHideFlags: 0

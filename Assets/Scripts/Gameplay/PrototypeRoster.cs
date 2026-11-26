@@ -9,11 +9,13 @@ namespace ToduStudios.WaterPolo
     {
         [SerializeField] private SwimmerIdentity[] members = new SwimmerIdentity[0];
         [SerializeField] private PoolBounds poolBounds;
+        [SerializeField] private bool resolvePlayerContact;
         private Vector3[] initialStarts;
         private Quaternion[] initialRotations;
         public bool EndsReversed { get; private set; }
         private bool[] restoreMotors;
         private bool paused;
+        private SwimmerContactSolver contactSolver;
         private SwimmerIdentity[] fieldPlayers;
         public IReadOnlyList<SwimmerIdentity> Members => members;
         public IReadOnlyList<SwimmerIdentity> FieldPlayers
@@ -46,6 +48,14 @@ namespace ToduStudios.WaterPolo
                     return;
                 }
             }
+            if (resolvePlayerContact)
+                contactSolver = new SwimmerContactSolver(this, members);
+        }
+
+        private void FixedUpdate()
+        {
+            if (contactSolver != null && !paused)
+                contactSolver.Step();
         }
 
         private void CaptureStarts()

@@ -70,8 +70,23 @@ namespace ToduStudios.WaterPolo
             if (selection.ActivePlayer == identity) { Behaviour = SwimmerAIBehaviour.Human; nextDecision = 0f; return; }
             if(match.IsSprintRace&&identity.EligibleForPlay&&identity.Motor.enabled)
             {Behaviour=SwimmerAIBehaviour.PursueLooseBall;match.SprintOff.DriveAI(identity);return;}
+            if (identity.EligibleForPlay && identity.Motor.enabled && match.Rules != null && match.Rules.OrdinaryFreeThrow)
+            {
+                RepositionForFreeThrow(match.Rules.Taker);
+                return;
+            }
             if (!identity.EligibleForPlay || !match.IsPlaying || selection.InputLocked || !identity.Motor.enabled)
             { Behaviour = SwimmerAIBehaviour.Stopped; nextDecision = 0f; return; }
+            if (identity.Team == selection.HumanTeam && identity.Interaction.HasBall)
+            {
+                Behaviour = SwimmerAIBehaviour.Carry;
+                awaitingRelease = BallReleaseKind.None;
+                nextDecision = 0f;
+                identity.Motor.SetMoveInput(Vector2.zero);
+                identity.Motor.ClearFacingDirection();
+                stamina?.RequestSprint(false);
+                return;
+            }
             if (identity.Interaction.HasBall && ball.HasPendingThrow) return;
             awaitingRelease = BallReleaseKind.None;
             if (Time.time >= nextDecision || previousOwner != ball.Owner)
@@ -102,7 +117,8 @@ namespace ToduStudios.WaterPolo
                     else if(goalDistance>5f && goalDistance<8f && identity.FieldPosition==FieldPositionRole.CentreForward && tacticalTeam.LaneClear(identity.Motor.Position,point))shot=ShotType.Skip;
                     bool shooting = Behaviour == SwimmerAIBehaviour.Shoot;
                     awaitingRelease = shooting ? BallReleaseKind.Shot : BallReleaseKind.Pass;
-                    bool accepted = shooting ? identity.Interaction.TryShoot(tacticalTeam.AIShotSpeed, shot) : passing.TryPassTo(decision.Receiver);
+                    bool accepted = shooting ? identity.Interaction.TryShoot(tacticalTeam.AIShotSpeed, shot, BallActionSource.TacticalAI) :
+                        passing.TryPassTo(decision.Receiver, BallActionSource.TacticalAI);
                     if (!accepted) awaitingRelease = BallReleaseKind.None;
                 }
                 return;
@@ -134,6 +150,24 @@ namespace ToduStudios.WaterPolo
                 identity.Motor.SetFacingDirection(toCarrier);
                 if (toCarrier.sqrMagnitude <= stealing.Reach * stealing.Reach && stealing.CanAttempt) stealing.TrySteal();
             }
+        }
+
+        private void RepositionForFreeThrow(SwimmerIdentity taker)
+        {
+            stamina?.RequestSprint(false);
+            if (identity == taker)
+            {
+                identity.Motor.SetMoveInput(Vector2.zero);
+                return;
+            }
+            bool supporting = identity.Team == taker.Team;
+            Behaviour = supporting ? SwimmerAIBehaviour.Support : SwimmerAIBehaviour.Defend;
+            Vector3 target = supporting ? tacticalTeam.Support(identity, taker) : tacticalTeam.Defense(identity, taker);
+            Vector3 delta = PrototypeTeamTactics.Planar(target - identity.Motor.Position);
+            Vector3 move = delta.sqrMagnitude > .15f ? Vector3.ClampMagnitude(delta * .44f, .53f) : Vector3.zero;
+            Vector3 face = move.sqrMagnitude > .12f ? delta : taker.Motor.Position - identity.Motor.Position;
+            identity.Motor.SetMoveInput(new Vector2(move.x, move.z));
+            identity.Motor.SetFacingDirection(face);
         }
         private void OnDisable()
         {

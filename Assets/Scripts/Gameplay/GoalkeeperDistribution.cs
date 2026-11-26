@@ -47,7 +47,8 @@ namespace ToduStudios.WaterPolo
         private void Update()
         {
             if (match.IsPaused) return;
-            if (!keeper.isActiveAndEnabled || keeper.Stopped || keeper.HumanControlled) { ResetDecision(); return; }
+            if (!keeper.isActiveAndEnabled || keeper.Stopped || keeper.HumanControlled ||
+                match.Selection != null && keeper.Identity.Team == match.Selection.HumanTeam) { ResetDecision(); return; }
             if (!keeper.Identity.Interaction.HasBall) { ResetDecision(); return; }
             if (keeper.Ball.HasPendingThrow) return;
             awaitingRelease = false;
@@ -66,8 +67,9 @@ namespace ToduStudios.WaterPolo
             if (Vector3.Dot(transform.forward, aim) < 0.9995f || keeper.Identity.Motor.Velocity.sqrMagnitude > 0.04f) return;
             awaitingRelease = true;
             bool accepted = false;
-            if (receiver != null && (fallback || tacticalTeam.LaneClear(keeper.Identity.Motor.Position, receiver.Motor.Position))) accepted = passing.TryPassTo(receiver);
-            if (!accepted && fallback) accepted = passing.TryPass();
+            if (receiver != null && (fallback || tacticalTeam.LaneClear(keeper.Identity.Motor.Position, receiver.Motor.Position)))
+                accepted = passing.TryPassTo(receiver, BallActionSource.TacticalAI);
+            if (!accepted && fallback) accepted = passing.TryPass(source: BallActionSource.TacticalAI);
             if (!accepted) awaitingRelease = false;
         }
         private SwimmerIdentity ChooseOutlet()

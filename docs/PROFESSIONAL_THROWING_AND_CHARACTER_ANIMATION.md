@@ -1,5 +1,11 @@
 # Milestone 30 — Professional throwing and athlete presentation
 
+## Milestone 30D shooting elevation
+
+The pending shot exposes a power-dependent rise to the evaluated visual. The leg chains press down through the rise, the upper body can lean with lateral intent, and the existing water framework receives one bounded rise burst and one recovery burst. The lowered preparation and final upper-body throwing solve use the raised shoulders. The authoritative ball still launches from the final grip and the motor's collision dimensions stay as configured. A short normal input enters the compact shot cycle.
+
+The rendered Windows test measured quick/full pelvis rise of 0.265/0.647 m, shoulder rise of 0.268/0.648 m, and key-up to release of 182/270 ms. The release heights were 0.611/0.990 m above water. The highest skinned brief vertex at release was −0.206/+0.176 m relative to the water. This is a garment surface proxy and is separate from the pelvis joint. Each request produced one release, and the release origin matched the solved grip within the fixture's reported precision. [Quick shot](Evidence/Milestone30D/Quick-Shot.jpg) · [Full-power shot](Evidence/Milestone30D/Full-Power-Shot.jpg)
+
 Milestone 30B replaces the palm-under relaxed target, extends the release verification to palm orientation and contact, and adds context-specific carry and receiving. The measurements below record the earlier gate. [Current ball control](ADVANCED_BALL_CONTROL_AND_PLAYER_SWITCHING.md) · [Animation and motion changes](WATER_PHYSICS_AND_DEFENSIVE_GAMEPLAY.md)
 
 ## Why Milestone 29 carry could lag

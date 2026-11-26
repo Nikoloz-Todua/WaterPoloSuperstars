@@ -27,6 +27,7 @@ namespace ToduStudios.WaterPolo
         private SwimmerIdentity previousManualPlayer;
         private float lastManualSwitch = float.NegativeInfinity;
         private float nextRecoveryCheck, protectedUntil;
+        private LineRenderer aimArrow;
 
         private bool ManualChoiceProtected => IsEligible(ActivePlayer) && Time.time < protectedUntil;
 
@@ -53,6 +54,45 @@ namespace ToduStudios.WaterPolo
         private void OnDisable()
         {
             if (ball != null) { ball.PossessionChanged -= OnPossessionChanged; ball.Released -= OnReleased; }
+            if (aimArrow != null) aimArrow.enabled = false;
+        }
+
+        private void LateUpdate()
+        {
+            bool visible = ball != null && ball.Match != null && ball.Match.IsPlaying && !InputLocked &&
+                ActivePlayer != null && ball.Owner == ActivePlayer.Interaction;
+            if (!visible)
+            {
+                if (aimArrow != null) aimArrow.enabled = false;
+                return;
+            }
+            if (aimArrow == null)
+            {
+                var marker = ActivePlayer.transform.Find("SelectionRing");
+                if (marker == null || !marker.TryGetComponent<LineRenderer>(out var ring)) return;
+                var arrow = new GameObject("Possession Aim Arrow");
+                arrow.layer = marker.gameObject.layer;
+                arrow.transform.SetParent(transform, false);
+                aimArrow = arrow.AddComponent<LineRenderer>();
+                aimArrow.sharedMaterial = ring.sharedMaterial;
+                aimArrow.positionCount = 5;
+                aimArrow.widthMultiplier = .052f;
+                aimArrow.numCornerVertices = 2;
+                aimArrow.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                aimArrow.receiveShadows = false;
+            }
+            Vector3 head = ActivePlayer.Motor.ControlAim;
+            Vector3 side = Vector3.Cross(Vector3.up, head);
+            Vector3 root = ActivePlayer.transform.position;
+            root.y = ball.SurfaceHeight + .025f;
+            Vector3 tip = root + head * 1.73f;
+            Vector3 neck = root + head * 1.51f;
+            aimArrow.SetPosition(0, root + head * 1.24f);
+            aimArrow.SetPosition(1, tip);
+            aimArrow.SetPosition(2, neck + side * .15f);
+            aimArrow.SetPosition(3, tip);
+            aimArrow.SetPosition(4, neck - side * .15f);
+            aimArrow.enabled = true;
         }
 
         private void OnReleased(SwimmerBallInteraction passer, BallReleaseKind kind)
@@ -84,7 +124,7 @@ namespace ToduStudios.WaterPolo
             nextRecoveryCheck = Time.time + looseBallSwitchInterval;
 
             bool hasSelection = IsEligible(ActivePlayer);
-            if (!hasSelection && ball.Owner != null)
+            if (ball.Owner != null)
             {
                 OnPossessionChanged(null, ball.Owner);
                 return;
@@ -131,7 +171,11 @@ namespace ToduStudios.WaterPolo
             if (InputLocked || !IsEligible(player))
                 return false;
             if (player == ActivePlayer) return true;
-            if (ActivePlayer != null) ActivePlayer.Motor.StopMotion();
+            if (ActivePlayer != null)
+            {
+                ball?.CancelHumanThrowFrom(ActivePlayer.Interaction);
+                ActivePlayer.Motor.StopMotion();
+            }
             ActivePlayer = player;
             if (player.IsFieldPlayer) lastFieldPlayer = player;
             ActivePlayer.Motor.StopMotion();

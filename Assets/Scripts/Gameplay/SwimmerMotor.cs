@@ -25,11 +25,15 @@ namespace ToduStudios.WaterPolo
         private Vector2 moveInput;
         private Vector3 velocity;
         private Vector3 aimDirection;
+        private Vector3 controlAim;
+        internal bool IsSteeringCarry { get; private set; }
+        public Vector3 ControlAim => controlAim.sqrMagnitude > .5f ? controlAim : Facing;
         private ISwimmerMovementBounds movementBounds;
         private float speedOverride = -1f;
         private SwimmerStamina stamina;
         private SwimmerIdentity identity;
         private SwimmerBallInteraction interaction;
+        private PrototypeRoster contactRoster;
         private bool directionalInput;
         private float angularSpeed;
         private bool leavingPeriodLine;
@@ -50,7 +54,8 @@ namespace ToduStudios.WaterPolo
                 if(Mathf.Abs(position.z-poolBounds.transform.position.z)>poolBounds.Length*.5f-boundaryClearance)return poolBounds.ClampPosition(position,0f);
                 leavingPeriodLine=false;
             }
-            return movementBounds != null ? movementBounds.ClampMovement(position) : poolBounds.ClampPosition(position, boundaryClearance);
+            Vector3 bounded = movementBounds != null ? movementBounds.ClampMovement(position) : poolBounds.ClampPosition(position, boundaryClearance);
+            return identity != null && identity.Rules != null ? identity.Rules.ProtectOrdinaryRestart(identity, bounded, body.position) : bounded;
         }
 
         public Vector3 Velocity => velocity;
@@ -64,6 +69,7 @@ namespace ToduStudios.WaterPolo
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
             aimDirection = Vector3.zero;
+            controlAim = Vector3.zero;
             angularSpeed = 0f;
             IsRetreating = false;
             ClearSpeedOverride();
@@ -78,6 +84,7 @@ namespace ToduStudios.WaterPolo
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
             aimDirection = Vector3.zero;
+            controlAim = Vector3.zero;
             angularSpeed = 0f;
             IsRetreating = false;
             ClearSpeedOverride();
@@ -98,6 +105,12 @@ namespace ToduStudios.WaterPolo
             aimDirection = direction.sqrMagnitude > 0.0001f ? direction.normalized : Vector3.zero;
         }
         public void ClearFacingDirection() => aimDirection = Vector3.zero;
+        internal void SetControlAim(Vector3 direction)
+        {
+            direction.y = 0f;
+            if (direction.sqrMagnitude > .035f) controlAim = direction.normalized;
+        }
+        internal void ClearControlAim() => controlAim = Vector3.zero;
 
         private void Awake()
         {
@@ -118,10 +131,22 @@ namespace ToduStudios.WaterPolo
             body.position = ClampMovement(body.position);
         }
 
+        internal void UseRosterContact(PrototypeRoster owner) => contactRoster = owner;
+        internal Vector3 ClampContactPosition(Vector3 position) => ClampMovement(position);
+        internal bool UsesProneContact => identity.IsFieldPlayer && !IsRetreating && moveInput.sqrMagnitude > .20f &&
+            (!interaction.HasBall || interaction.Ball.IsDribbling);
+
         private void FixedUpdate()
         {
-            if (identity != null && !identity.EligibleForPlay) { StopMotion(); return; }
-            if (identity != null && identity.Rules != null && identity.Rules.HoldOutsideAtHorn(identity)) { StopMotion(); return; }
+            if (contactRoster != null && contactRoster.isActiveAndEnabled) return;
+            if (PlanMovement(out Vector3 next)) CommitMovement(next);
+        }
+
+        internal bool PlanMovement(out Vector3 next)
+        {
+            next = body.position;
+            if (identity != null && !identity.EligibleForPlay) { StopMotion(); return false; }
+            if (identity != null && identity.Rules != null && identity.Rules.HoldOutsideAtHorn(identity)) { StopMotion(); return false; }
             if (identity != null && identity.Rules != null && !identity.Rules.CanMove(identity))
             {
                 if (moveInput.sqrMagnitude > 0.01f && identity.Rules.IsRulePhase && identity.Rules.Taker == identity)
@@ -133,8 +158,16 @@ namespace ToduStudios.WaterPolo
             Vector3 input = new Vector3(moveInput.x, 0f, moveInput.y);
             bool live = interaction != null && interaction.Ball != null && interaction.Ball.Match != null &&
                 interaction.Ball.Match.IsPlaying;
+            Vector3 catchFacing = Vector3.zero;
+            Vector3 catchCentre = Vector3.zero;
+            bool receiving = live && identity.IsFieldPlayer && (!directionalInput || input.sqrMagnitude < .035f) &&
+                interaction.Ball.TryReceiveIntent(interaction, out catchFacing, out catchCentre);
+            if (receiving)
+                input = Vector3.ClampMagnitude(Vector3.ProjectOnPlane(catchCentre - body.position, Vector3.up) * .85f, .42f);
             bool sprinting = stamina != null && stamina.IsSprinting;
             Vector3 forward = Facing;
+            IsSteeringCarry = live && directionalInput && interaction.HasBall && input.sqrMagnitude > .035f &&
+                Vector3.Dot(input.normalized, forward) < .86f;
             float retreatThreshold = IsRetreating ? Mathf.Min(retreatExitDot, retreatEnterDot) : retreatEnterDot;
             IsRetreating = live && directionalInput && (interaction.HasBall || (IsRetreating && sprinting)) &&
                 input.sqrMagnitude > .04f && Vector3.Dot(input.normalized, forward) < -retreatThreshold;
@@ -160,21 +193,23 @@ namespace ToduStudios.WaterPolo
             else velocity = Vector3.MoveTowards(velocity, targetVelocity, changeRate * step);
 
             Vector3 previous = body.position;
-            Vector3 next = ClampMovement(previous + velocity * step);
-            // Report actual movement, removing blocked velocity so releasing at a wall cannot drift.
-            velocity = new Vector3((next.x - previous.x) / step, 0f, (next.z - previous.z) / step);
-            body.MovePosition(next);
+            next = ClampMovement(previous + velocity * step);
 
-            Vector3 turnDirection = aimDirection.sqrMagnitude > 0f ? aimDirection : IsRetreating ? forward : velocity;
+            Vector3 throwFacing = Vector3.zero;
+            bool throwing = (live || identity != null && identity.Rules != null && identity.Rules.OrdinaryFreeThrow) &&
+                interaction.Ball.TryGetThrowFacing(interaction, out throwFacing);
+            Vector3 turnDirection = receiving ? catchFacing : throwing ? throwFacing : aimDirection.sqrMagnitude > 0f ? aimDirection : IsRetreating ? forward :
+                Vector3.ProjectOnPlane((next - previous) / step, Vector3.up);
             if (turnDirection.sqrMagnitude > 0.0001f)
             {
                 if (live)
                 {
                     float angle = Vector3.SignedAngle(forward, turnDirection, Vector3.up);
-                    float maximum = turnSpeed * (sprinting && !IsRetreating ? .78f : 1f);
+                    float maximum = turnSpeed * (receiving || throwing ? 1.55f : sprinting && !IsRetreating ? .78f : 1f);
+                    float turnRate = turnAcceleration * (receiving || throwing ? 1.70f : 1f);
                     float target = Mathf.Sign(angle) * Mathf.Min(maximum,
-                        Mathf.Sqrt(2f * turnAcceleration * Mathf.Abs(angle)));
-                    angularSpeed = Mathf.MoveTowards(angularSpeed, target, turnAcceleration * step);
+                        Mathf.Sqrt(2f * turnRate * Mathf.Abs(angle)));
+                    angularSpeed = Mathf.MoveTowards(angularSpeed, target, turnRate * step);
                     float turn = angularSpeed * step;
                     if (turn * angle >= 0f && Mathf.Abs(turn) > Mathf.Abs(angle))
                     {
@@ -190,6 +225,14 @@ namespace ToduStudios.WaterPolo
                 }
             }
             else angularSpeed = 0f;
+            return true;
+        }
+
+        internal void CommitMovement(Vector3 next)
+        {
+            // Motion consumers see the translation committed after pool bounds and player contact.
+            velocity = Vector3.ProjectOnPlane((next - body.position) / Time.fixedDeltaTime, Vector3.up);
+            body.MovePosition(next);
         }
 
         private void OnDisable()

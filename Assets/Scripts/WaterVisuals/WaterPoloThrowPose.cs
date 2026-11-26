@@ -124,6 +124,14 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         public Vector3 Grip(float radius) =>
             PalmPosition + PalmDirection * radius;
 
+        public bool CanReceive(Vector3 target, Vector3 velocity, float radius)
+        {
+            Vector3 intoPalm = (Vector3.ProjectOnPlane(-velocity, Up).normalized + Up * .12f).normalized;
+            float arm = Vector3.Distance(upper.position, forearm.position) + Vector3.Distance(forearm.position, wrist.position);
+            float allowed = arm + palmLocal.magnitude * Mathf.Abs(wrist.lossyScale.y) - .012f;
+            return (target - intoPalm * radius - upper.position).sqrMagnitude <= allowed * allowed;
+        }
+
         public void ResetFingers()
         {
             if (!posedFingers) return;
@@ -153,7 +161,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
 
         public void Apply(float radius, float surfaceHeight, Vector3 facing, Vector3 aim, float loadWeight, float gather,
             Vector3 gatherPoint, ThrowMotion motion, float phase, float follow, float readyCarry = 0f,
-            Vector3 gatherArrival = default)
+            Vector3 gatherArrival = default, float lateralLean = 0f)
         {
             Quaternion facingFrame = Quaternion.LookRotation(facing, Up);
             float yaw = Mathf.Clamp(Vector3.SignedAngle(facing, aim, Up), -45f, 45f);
@@ -195,7 +203,10 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                 }
             }
 
-            chest.rotation = Quaternion.AngleAxis((yaw * .42f + shoulderTurn) * weight, Up) *
+            float lateral = motion == ThrowMotion.QuickShot || motion == ThrowMotion.Shot
+                ? lateralLean * 13f * weight * (follow > 0f ? 1f - follow : Ease(phase)) : 0f;
+            chest.rotation = Quaternion.AngleAxis(lateral, facing) *
+                Quaternion.AngleAxis((yaw * .42f + shoulderTurn) * weight, Up) *
                 Quaternion.AngleAxis(shoulderRoll * weight, facingFrame * Vector3.right) * chest.rotation;
             Quaternion throwFrame = Quaternion.AngleAxis(yaw * .83f, Up) * facingFrame;
             Vector3 shoulder = upper.position;
@@ -220,6 +231,13 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                 palm = Vector3.Slerp((facingArrival + Up * .12f).normalized, palm, absorb);
             }
             SolveArm(target, pole, fingers, palm, radius, weight);
+            if (gather < 1f && gatherArrival.sqrMagnitude > .01f)
+            {
+                Vector3 correction = target - Grip(radius);
+                Quaternion hand = wrist.rotation;
+                Reach(upper, forearm, wrist, wrist.position + correction, pole, 1f);
+                wrist.rotation = hand;
+            }
             PoseFingers(follow > 0f ? 1f - weight : .70f, weight);
             Vector3 gaze = aim;
             gaze.y += Mathf.Lerp(-.09f, .10f, motion != ThrowMotion.None ? .85f : loadWeight);

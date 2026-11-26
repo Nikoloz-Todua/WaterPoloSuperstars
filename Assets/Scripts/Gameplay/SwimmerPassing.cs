@@ -26,11 +26,13 @@ namespace ToduStudios.WaterPolo
                 passer != null && roster.AreTeammates(Identity, passer.GetComponent<SwimmerIdentity>());
         }
 
-        public bool TryPass(PassDelivery delivery = PassDelivery.Dry)
+        public bool TryPass(PassDelivery delivery = PassDelivery.Dry, BallActionSource source = BallActionSource.HumanInput)
         {
-            if(Interaction.Ball.Match!=null && Interaction.Ball.Match.IsCentreRestart)return Interaction.Ball.Match.TryCentrePass(Identity);
+            if(Interaction.Ball.Match!=null && Interaction.Ball.Match.IsCentreRestart)return Interaction.Ball.Match.TryCentrePass(Identity, source);
             if (!Interaction.HasBall || roster == null) return false;
-            Vector3 forward = Vector3.ProjectOnPlane(Identity.Motor.Facing, Vector3.up).normalized;
+            var match = Interaction.Ball.Match;
+            Vector3 forward = source == BallActionSource.HumanInput && match != null && match.IsPlaying
+                ? Identity.Motor.ControlAim : Identity.Motor.Facing;
             Vector3 origin = Identity.Motor.Position;
             SwimmerPassing receiver = null;
             float best = float.NegativeInfinity;
@@ -50,10 +52,10 @@ namespace ToduStudios.WaterPolo
                 if (score > best) { best = score; receiver = candidate; }
             }
 
-            return Launch(forward, receiver, delivery);
+            return Launch(forward, receiver, delivery, source);
         }
 
-        public bool TryPassTo(SwimmerIdentity teammate)
+        public bool TryPassTo(SwimmerIdentity teammate, BallActionSource source = BallActionSource.HumanInput)
         {
             if (!Interaction.HasBall || roster == null || teammate == null || !teammate.IsFieldPlayer || !roster.AreTeammates(Identity, teammate)) return false;
             Vector3 delta = Vector3.ProjectOnPlane(teammate.Motor.Position - Identity.Motor.Position, Vector3.up);
@@ -61,10 +63,10 @@ namespace ToduStudios.WaterPolo
             var receiver = teammate.GetComponent<SwimmerPassing>();
             Vector3 forward = Vector3.ProjectOnPlane(Identity.Motor.Facing, Vector3.up).normalized;
             if (distance < 2.5f || distance > maximumTargetDistance || Vector3.Dot(forward, delta / distance) < Mathf.Cos(assistCone * Mathf.Deg2Rad) || receiver == null || !receiver.CanReceiveFrom(Interaction)) return false;
-            return Launch(forward, receiver);
+            return Launch(forward, receiver, PassDelivery.Dry, source);
         }
 
-        private bool Launch(Vector3 forward, SwimmerPassing receiver, PassDelivery delivery = PassDelivery.Dry)
+        private bool Launch(Vector3 forward, SwimmerPassing receiver, PassDelivery delivery, BallActionSource source)
         {
             Vector3 origin = Identity.Motor.Position;
             Vector3 direction = forward;
@@ -78,7 +80,7 @@ namespace ToduStudios.WaterPolo
             }
             float distance=receiver!=null?Vector3.Distance(origin,receiver.Identity.Motor.Position):6f;
             float speed=Mathf.Clamp(distance*0.9f,passSpeed*0.85f,passSpeed*1.35f);
-            return Interaction.Ball.TryPass(Interaction, direction, speed, receiver, minimumFlightTime, receivingWindow, delivery);
+            return Interaction.Ball.TryPass(Interaction, direction, speed, receiver, minimumFlightTime, receivingWindow, delivery, source);
         }
         public Vector3 AimPoint(SwimmerIdentity receiver)
         {

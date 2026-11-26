@@ -14,11 +14,11 @@ namespace ToduStudios.WaterPolo
         [SerializeField, Min(0.1f)] private float releaseDistance = 1.5f;
 
         [SerializeField] private Vector3 raisedGrip = new Vector3(.24f,.44f,.34f);
-        private bool usesRaisedGrip;
-        private void Start() => usesRaisedGrip=GetComponentInChildren<WaterVisuals.RiggedSwimmerVisual>()!=null;
+        internal WaterVisuals.RiggedSwimmerVisual Visual { get; private set; }
+        private void Start() => Visual = GetComponentInChildren<WaterVisuals.RiggedSwimmerVisual>();
         public Vector3 HeldBallPoint => ball != null && ball.TryReadEvaluatedGrip(this, out Vector3 grip)
             ? grip
-            : usesRaisedGrip ? transform.TransformPoint(raisedGrip) : carryAnchor.position;
+            : Visual != null ? transform.TransformPoint(raisedGrip) : carryAnchor.position;
 
         public Transform CarryAnchor => carryAnchor;
         public float PickupDistance => pickupDistance;
@@ -28,8 +28,10 @@ namespace ToduStudios.WaterPolo
 
         public bool TryCollect() => ball != null && ball.TryCollect(this);
         public bool TryShoot() => ball != null && ball.TryShoot(this, shotSpeed);
-        public bool TryShoot(float speed) => ball != null && ball.TryShoot(this, Mathf.Max(0f, speed));
-        public bool TryShoot(float speed,ShotType shot) => ball != null && ball.TryShoot(this,Mathf.Max(0f,speed),shot);
+        public bool TryShoot(float speed, BallActionSource source = BallActionSource.HumanInput) =>
+            ball != null && ball.TryShoot(this, Mathf.Max(0f, speed), source);
+        public bool TryShoot(float speed, ShotType shot, BallActionSource source = BallActionSource.HumanInput) =>
+            ball != null && ball.TryShoot(this, Mathf.Max(0f, speed), shot, source);
 
         private void OnDisable()
         {

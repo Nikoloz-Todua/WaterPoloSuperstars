@@ -42,14 +42,14 @@ namespace ToduStudios.WaterPolo
         [SerializeField, Min(1f)] private float exclusionSeconds = 18f;
         [SerializeField, Min(1)] private int personalFoulLimit = 3;
         [SerializeField, Min(0.1f)] private float setupSeconds = 0.8f;
-        [SerializeField, Min(1f)] private float maximumThrowWait = 6f;
         [SerializeField, Min(1f)] private float clearance = 2.2f;
         [Tooltip("Park excluded athletes inside the marked water area behind their current defended goal. Original prototype keeps its legacy waiting positions.")]
         [SerializeField] private bool useCompetitionReentryArea;
         private Collider[] colliders;
         private bool[] colliderEnabled;
-        private float readyAt, throwAt, flightUntil;
+        private float readyAt, flightUntil;
         private bool penalty;
+        private bool ordinaryFoul;
         private SwimmerIdentity taker;
         private PrototypeGoalkeeper penaltyKeeper;
         private MobileMatchControls mobile;
@@ -65,6 +65,8 @@ namespace ToduStudios.WaterPolo
             PenaltyTargetHeight = Mathf.Clamp(PenaltyTargetHeight + input.y * Time.deltaTime * .8f, .09f, PenaltyGoal.Height + .12f);
         }
         public SwimmerIdentity Taker => taker;
+        public bool OrdinaryFreeThrow => ordinaryFoul && !match.IsPaused && taker != null &&
+            match.Phase == MatchPhase.FreeThrowReady && !BoundaryRestart.HasValue;
         public GoalMouth PenaltyGoal => Team(taker.Team).AttackingGoal;
         internal Vector3 AttackDirection(PrototypeTeam team) => Team(team).AttackingGoal.transform.forward;
         private SwimmerIdentity advantageOffender, advantageShooter;
@@ -122,7 +124,23 @@ namespace ToduStudios.WaterPolo
         public bool KeeperMayAct(PrototypeGoalkeeper keeper) => !match.IsPaused && keeper != null && match.Phase == MatchPhase.PenaltyFlight && keeper == penaltyKeeper;
         internal bool HoldOutsideAtHorn(SwimmerIdentity player) => match.EndingPenalty && player != taker && (penaltyKeeper == null || player != penaltyKeeper.Identity);
         public bool PenaltyStation(PrototypeGoalkeeper keeper) => IsPenalty && keeper == penaltyKeeper;
-        public bool CanMove(SwimmerIdentity player) => match.IsPlaying || match.IsSprintRace&&player.IsFieldPlayer || (!player.IsFieldPlayer && KeeperMayAct(player.GetComponent<PrototypeGoalkeeper>()));
+        public bool CanMove(SwimmerIdentity player) => match.IsPlaying || match.IsSprintRace && player.IsFieldPlayer ||
+            OrdinaryFreeThrow && player.IsFieldPlayer && player != taker ||
+            !player.IsFieldPlayer && KeeperMayAct(player.GetComponent<PrototypeGoalkeeper>());
+
+        internal Vector3 ProtectOrdinaryRestart(SwimmerIdentity player, Vector3 proposed, Vector3 previous)
+        {
+            if (!OrdinaryFreeThrow || !player.IsFieldPlayer) return proposed;
+            if (player == taker) return previous;
+            float limit = player.Team == taker.Team ? .90f : clearance;
+            Vector3 mark = taker.Motor.Position;
+            Vector3 delta = PrototypeTeamTactics.Planar(proposed - mark);
+            if (delta.sqrMagnitude >= limit * limit) return proposed;
+            Vector3 prior = PrototypeTeamTactics.Planar(previous - mark);
+            if (prior.sqrMagnitude < limit * limit) return delta.sqrMagnitude > prior.sqrMagnitude ? proposed : previous;
+            Vector3 rim = pool.ClampPosition(mark + (delta.sqrMagnitude > .0001f ? delta.normalized : prior.normalized) * limit, 1.1f);
+            return PrototypeTeamTactics.Planar(rim - mark).sqrMagnitude >= limit * limit - .001f ? rim : previous;
+        }
 
         /// <summary>A real close-contact command is required. Failed/out-of-range steals alone never award fouls.</summary>
         public bool ReportContact(SwimmerIdentity offender, SwimmerIdentity victim, IllegalContact contact)
@@ -155,6 +173,7 @@ namespace ToduStudios.WaterPolo
             penaltyAimX = 0f;
             PenaltyTargetHeight = .36f;
             penalty = isPenalty; taker = carrier; penaltyKeeper = null;
+            ordinaryFoul = !isPenalty && !exclusion && !misconduct;
             // Capture the restart location before stopping clears the live ball and cancels shot charging.
             Vector3 location = ball.PhysicsPosition;
             Vector3 incident = offender.Motor.Position;
@@ -320,7 +339,7 @@ namespace ToduStudios.WaterPolo
                     if (!ball.TryAwardRestart(taker.Interaction, restart.Mark)) return;
                 }
                 readyAt = match.PresentationTime;
-                match.ReadyRuleRestart(penalty); throwAt = match.PresentationTime + maximumThrowWait;
+                match.ReadyRuleRestart(penalty);
                 if (!penalty && !BoundaryRestart.HasValue) Emit(RefereeDecision.FreeThrow, taker, taker.Team);
                 return;
             }
@@ -345,17 +364,16 @@ namespace ToduStudios.WaterPolo
                 if (keyboard != null && ((keyboard.FindKeyOnCurrentKeyboardLayout("D")??keyboard.dKey).isPressed || keyboard.rightArrowKey.isPressed)) lean = 1f;
                 penaltyKeeper.ChoosePenaltySide(lean);
             }
-            bool human = taker.Team == selection.HumanTeam;
-            if (human && match.PresentationTime < throwAt) return;
+            if (taker.Team == selection.HumanTeam) return;
             var team = Team(taker.Team);
             var receiver = penalty ? null : FindOutlet();
             Vector3 target = penalty ? team.ShotTarget() : receiver != null ? receiver.Motor.Position : taker.Motor.Position + (BoundaryRestart.HasValue ? RestartDirection(BoundaryRestart.Value.Mark) : team.AttackDirection) * 5f;
             Vector3 aim = PrototypeTeamTactics.Planar(target - taker.Motor.Position).normalized;
             taker.Motor.SetFacingDirection(aim);
             if (Vector3.Dot(taker.Motor.Facing, aim) < 0.998f) return;
-            if (penalty) taker.Interaction.TryShoot(team.AIShotSpeed);
-            else if (receiver == null || !taker.GetComponent<SwimmerPassing>().TryPassTo(receiver))
-                ball.TryPass(taker.Interaction, aim, 8f, null, 0.08f, 2.5f);
+            if (penalty) taker.Interaction.TryShoot(team.AIShotSpeed, BallActionSource.RuleRestart);
+            else if (receiver == null || !taker.GetComponent<SwimmerPassing>().TryPassTo(receiver, BallActionSource.RuleRestart))
+                ball.TryPass(taker.Interaction, aim, 8f, null, 0.08f, 2.5f, source: BallActionSource.RuleRestart);
         }
         private SwimmerIdentity FindOutlet()
         {

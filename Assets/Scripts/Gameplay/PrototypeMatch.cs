@@ -16,6 +16,7 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private GameplayCamera gameplayCamera;
         [SerializeField] private PrototypeRoster roster;
         [SerializeField] private PlayerSelection playerSelection;
+        internal PlayerSelection Selection => playerSelection;
         [SerializeField, Min(0.1f)] private float restartDelay = 1.5f;
         [SerializeField] private MatchClock clock = new MatchClock();
         [SerializeField] private PossessionShotClock shotClock;
@@ -279,7 +280,7 @@ namespace ToduStudios.WaterPolo
             if (IsPaused || (Phase != MatchPhase.FreeThrowSetup && Phase != MatchPhase.PenaltySetup)) return;
             Phase = penalty ? MatchPhase.PenaltyReady : MatchPhase.FreeThrowReady;
             roster.SetSimulationPaused(false);
-            // Ball remains held; motors may turn, but MatchRules freezes translation until the throw.
+            // MatchRules retains the protected mark and permits ordinary-foul support movement.
             ball.SetSimulationPaused(false);
             playerSelection.SetInputLocked(false);
             if (rules.Taker.Team == playerSelection.HumanTeam) playerSelection.Select(rules.Taker);
@@ -356,7 +357,7 @@ namespace ToduStudios.WaterPolo
             }
             if(Phase==MatchPhase.CentreRestartSetup && PresentationTime>=centreReadyAt)ReadyCentreRestart();
             if(Phase==MatchPhase.CentreRestartReady && CentreTaker.Team!=playerSelection.HumanTeam && PresentationTime>=centrePassAt)
-                TryCentrePass(CentreTaker);
+                TryCentrePass(CentreTaker, BallActionSource.RuleRestart);
         }
 
         private void CompleteRestart(bool smoothCamera = false)
@@ -447,10 +448,10 @@ namespace ToduStudios.WaterPolo
         public bool IsCentreReceiver(SwimmerIdentity receiver)=>receiver!=null && CentreTaker!=null && receiver!=CentreTaker &&
             receiver.IsFieldPlayer && receiver.EligibleForPlay && receiver.Team==CentreTaker.Team && roster.Contains(receiver) &&
             Vector3.Dot(receiver.Motor.Position-ballStart.position,Team(receiver.Team).AttackDirection)<=0f;
-        public bool TryCentrePass(SwimmerIdentity player)
+        public bool TryCentrePass(SwimmerIdentity player, BallActionSource source = BallActionSource.HumanInput)
         {
             if(player==null || !CanCentreRelease(player.Interaction,BallReleaseKind.Pass) || !IsCentreReceiver(CentreReceiver))return false;
-            return player.GetComponent<SwimmerPassing>().TryPassTo(CentreReceiver);
+            return player.GetComponent<SwimmerPassing>().TryPassTo(CentreReceiver, source);
         }
         private void CentreReleased(SwimmerBallInteraction player,BallReleaseKind kind)
         {

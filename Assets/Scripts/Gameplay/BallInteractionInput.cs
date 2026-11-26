@@ -97,7 +97,7 @@ namespace ToduStudios.WaterPolo
             pass?.Disable();
             steal?.Disable();
             hold?.Disable();
-            skipModifier?.Disable();highModifier?.Disable();
+            skipModifier?.Disable();highModifier?.Disable();wetModifier?.Disable();
             lob?.Disable();
         }
 
