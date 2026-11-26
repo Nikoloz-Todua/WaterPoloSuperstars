@@ -1,5 +1,7 @@
 # Milestone 30 — Interactive pool water
 
+Milestone 30B retains this renderer and changes the production finish, wrist-entry priority, sculling, turn wash, impacts and analytical water response. The measurements below record the original Milestone 30 baseline. [Current water and physics handoff](WATER_PHYSICS_AND_DEFENSIVE_GAMEPLAY.md)
+
 ## Surface finish
 
 OlympicMatchArena keeps its existing thin transparent URP surface, baked reflection, pool depth blend, dual moving normal samples and quality profiles. The Milestone 30 arena switch retunes the runtime instance of the same material. It uses a deeper blue absorption color, a shallower turquoise transition, gentler specular and reflection, finer normal detail and lower refraction and caustic intensity. The more opaque depth blend makes submerged bodies read through the water while retaining the tiled floor and markings. Low retains the original no-opaque-copy profile. Existing test and prototype profiles still use their original materials. The production arena receives no new reflection camera or full-screen pass.

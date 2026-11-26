@@ -88,10 +88,11 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         private static void TuneInteractiveFinish(Material material, int index)
         {
             // Keep baked reflections, the existing depth blend and each tier's texture/keyword budget.
-            material.SetColor("_Color_Deep", new Color(.013f, .24f, .40f, .71f));
-            material.SetColor("_Color_Shallow", new Color(.064f, .46f, .59f, .205f));
-            material.SetFloat("_Water_Depth", 1.72f);
-            material.SetColor("_Specular_Color", new Color(1.12f, 1.18f, 1.20f, 1f));
+            // Preserve fabric and skin contrast at waist depth while retaining absorption at the pool floor.
+            material.SetColor("_Color_Deep", new Color(.013f, .24f, .40f, .65f));
+            material.SetColor("_Color_Shallow", new Color(.064f, .46f, .59f, .12f));
+            material.SetFloat("_Water_Depth", 2.15f);
+            material.SetColor("_Specular_Color", new Color(.98f, 1.04f, 1.07f, 1f));
             material.SetFloat("_Specular_Spread", .08f);
             material.SetFloat("_Reflection_Strength", index == 2 ? .43f : .32f);
             material.SetFloat("_Reflection_Distortion", .41f);
@@ -100,7 +101,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             material.SetFloat("_Normal_Strength", index == 0 ? .38f : .46f);
             material.SetFloat("_Caustics_Strength", index == 2 ? 3.85f : 3.25f);
             material.SetFloat("_Caustics_Pan", .06f);
-            material.SetFloat("_Refraction_Strength", index == 2 ? .034f : .025f);
+            material.SetFloat("_Refraction_Strength", index == 2 ? .027f : .019f);
         }
 
         private void OnDisable()

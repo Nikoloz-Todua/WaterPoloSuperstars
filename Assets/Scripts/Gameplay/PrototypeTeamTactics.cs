@@ -31,6 +31,13 @@ namespace ToduStudios.WaterPolo
         [SerializeField, Min(0f)] private float passProgressWeight = 0.08f;
         [SerializeField, Min(0f)] private float passOpennessWeight = 0.5f;
         [SerializeField, Min(0.1f)] private float aiShotSpeed = 16f;
+        [SerializeField, Min(.02f)] private float blockReaction = .085f;
+        [SerializeField, Min(.05f)] private float blockCommitment = .28f;
+        [SerializeField, Min(.05f)] private float blockRecovery = .30f;
+        private SwimmerIdentity blockingPlayer;
+        private Vector3 blockLook;
+        private float blockStarts, blockEnds, blockRecovers;
+        private int blockChecked = -1, lastBlockShot = -1;
         private float nextDefenseChoice;
         private SwimmerIdentity[] marks, previousMarks;
         private bool[] usedThreats;
@@ -77,7 +84,8 @@ namespace ToduStudios.WaterPolo
             lastPasser = ball.LastReleaser != null ? ball.LastReleaser.GetComponent<SwimmerIdentity>() : null;
             lastReceiver = ball.IntendedReceiver != null ? ball.IntendedReceiver.GetComponent<SwimmerIdentity>() : null;
         }
-        public void ResetDecisions() { nextAssignment = nextPass = nextDefenseChoice = 0f; carryLane=0; presser = loosePursuer = null; assignedOwner = null; }
+        public void ResetDecisions() { nextAssignment = nextPass = nextDefenseChoice = 0f; carryLane=0; presser = loosePursuer = null; assignedOwner = null;
+            blockingPlayer = null; blockChecked = lastBlockShot = -1; }
         public void SetGoals(GoalMouth attack,GoalMouth defend)
         { attackingGoal=attack;defendedGoal=defend;ResetDecisions(); }
         private void OnEnable() { if (match != null) { match.Changed += ResetDecisions; match.NewMatch += ClearHistory; } if(ball!=null)ball.PossessionChanged+=ObserveRecovery; }
@@ -150,20 +158,79 @@ namespace ToduStudios.WaterPolo
         }
         public Vector3 Defense(SwimmerIdentity player, SwimmerIdentity carrier)
         {
+            SwimmerIdentity mark = MarkFor(player);
+            if (mark != null && player.FieldPosition == FieldPositionRole.CentreBack &&
+                mark.FieldPosition == FieldPositionRole.CentreForward)
+            {
+                Vector3 center = mark.Motor.Position;
+                Vector3 towardGoal = Planar(defendedGoal.transform.position - center).normalized;
+                Vector3 towardBall = Planar(carrier.Motor.Position - center).normalized;
+                Vector3 shade = Vector3.ProjectOnPlane(towardBall, towardGoal);
+                return Clamp(center + towardGoal * .98f + shade * (defenseStrategy == DefenseStrategy.Zone ? .44f : .26f));
+            }
             if (carrier.IsFieldPlayer && Presser == player) return Clamp(SwimmerTactics.Defend(carrier.Motor.Position, defendedGoal.transform.position, pressureDistance));
             if(defenseStrategy==DefenseStrategy.Zone)
             {
                 Vector3 station=TeamPoint(Layout(player.FieldPosition).zone+ExtraRoleOffset(player));
-                var assigned=MarkFor(player);
-                Vector3 lane=assigned!=null?Vector3.Lerp(assigned.Motor.Position,carrier.Motor.Position,0.25f):carrier.Motor.Position;
+                Vector3 lane=mark!=null?Vector3.Lerp(mark.Motor.Position,carrier.Motor.Position,0.25f):carrier.Motor.Position;
                 if(FieldAdvantage<0)station=Vector3.Lerp(station,defendedGoal.transform.position,0.15f);
                 return Clamp(station+Vector3.ClampMagnitude(Planar(lane-station),3f)*0.4f);
             }
-            SwimmerIdentity mark = MarkFor(player);
             Vector3 threat = mark != null ? mark.Motor.Position : carrier.Motor.Position + Vector3.Cross(Vector3.up, AttackDirection) * (Slot(player) % 2 == 0 ? -3f : 3f);
             Vector3 goalSide=SwimmerTactics.Defend(threat,defendedGoal.transform.position,1.2f);
             float shapeWeight=FieldAdvantage<0?0.5f:0.12f;
             return Clamp(Vector3.Lerp(goalSide,TeamPoint(Layout(player.FieldPosition).zone+ExtraRoleOffset(player)),shapeWeight));
+        }
+
+        internal float BlockPose(SwimmerIdentity player, out Vector3 target)
+        {
+            UpdateBlock();
+            target = blockLook;
+            if (blockingPlayer != player || !match.IsPlaying || !Eligible(player)) return 0f;
+            float now = Time.time;
+            return Mathf.SmoothStep(0f, 1f, Mathf.Min(Mathf.InverseLerp(blockStarts, blockStarts + .10f, now),
+                1f - Mathf.InverseLerp(blockEnds - .07f, blockRecovers, now)));
+        }
+
+        internal float BlockMobility(SwimmerIdentity player) =>
+            blockingPlayer == player && Time.time >= blockStarts
+                ? Mathf.Lerp(.46f, 1f, Mathf.InverseLerp(blockEnds, blockRecovers, Time.time)) : 1f;
+
+        private void UpdateBlock()
+        {
+            if (blockChecked == Time.frameCount) return;
+            blockChecked = Time.frameCount;
+            if (!match.IsPlaying || (blockingPlayer != null && Time.time < blockRecovers) ||
+                !ball.TryReadShotThreat(out var source, out Vector3 origin, out Vector3 direction, out int shot) ||
+                shot == lastBlockShot)
+                return;
+
+            var shooter = source.GetComponent<SwimmerIdentity>();
+            Vector3 lane = Planar(direction).normalized;
+            if (shooter == null || shooter.Team == team ||
+                Vector3.Dot(lane, Planar(defendedGoal.transform.position - origin).normalized) < .74f) return;
+            float best = float.PositiveInfinity;
+            foreach (var player in roster.FieldPlayers)
+            {
+                if (!Eligible(player) || player.Team != team ||
+                    (player != Presser && MarkFor(player) != shooter && ball.Owner != null)) continue;
+                Vector3 delta = Planar(player.Motor.Position - origin);
+                float distance = delta.magnitude;
+                float forward = Vector3.Dot(delta, lane);
+                if (distance < 1f || distance > 3.2f || forward < .55f ||
+                    Vector3.Dot(player.Motor.Facing, -delta.normalized) < .25f) continue;
+                float offset = (delta - lane * forward).magnitude;
+                float cost = offset + distance * .15f;
+                if (offset > .67f || cost >= best) continue;
+                best = cost;
+                blockingPlayer = player;
+                blockLook = origin + lane * Mathf.Max(0f, forward - .48f) + Vector3.up * .25f;
+            }
+            if (float.IsPositiveInfinity(best)) return;
+            lastBlockShot = shot;
+            blockStarts = Time.time + blockReaction;
+            blockEnds = blockStarts + blockCommitment;
+            blockRecovers = blockEnds + blockRecovery;
         }
         public float Pressure(Vector3 position)
         {
@@ -266,7 +333,11 @@ namespace ToduStudios.WaterPolo
                 var p = roster.Members[i]; if (!Eligible(p) || p.Team != team) continue;
                 float distance = Planar(p.Motor.Position - point).magnitude;
                 if(Carrier!=null && Carrier.Team!=team)
+                {
                     distance+=Mathf.Clamp(Vector3.Dot(p.Motor.Position-point,AttackDirection),0f,5f)*0.35f;
+                    if (p.FieldPosition == FieldPositionRole.CentreBack && Carrier.FieldPosition != FieldPositionRole.CentreForward)
+                        distance += 2.25f;
+                }
                 if (!changed && p == previous) distance -= reassignmentAdvantage;
                 if (distance < best) { nearest = p; best = distance; }
             }
@@ -280,6 +351,28 @@ namespace ToduStudios.WaterPolo
             if(marks==null || marks.Length!=roster.Members.Count)
             {marks=new SwimmerIdentity[roster.Members.Count];previousMarks=new SwimmerIdentity[marks.Length];usedThreats=new bool[marks.Length];}
             System.Array.Copy(marks,previousMarks,marks.Length);System.Array.Clear(marks,0,marks.Length);System.Array.Clear(usedThreats,0,usedThreats.Length);
+            var carrier = Carrier;
+            if (carrier != null && carrier.Team != team)
+            {
+                int centerAttack = -1, centerDefense = -1;
+                for (int i = 0; i < roster.Members.Count; i++)
+                {
+                    var player = roster.Members[i];
+                    if (!Eligible(player)) continue;
+                    if (player.Team == team && player.FieldPosition == FieldPositionRole.CentreBack) centerDefense = i;
+                    if (player.Team != team && player.FieldPosition == FieldPositionRole.CentreForward) centerAttack = i;
+                }
+                if (centerAttack >= 0 && centerDefense >= 0)
+                {
+                    var threat = roster.Members[centerAttack];
+                    var marker = roster.Members[centerDefense];
+                    if (marker != presser || carrier == threat)
+                    {
+                        marks[centerDefense] = threat;
+                        usedThreats[centerAttack] = true;
+                    }
+                }
+            }
             // Most dangerous threats first; unique nearest suitable defender with incumbent hysteresis.
             for(int count=0;count<roster.FieldPlayers.Count;count++)
             {

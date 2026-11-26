@@ -49,9 +49,24 @@ namespace ToduStudios.WaterPolo
             lastDeckPoint = deckPoint;
             hasSample = true;
 
+            LimitFootPitch(left, root.forward);
+            LimitFootPitch(right, root.forward);
             AlignHeight(root, deckPoint.y);
-            Pin(ref left, deckPoint.y);
-            Pin(ref right, deckPoint.y);
+            Pin(ref left, deckPoint.y, root.forward);
+            Pin(ref right, deckPoint.y, root.forward);
+        }
+
+        private static void LimitFootPitch(Foot foot, Vector3 travel)
+        {
+            if (foot.Ankle == null || foot.Toe == null) return;
+            Vector3 axis = (foot.Toe.position - foot.Ankle.position).normalized;
+            Vector3 forward = Vector3.ProjectOnPlane(axis, Vector3.up).normalized;
+            if (forward.sqrMagnitude < .01f) forward = travel;
+            float pitch = Mathf.Atan2(axis.y, Vector3.ProjectOnPlane(axis, Vector3.up).magnitude) * Mathf.Rad2Deg;
+            float limited = Mathf.Clamp(pitch, -48f, 16f);
+            if (Mathf.Abs(limited - pitch) < .5f) return;
+            Vector3 target = forward * Mathf.Cos(limited * Mathf.Deg2Rad) + Vector3.up * Mathf.Sin(limited * Mathf.Deg2Rad);
+            foot.Ankle.rotation = Quaternion.FromToRotation(axis, target) * foot.Ankle.rotation;
         }
 
         public void AlignHeight(Transform root, float deckHeight)
@@ -61,7 +76,7 @@ namespace ToduStudios.WaterPolo
                 root.position += Vector3.up * Mathf.Clamp(deckHeight - sole, -.13f, .13f);
         }
 
-        private void Pin(ref Foot foot, float deckHeight)
+        private void Pin(ref Foot foot, float deckHeight, Vector3 forward)
         {
             if (foot.Ankle == null || foot.Knee == null || foot.Hip == null) return;
             Vector3 ankle = foot.Ankle.position;
@@ -89,6 +104,8 @@ namespace ToduStudios.WaterPolo
             float thigh = Vector3.Distance(hip, knee), calf = Vector3.Distance(knee, ankle);
             Vector3 reach = (target - hip).normalized;
             Vector3 bend = Vector3.ProjectOnPlane(knee - hip, reach);
+            Vector3 expected = Vector3.ProjectOnPlane(forward, reach);
+            if (Vector3.Dot(bend, expected) < 0f) bend = expected;
             if (bend.sqrMagnitude < .00001f || thigh < .01f || calf < .01f) return;
             float length = Mathf.Clamp(Vector3.Distance(target, hip), Mathf.Abs(thigh - calf) + .001f, thigh + calf - .001f);
             float along = (thigh * thigh - calf * calf + length * length) / (2f * length);

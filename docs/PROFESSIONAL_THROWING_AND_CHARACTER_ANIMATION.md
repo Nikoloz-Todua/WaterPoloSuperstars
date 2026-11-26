@@ -1,5 +1,7 @@
 # Milestone 30 — Professional throwing and athlete presentation
 
+Milestone 30B replaces the palm-under relaxed target, extends the release verification to palm orientation and contact, and adds context-specific carry and receiving. The measurements below record the earlier gate. [Current ball control](ADVANCED_BALL_CONTROL_AND_PLAYER_SWITCHING.md) · [Animation and motion changes](WATER_PHYSICS_AND_DEFENSIVE_GAMEPLAY.md)
+
 ## Why Milestone 29 carry could lag
 
 `BallController` moved the held ball early in LateUpdate (execution order −140) toward an exponentially smoothed swimmer-root offset. The same nominal point drove Humanoid wrist IK during Animator evaluation. The right wrist could only reach the clamped IK target, and `RiggedSwimmerVisual` then moved the visual hierarchy to the waterline at order 180. The apparent lag persisted with held Rigidbody interpolation already disabled. A separate problem affected quick throws. The previous launch method spawned the ball at a synthetic socket, then raised `Released`, which started the throwing animation.

@@ -105,7 +105,7 @@ public static class BallPhysicsPolishVerification
         try
         {
             launch();
-            Check(!requireAirborne || ball.IsAirborne, "Expected real ballistic flight");
+            if (requireAirborne) await Await(() => ball.IsAirborne || recorded.HasValue, "Expected real ballistic flight", 2);
             await Await(() => recorded.HasValue, "Physical " + kind + " event for " + image, 4);
             await Shot(image);
             return recorded.Value;
@@ -132,7 +132,10 @@ public static class BallPhysicsPolishVerification
             await Task.Delay(600);
             Claim(blue, Vector3.zero, Vector3.forward);
             View(new Vector3(.3f, .10f, .45f));
-            await Task.Delay(155);
+            var charge = blue.GetComponent<ShotCharge>();
+            Check(charge.BeginCharge(), "Raise the held ball before dropping");
+            await Await(() => charge.NormalizedCharge > .62f && ball.PhysicsPosition.y > ball.SurfaceHeight + .15f,
+                "Ball cleared the surface");
             int waterCount = 0;
             void CountWater(BallImpactEvent e) { if (e.Kind == BallImpactKind.Water) waterCount++; }
             ball.Contact += CountWater;
@@ -155,12 +158,20 @@ public static class BallPhysicsPolishVerification
             Claim(blue, new Vector3(0, 0, -4), Vector3.forward);
             var receiver = Roster.FieldPlayers.First(p => p.Team == blue.Team && p != blue);
             receiver.Motor.ResetPose(new Vector3(0, 0, 2), Quaternion.identity);
-            var dry = await ObserveImpact(() =>
+            void LeaveReceivingLane(SwimmerBallInteraction player, BallReleaseKind kind)
             {
-                Check(blue.GetComponent<SwimmerPassing>().TryPassTo(receiver), "Real aimed dry pass");
-                receiver.Motor.ResetPose(new Vector3(4, 0, 3), Quaternion.identity);
+                if (player == blue.Interaction && kind == BallReleaseKind.Pass)
+                    receiver.Motor.ResetPose(new Vector3(4, 0, 3), Quaternion.identity);
+            }
+            ball.Released += LeaveReceivingLane;
+            BallImpactEvent dry;
+            try
+            {
                 View(new Vector3(0, .2f, 2.3f));
-            }, BallImpactKind.Water, "03-Missed-Dry-Pass", true);
+                dry = await ObserveImpact(() => Check(blue.GetComponent<SwimmerPassing>().TryPassTo(receiver),
+                    "Real aimed dry pass"), BallImpactKind.Water, "03-Missed-Dry-Pass", true);
+            }
+            finally { ball.Released -= LeaveReceivingLane; }
             Check(ball.Owner == null && !ball.IsAirborne && dry.Outgoing.magnitude <= 2.36f && dry.Outgoing.y == 0, "Missed catch settles with bounded drift");
             Check(dry.Outgoing.magnitude > .1f && ball.Velocity.magnitude < dry.Outgoing.magnitude, "Residual drift slows after landing");
 
@@ -171,7 +182,8 @@ public static class BallPhysicsPolishVerification
             Check(ball.Delivery == PassDelivery.Wet && wet.Outgoing.magnitude <= 1.91f && ball.Owner == null, "Wet splash and no mid-flight catch");
 
             Claim(blue, new Vector3(0, 0, -4), Vector3.forward);
-            Check(ball.TryLob(blue.Interaction, Vector3.forward, 8f, 1.1f, null) && ball.Delivery == PassDelivery.Lob, "Lob pass trajectory");
+            Check(ball.TryLob(blue.Interaction, Vector3.forward, 8f, 1.1f, null), "Lob pass was requested");
+            await Await(() => ball.Owner == null && ball.Delivery == PassDelivery.Lob, "Lob pass released");
             await Await(() => ball.IsAirborne && ball.PhysicsPosition.y > 1f, "Distinct airborne lob arc", 2);
             await Await(() => !ball.IsAirborne, "Lob settles on water", 3);
 
@@ -188,10 +200,12 @@ public static class BallPhysicsPolishVerification
             View(spot + forward * 3.8f);
             var skip = await ObserveImpact(() => Check(blue.Interaction.TryShoot(21, ShotType.Skip), "Physical skip release"),
                 BallImpactKind.Skip, "05-Intentional-Skip", true);
-            Check(ball.WaterBounces == 1 && skip.Outgoing.y >= .6f && Vector3.ProjectOnPlane(skip.Outgoing,Vector3.up).magnitude >= 15f, "Skip retains speed and one upward bounce");
-            int bounces = ball.WaterBounces;
+            Check(ball.WaterBounces >= 1 && skip.Outgoing.y >= .6f &&
+                Vector3.ProjectOnPlane(skip.Outgoing,Vector3.up).magnitude >= 15f &&
+                skip.Outgoing.magnitude < skip.Incoming.magnitude, "First skip retained forward speed and lost total speed");
             await Await(() => !ball.IsAirborne || match.Rules.BoundaryRestart.HasValue, "Skip finishes as a real shot");
-            Check(ball.WaterBounces <= bounces, "No repeated skip");
+            int bounces = ball.WaterBounces;
+            Check(bounces <= 2, "Production allows at most two qualifying skips");
             return Save("Water-PASS", new { dropIncomingY = drop.Incoming.y, dropOutgoingY = drop.Outgoing.y, dropDrift = drift, dropPoint = drop.Position.ToString(),
                 dryLandingSpeed = dry.Outgoing.magnitude, wetLandingSpeed = wet.Outgoing.magnitude, ordinaryShotLandingSpeed = ordinary.Outgoing.magnitude, lob = true,
                 skipUpward = skip.Outgoing.y, skipExitSpeed = skip.Outgoing.magnitude, skipBounces = bounces });
@@ -310,9 +324,13 @@ public static class BallPhysicsPolishVerification
         var axis = opposite.transform.forward;
         Claim(blue, opposite.transform.position - axis * 5.5f, axis);
         Check(blue.Interaction.TryShoot(21f, ShotType.Normal), "Attacking shot for the save");
-        await Await(() => opposite.transform.InverseTransformPoint(ball.PhysicsPosition).z > -2.55f, "Shot reaches the goal area");
-        Check(ball.TryDeflectContact(Keeper(PrototypeTeam.White).Identity.Interaction, ball.PhysicsPosition,
-            axis * 12f + Vector3.right * 15f), "Authoritative keeper deflection with controlled test direction");
+        await Await(() => ball.Owner == null && ball.ReleaseKind == BallReleaseKind.Shot &&
+            opposite.transform.InverseTransformPoint(ball.PhysicsPosition).z > -3.4f, "Released shot reaches the goal area");
+        var defenderKeeper = Keeper(PrototypeTeam.White).Identity;
+        Vector3 contact = ball.PhysicsPosition;
+        Check(ball.TryDeflectContact(defenderKeeper.Interaction, contact, axis * 12f + Vector3.right * 15f),
+            $"Controlled keeper deflection rejected ({match.Phase}, ball {ball.State} at {contact}, " +
+            $"owner {ball.Owner}, keeper eligibility {defenderKeeper.EligibleForPlay})");
         var corner = await Exit(BoundaryRestartKind.CornerThrow, PrototypeTeam.Blue, 18, "11-Corner-Throw");
         Check(corner.Mark.x > 9.99f && Mathf.Abs(opposite.transform.InverseTransformPoint(corner.Mark).z + 2f) < .01f, "Nearest-side two-metre corner mark");
         await PlayRestart();

@@ -76,7 +76,7 @@ namespace ToduStudios.WaterPolo
                 direction=match.SprintOff.HumanMovement(direction,sprint);sprint|=match.SprintOff.HumanSprint;
                 match.SprintOff.TryHumanPickup();
             }
-            motor.SetMoveInput(direction);
+            motor.SetMoveInput(direction, usePossessionFacing: true);
             if(stamina!=null)stamina.RequestSprint(sprint);
         }
 

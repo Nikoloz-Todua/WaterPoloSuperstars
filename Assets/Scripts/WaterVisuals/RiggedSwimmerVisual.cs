@@ -24,8 +24,10 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         Animator animator;
         SwimmerStamina stamina;
         PrototypeGoalkeeper keeper;
+        PrototypeTeamTactics tactics;
         ShotCharge charge;
         Transform head,leftHand,rightHand,leftFoot,rightFoot;
+        ProneFoot leftFlutter, rightFlutter;
         Vector3 lastLeft,lastRight;
         float idleAt,leftAt,rightAt,bubbleAt;
         int previousPreview=-1,saveAttempts;
@@ -35,7 +37,9 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         WaterPoloThrowPose evaluatedPose;
         ThrowMotion followMotion;
         Vector3 followAim;
-        float followAt, loadedWeight;
+        float followAt, loadedWeight, carryWeight;
+        Vector3 saveContact, blockTarget;
+        float saveWeight, blockWeight, receiveRise;
         const float FollowSeconds = .22f;
         static readonly int Move=Animator.StringToHash("Move"),Hold=Animator.StringToHash("Hold"),Block=Animator.StringToHash("Block");
         public Animator Animator=>animator;
@@ -46,6 +50,8 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         public bool SupportsEvaluatedGrip => isActiveAndEnabled && evaluatedPose != null && evaluatedPose.Ready;
         public Vector3 EvaluatedBallGrip => SupportsEvaluatedGrip && ball != null
             ? evaluatedPose.Grip(ball.Radius) : transform.position;
+        public Vector3 EvaluatedPalm => SupportsEvaluatedGrip ? evaluatedPose.PalmPosition : transform.position;
+        public Vector3 EvaluatedPalmNormal => SupportsEvaluatedGrip ? evaluatedPose.PalmDirection : Vector3.zero;
         public Vector3 HeadPosition => head != null ? head.position : transform.position;
         public int StrokeEmissions { get; private set; }
         public int ReleaseAnimations { get; private set; }
@@ -62,9 +68,14 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             head=animator.GetBoneTransform(HumanBodyBones.Head);
             leftHand=animator.GetBoneTransform(HumanBodyBones.LeftHand);rightHand=animator.GetBoneTransform(HumanBodyBones.RightHand);
             leftFoot=animator.GetBoneTransform(HumanBodyBones.LeftFoot);rightFoot=animator.GetBoneTransform(HumanBodyBones.RightFoot);
+            leftFlutter = new ProneFoot(animator, HumanBodyBones.LeftLowerLeg, HumanBodyBones.LeftFoot,
+                HumanBodyBones.LeftToes, transform.up);
+            rightFlutter = new ProneFoot(animator, HumanBodyBones.RightLowerLeg, HumanBodyBones.RightFoot,
+                HumanBodyBones.RightToes, transform.up);
             if(identity!=null)
             {
                 stamina=identity.GetComponent<SwimmerStamina>();keeper=identity.GetComponent<PrototypeGoalkeeper>();
+                tactics = identity.GetComponent<PrototypeSwimmerAI>()?.TacticalTeam;
                 charge=identity.GetComponent<ShotCharge>();
                 evaluatedPose = new WaterPoloThrowPose(animator, identity.transform.forward);
             }
@@ -88,7 +99,10 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         }
         void Update()
         {
-            bool paused=match!=null&&(match.IsPaused||match.GoalPresentationActive||match.IsPreMatchPresentation);animator.speed=paused?0:Preview?PreviewPlaybackSpeed:1f;if(paused)return;
+            bool paused=match!=null&&(match.IsPaused||match.GoalPresentationActive||match.IsPreMatchPresentation);
+            animator.speed = paused ? 0f : Preview ? PreviewPlaybackSpeed
+                : motor.IsRetreating ? Mathf.Lerp(1f, 1.28f, motor.Velocity.magnitude / 4f) : 1f;
+            if(paused)return;
             bool evaluatedHold = false;
             if(Preview)
             {
@@ -105,7 +119,10 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                 if(stamina!=null&&stamina.IsSprinting&&speed>3)Locomotion=1+Mathf.Clamp01((speed-3)/2.5f);
                 reaching=ball.ShowReceivingHand(identity.Interaction);
                 evaluatedHold = ball.ControlsEvaluatedGrip(identity.Interaction);
-                if (evaluatedHold || followMotion != ThrowMotion.None) Locomotion = Mathf.Min(Locomotion, .08f);
+                if (evaluatedHold || followMotion != ThrowMotion.None || motor.IsRetreating)
+                    Locomotion = Mathf.Min(Locomotion, .08f);
+                if (ball.ProfessionalThrows && keeper != null && (keeper.AtStation || keeper.Recovering))
+                    Locomotion = Mathf.Min(Locomotion, .12f);
                 animator.SetBool(Hold,!evaluatedHold &&
                     ((identity.Interaction.HasBall && !ball.IsDribbling)||(charge!=null&&charge.IsCharging)));
                 animator.SetBool(Block,keeper!=null&&keeper.ThreateningShot);
@@ -126,6 +143,8 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             // Outside the animated hierarchy: correct the mesh waterline, never the swimmer root.
             float now=match!=null?match.PresentationTime:Time.time;
             float elevation = headHeight;
+            if (ball != null && ball.ProfessionalThrows && identity != null)
+                UpdateDefensivePresentation();
             if (useAuthoredWaterline)
             {
                 float moving = Mathf.Clamp01(animator.GetFloat(Move));
@@ -135,8 +154,19 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                     support = Mathf.Max(support, Mathf.Max(loadedWeight * .66f, ball.HasPendingThrow ? .9f : 0f));
                 elevation = Mathf.Lerp(.15f, professional ? .087f : .12f, moving) + (professional ? .048f : .038f) * support +
                     Mathf.Sin(now * 5.4f) * Mathf.Lerp(.009f, .003f, moving);
+                elevation += saveWeight * .22f + blockWeight * .095f;
+                receiveRise = Mathf.MoveTowards(receiveRise, professional && reaching ? .18f : 0f,
+                    (reaching ? 1.35f : .76f) * Time.deltaTime);
+                elevation += receiveRise;
             }
             Vector3 p=alignmentRoot.position;p.y+=surface+elevation-head.position.y;alignmentRoot.position=p;
+            if (useAuthoredWaterline)
+            {
+                float stroke = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.58f, .97f, animator.GetFloat(Move)));
+                Vector3 facing = identity != null ? identity.transform.forward : alignmentRoot.forward;
+                leftFlutter.Align(facing, stroke);
+                rightFlutter.Align(facing, stroke);
+            }
             if (ball != null && ball.ProfessionalThrows && SupportsEvaluatedGrip)
                 FinishEvaluatedPose();
             if(water!=null && !water.UsesContactSampling && (identity==null||identity.EligibleForPlay))
@@ -160,12 +190,17 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             if (ball.ControlsEvaluatedGrip(identity.Interaction))
             {
                 followMotion = ThrowMotion.None;
-                float readiness = charge != null && charge.IsCharging ? 1f : 0f;
-                loadedWeight = Mathf.MoveTowards(loadedWeight, readiness, Time.deltaTime * 8f);
                 ThrowMotion motion = ball.GetThrowMotion(out float phase, out Vector3 queuedAim);
-                float gather = ball.GetGatherProgress(out Vector3 gatheringAt);
+                float readiness = charge != null && charge.IsCharging ? 1f : motor.IsRetreating ? .72f : 0f;
+                // The queued standard throw starts from the wind-up already visible at button release.
+                if (motion != ThrowMotion.Shot)
+                    loadedWeight = Mathf.MoveTowards(loadedWeight, readiness, Time.deltaTime * 8f);
+                float carry = motor.IsRetreating ? .55f : Mathf.InverseLerp(.42f, 1.65f, motor.Velocity.magnitude) * .64f;
+                carryWeight = Mathf.MoveTowards(carryWeight, carry, Time.deltaTime * 5f);
+                float gather = ball.GetGatherProgress(out Vector3 gatheringAt, out Vector3 arrival);
                 Vector3 aim = ball.HasPendingThrow ? queuedAim : forward;
-                evaluatedPose.Apply(ball.Radius, forward, aim, loadedWeight, gather, gatheringAt, motion, phase, 0f);
+                evaluatedPose.Apply(ball.Radius, ball.SurfaceHeight, forward, aim, loadedWeight,
+                    gather, gatheringAt, motion, phase, 0f, carryWeight, arrival);
                 if (ball.CommitEvaluatedGrip(identity.Interaction, evaluatedPose.Grip(ball.Radius)))
                 {
                     followMotion = motion;
@@ -176,24 +211,64 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             }
 
             loadedWeight = 0f;
+            carryWeight = 0f;
             if (followMotion != ThrowMotion.None)
             {
                 float follow = (Time.time - followAt) / FollowSeconds;
                 if (active && follow < 1f)
                 {
-                    evaluatedPose.Apply(ball.Radius, forward, followAim, 0f, 1f,
+                    evaluatedPose.Apply(ball.Radius, ball.SurfaceHeight, forward, followAim, 0f, 1f,
                         default, followMotion, 1f, Mathf.Max(.001f, follow));
                     return;
                 }
                 followMotion = ThrowMotion.None;
             }
 
-            if (!active || !identity.EligibleForPlay) return;
-            if (keeper != null)
-                evaluatedPose.Look(forward, ball.transform.position - head.position, .60f, 38f);
+            bool keeperStation = keeper != null && !keeper.Stopped && (keeper.AtStation || saveWeight > .01f);
+            if ((!active && !keeperStation) || !identity.EligibleForPlay)
+            {
+                evaluatedPose.ResetFingers();
+                return;
+            }
+            if (reaching && ball.ShowReceivingHand(identity.Interaction))
+            {
+                Vector3 incoming = ball.Velocity;
+                Vector3 ballPoint = ball.PhysicsPosition;
+                Vector3 handPoint = ball.RaisedHand(identity.Interaction, ballPoint);
+                float range = Vector3.Distance(ballPoint, handPoint);
+                float approach = 1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.30f, 2.55f, range));
+                Vector3 predicted = ballPoint + incoming * .025f;
+                Vector3 contact = handPoint + Vector3.ClampMagnitude(predicted - handPoint, .45f) * approach;
+                evaluatedPose.Receive(ball.Radius, forward, incoming, contact, approach);
+                return;
+            }
+            evaluatedPose.ResetFingers();
+            if (keeperStation)
+            {
+                Transform goal = keeper.DefendedGoal.transform;
+                bool twoHands = Vector3.Distance(motor.Position, goal.position) < 6f &&
+                    Mathf.Abs(goal.InverseTransformPoint(saveContact).x) < .48f;
+                evaluatedPose.Keeper(forward, ball.transform.position, saveContact, saveWeight, twoHands, ball.Radius);
+            }
+            else if (blockWeight > 0f)
+                evaluatedPose.Guard(forward, blockTarget, blockWeight);
             else if (Locomotion > .2f)
                 evaluatedPose.Look(forward, forward + Vector3.down * .14f, Mathf.Clamp01(Locomotion) * .53f, 36f);
             ball.CommitEvaluatedDribble(identity.Interaction);
+        }
+
+        void UpdateDefensivePresentation()
+        {
+            blockWeight = tactics != null ? tactics.BlockPose(identity, out blockTarget) : 0f;
+            if (keeper == null) return;
+            float drive = 0f;
+            if (keeper.TryGetSavePresentation(out Vector3 contact, out float weight))
+            {
+                saveContact = saveWeight < .02f ? contact : Vector3.Lerp(saveContact, contact,
+                    1f - Mathf.Exp(-20f * Time.deltaTime));
+                drive = weight;
+            }
+            saveWeight = Mathf.MoveTowards(saveWeight, drive, Time.deltaTime * (drive > saveWeight ? 9f : 3.7f));
         }
 
         void OnDrawGizmosSelected()
@@ -218,7 +293,8 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         void OnAnimatorIK(int layer)
         {
             if(layer!=1||identity==null||ball==null)return;
-            if (ball.ControlsEvaluatedGrip(identity.Interaction) || followMotion != ThrowMotion.None)
+            if (ball.ControlsEvaluatedGrip(identity.Interaction) || followMotion != ThrowMotion.None ||
+                (ball.ProfessionalThrows && reaching && SupportsEvaluatedGrip))
             {
                 animator.SetIKPositionWeight(AvatarIKGoal.RightHand, 0f);
                 return;
@@ -229,6 +305,38 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             var shoulder=animator.GetBoneTransform(HumanBodyBones.RightUpperArm);
             target=shoulder.position+Vector3.ClampMagnitude(target-shoulder.position,.53f);
             animator.SetIKPositionWeight(AvatarIKGoal.RightHand,holding?1f:.92f);animator.SetIKPosition(AvatarIKGoal.RightHand,target);
+        }
+
+        readonly struct ProneFoot
+        {
+            readonly Transform knee, ankle, toes;
+            readonly Quaternion footFrame;
+
+            public ProneFoot(Animator animator, HumanBodyBones kneeBone, HumanBodyBones ankleBone,
+                HumanBodyBones toeBone, Vector3 dorsal)
+            {
+                knee = animator.GetBoneTransform(kneeBone);
+                ankle = animator.GetBoneTransform(ankleBone);
+                toes = animator.GetBoneTransform(toeBone);
+                footFrame = ankle != null && toes != null
+                    ? Quaternion.Inverse(ankle.rotation) * Quaternion.LookRotation(toes.position - ankle.position, dorsal)
+                    : Quaternion.identity;
+            }
+
+            public void Align(Vector3 facing, float weight)
+            {
+                if (weight <= 0f || knee == null || ankle == null || toes == null) return;
+                Vector3 shin = (ankle.position - knee.position).normalized;
+                if (Vector3.Dot(shin, -facing) < .68f) return;
+                Vector3 authored = (toes.position - ankle.position).normalized;
+                Vector3 target = Vector3.RotateTowards(shin, authored, 22f * Mathf.Deg2Rad, 0f);
+                Vector3 dorsal = ankle.rotation * (footFrame * Vector3.up);
+                float roll = Vector3.SignedAngle(Vector3.ProjectOnPlane(Vector3.up, target),
+                    Vector3.ProjectOnPlane(dorsal, target), target);
+                Vector3 up = Quaternion.AngleAxis(Mathf.Clamp(roll, -27f, 27f), target) * Vector3.up;
+                Quaternion corrected = Quaternion.LookRotation(target, up) * Quaternion.Inverse(footFrame);
+                ankle.rotation = Quaternion.Slerp(ankle.rotation, corrected, weight);
+            }
         }
     }
 }

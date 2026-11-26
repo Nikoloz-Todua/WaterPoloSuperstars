@@ -60,6 +60,8 @@ public static class InteractiveWaterVerification
         var lensAnchor = camera.viewpoints[2];
         var priorAnchorPosition = lensAnchor.position;
         var priorAnchorRotation = lensAnchor.rotation;
+        var selection = One<PlayerSelection>();
+        bool selectionWasEnabled = selection.enabled;
         var brains = Object.FindObjectsByType<PrototypeSwimmerAI>().Cast<Behaviour>().Concat(Object.FindObjectsByType<PrototypeGoalkeeper>())
             .Concat(Object.FindObjectsByType<SwimmerInput>()).Where(item => item.enabled).ToArray();
         var players = roster.Members.ToArray();
@@ -67,6 +69,8 @@ public static class InteractiveWaterVerification
         var active = players.First(p => p.Team == PrototypeTeam.Blue && p.IsFieldPlayer);
         try
         {
+            // Scripted routes own motor commands while this comparison runs.
+            selection.enabled = false;
             foreach (var brain in brains) brain.enabled = false;
             camera.SetView(2);
             void Look(Vector3 focus, Vector3 offset)
@@ -174,6 +178,14 @@ public static class InteractiveWaterVerification
                 await Task.Delay(240);
             }
             await Wait(() => effects.LeftHandEntries > left && effects.RightHandEntries > right, "A stroke entry was not observed from each arm.", 3f);
+            for (int i = 0; i < 3; i++)
+            {
+                var target = active.Motor.Position - Vector3.forward * .35f - Vector3.up * .25f;
+                Look(target, new Vector3(2.35f, -.47f, -.38f));
+                await Frame();
+                await Image($"Underwater-crawl-{i + 1}");
+                await Task.Delay(87);
+            }
             active.GetComponent<SwimmerStamina>().RequestSprint(true);
             for (int i = 0; i < 3; i++)
             {
@@ -183,6 +195,10 @@ public static class InteractiveWaterVerification
                 await Image($"Sprint-wake-{i + 1}");
                 await Task.Delay(130);
             }
+            active.Motor.SetMoveInput(Vector2.down);
+            await Task.Delay(96);
+            Look(active.Motor.Position, new Vector3(2.3f, .60f, .94f));
+            await Image("Sprint-reversal-turbulence");
             active.Motor.StopMotion();
             active.GetComponent<SwimmerStamina>().RequestSprint(false);
             Look(active.Motor.Position, new Vector3(1.0f, .57f, 1.8f));
@@ -215,6 +231,7 @@ public static class InteractiveWaterVerification
                 player.GetComponent<SwimmerStamina>().RequestSprint(false);
             }
             foreach (var brain in brains) if (brain != null) brain.enabled = true;
+            selection.enabled = selectionWasEnabled;
         }
     }
 

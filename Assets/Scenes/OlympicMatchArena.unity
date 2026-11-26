@@ -6761,6 +6761,11 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 14
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 1.1
 --- !u!136 &87476091
 CapsuleCollider:
@@ -16163,6 +16168,11 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 14
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 1.1
 --- !u!136 &202861653
 CapsuleCollider:
@@ -25988,6 +25998,10 @@ MonoBehaviour:
   tacticalTeam: {fileID: 426180035}
   contextualSwitching: 1
   returnPenaltySeconds: 0.8
+  manualProtectionSeconds: 1.05
+  looseBallSwitchInterval: 0.3
+  looseBallAdvantage: 0.6
+  looseBallMaxArrival: 1.6
 --- !u!114 &336400202
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -32114,6 +32128,9 @@ MonoBehaviour:
   passProgressWeight: 0.08
   passOpennessWeight: 0.5
   aiShotSpeed: 16
+  blockReaction: 0.085
+  blockCommitment: 0.28
+  blockRecovery: 0.3
 --- !u!1 &428081262
 GameObject:
   m_ObjectHideFlags: 0
@@ -42131,6 +42148,11 @@ MonoBehaviour:
   acceleration: 8
   deceleration: 10
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 0.45
 --- !u!136 &593132171
 CapsuleCollider:
@@ -42430,6 +42452,11 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 14
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 1.1
 --- !u!136 &594443260
 CapsuleCollider:
@@ -43957,6 +43984,9 @@ MonoBehaviour:
     airDrag: 0.015
     skipRestitution: 0.42
     skipRetention: 0.9
+    skipMinimumSpeed: 6.5
+    skipMaximumSlope: 0.63
+    maximumSkips: 2
     shotWaterRetention: 0.26
     lobWaterRetention: 0.27
     maximumReceivingSpeed: 14
@@ -43978,6 +44008,7 @@ MonoBehaviour:
   dribbleStopSpeed: 1.1
   dribbleStartDelay: 0.15
   dribbleHeadGap: 0.36
+  retreatPickupDelay: 0.85
   rollingVisual: {fileID: 1745275253}
 --- !u!135 &616080029
 SphereCollider:
@@ -44740,6 +44771,11 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 14
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 1.1
 --- !u!136 &619928589
 CapsuleCollider:
@@ -49269,6 +49305,11 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 14
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 1.1
 --- !u!136 &677469408
 CapsuleCollider:
@@ -52708,6 +52749,11 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 14
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 1.1
 --- !u!136 &726814767
 CapsuleCollider:
@@ -77122,6 +77168,11 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 14
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 1.1
 --- !u!136 &1139668990
 CapsuleCollider:
@@ -82315,6 +82366,11 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 14
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 1.1
 --- !u!136 &1217614249
 CapsuleCollider:
@@ -82615,6 +82671,11 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 14
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 1.1
 --- !u!136 &1218628266
 CapsuleCollider:
@@ -84944,6 +85005,9 @@ MonoBehaviour:
   passProgressWeight: 0.08
   passOpennessWeight: 0.5
   aiShotSpeed: 16
+  blockReaction: 0.085
+  blockCommitment: 0.28
+  blockRecovery: 0.3
 --- !u!1 &1254917805
 GameObject:
   m_ObjectHideFlags: 0
@@ -97190,6 +97254,11 @@ MonoBehaviour:
   acceleration: 8
   deceleration: 10
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 0.45
 --- !u!136 &1449607060
 CapsuleCollider:
@@ -100537,6 +100606,11 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 14
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 1.1
 --- !u!136 &1502215308
 CapsuleCollider:
@@ -112379,6 +112453,11 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 14
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 1.1
 --- !u!136 &1666093149
 CapsuleCollider:
@@ -144897,6 +144976,11 @@ MonoBehaviour:
   acceleration: 10
   deceleration: 14
   turnSpeed: 360
+  turnAcceleration: 1550
+  reversalSpeedFraction: 0.55
+  retreatSpeedFraction: 0.54
+  retreatEnterDot: 0.66
+  retreatExitDot: 0.32
   boundaryClearance: 1.1
 --- !u!136 &2047010074
 CapsuleCollider:

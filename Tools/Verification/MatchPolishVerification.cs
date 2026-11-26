@@ -83,7 +83,7 @@ public static class MatchPolishVerification
         {
             player.Motor.ResetPose(Vector3.zero,Quaternion.identity);
             if(carrying) Claim(player);
-            else One<BallController>().ResetForRestart(new Vector3(-7,0,-7));
+            else One<BallController>().ResetForRestart(new Vector3(0,0,-11));
             await Task.Delay(75);
             InputSystem.QueueStateEvent(keyboard,new KeyboardState(keys));
             await Task.Delay(560);

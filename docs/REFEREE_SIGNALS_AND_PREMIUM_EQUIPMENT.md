@@ -1,5 +1,7 @@
 # Milestone 30 — Referee signals and premium equipment
 
+Milestone 30B verified the full live roster mesh and kit assignments and revisited in-pool brief visibility. The fitted briefs and official models remain in use, with a revised water finish and correction through the shared walking foot placement. The White material uses opaque URP Lit, RGBA (0.93, 0.96, 1.00, 1.00), smoothness 0.81 and a low textured fill. `Tools/Art/BakeWhiteBriefsFabric.py` bakes the existing sewn-region masks from the Atlas Blender source into the shared 256 px albedo. It adds contrast at the waistband, leg bindings and sides. Submerged cloth still shifts blue and loses contrast at grazing angles. [Recovery audit](MILESTONE_30B_RECOVERY_AUDIT.md) · [Rendered comparison](Evidence/Milestone30B/White-Briefs-Comparison.jpg)
+
 
 
 ## Poolside observation and walking

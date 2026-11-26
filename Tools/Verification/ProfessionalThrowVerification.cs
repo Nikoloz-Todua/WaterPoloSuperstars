@@ -12,9 +12,10 @@ using Object = UnityEngine.Object;
 
 public static class ProfessionalThrowVerification
 {
-    private const string Output = "Logs/Milestone30/Throwing";
+    public static Task<object> Run() => RunScenario("Logs/Milestone30/Throwing", false);
+    public static Task<object> Run30B() => RunScenario("docs/Evidence/Milestone30B/Throwing", true);
 
-    public static async Task<object> Run()
+    private static async Task<object> RunScenario(string output, bool palmOverBall)
     {
         var match = Object.FindAnyObjectByType<PrototypeMatch>();
         var ball = Object.FindAnyObjectByType<BallController>();
@@ -47,10 +48,12 @@ public static class ProfessionalThrowVerification
         bool releasedFromGrip = false;
         int renderedFrame = -1;
         Vector3 renderedBall = default, renderedPalm = default, renderedHead = default;
+        Vector3 renderedPalmPoint = default, renderedPalmNormal = default;
         var throws = new List<object>();
+        var receptions = new List<object>();
         var turnTrace = new List<string>();
         string turnProbe = null;
-        Directory.CreateDirectory(Output);
+        Directory.CreateDirectory(output);
 
         void Released(SwimmerBallInteraction source, BallReleaseKind kind)
         {
@@ -67,6 +70,8 @@ public static class ProfessionalThrowVerification
             if (view != gameLens) return;
             renderedBall = ball.transform.position;
             renderedPalm = visual.EvaluatedBallGrip;
+            renderedPalmPoint = visual.EvaluatedPalm;
+            renderedPalmNormal = visual.EvaluatedPalmNormal;
             renderedHead = visual.HeadPosition;
             renderedFrame = Time.frameCount;
             if (turnProbe != null)
@@ -94,7 +99,7 @@ public static class ProfessionalThrowVerification
             await Until(() => renderedFrame > frame, "Game View stopped rendering.");
         }
 
-        void Photograph(string name) => ScreenCapture.CaptureScreenshot(Path.GetFullPath(Output + "/" + name + ".png"));
+        void Photograph(string name) => ScreenCapture.CaptureScreenshot(Path.GetFullPath(output + "/" + name + ".png"));
 
         void FrameAthlete()
         {
@@ -147,7 +152,7 @@ public static class ProfessionalThrowVerification
             }
             Require(releaseCount == count + 1 && releasedFromGrip && ball.ReleaseKind == kind,
                 $"{name} must release once from the visual clock.");
-            File.AppendAllText(Output + "/Release-Trace.txt",
+            File.AppendAllText(output + "/Release-Trace.txt",
                 $"{name} dt {releaseTime - requestedAt:F3} from {releaseOrigin:F3}, gripError {releaseError:F5}, velocity {ball.Velocity:F3}\n");
             Require(releaseError < .012f && releaseOrigin.y > ball.SurfaceHeight + .07f,
                 $"{name} release position diverged from the evaluated palm or was too low at {releaseOrigin}.");
@@ -158,9 +163,43 @@ public static class ProfessionalThrowVerification
             for (int i = 0; i < 3; i++) await Frame();
             Photograph(name + "-FollowThrough");
             if (catchPass)
-                await Until(() => ball.Owner == receiver.Interaction, $"{name} missed the staged receiver.", 2.5f);
+            {
+                if (palmOverBall) await FilmReception(name);
+                else await Until(() => ball.Owner == receiver.Interaction, $"{name} missed the staged receiver.", 2.5f);
+            }
             else
                 await Until(() => Time.time >= releaseTime + .24f, "Follow-through time did not advance.");
+        }
+
+        async Task FilmReception(string name)
+        {
+            var receivingVisual = receiver.GetComponentInChildren<RiggedSwimmerVisual>();
+            if (camera != null)
+            {
+                var view = camera.viewpoints[2];
+                Vector3 focus = receiver.transform.position - direction * .22f + Vector3.up * .20f;
+                view.position = focus - direction * .65f + Vector3.forward * 1.75f + Vector3.up * .64f;
+                view.LookAt(focus);
+                camera.SetView(2);
+            }
+            float deadline = Time.time + 2.5f;
+            float leastError = float.PositiveInfinity;
+            int frames = 0;
+            while (ball.Owner != receiver.Interaction)
+            {
+                await Frame();
+                if (Time.time >= deadline) throw new TimeoutException($"{name} missed the staged receiver.");
+                if (Vector3.Distance(ball.transform.position, receiver.transform.position) > 2.6f) continue;
+                float contactError = Mathf.Abs(Vector3.Distance(receivingVisual.EvaluatedPalm, ball.transform.position) - ball.Radius);
+                leastError = Mathf.Min(leastError, contactError);
+                if (frames < 6) Photograph($"{name}-Catch-{frames:00}");
+                frames++;
+            }
+            float firstCatchFrame = Mathf.Abs(Vector3.Distance(receivingVisual.EvaluatedPalm, ball.transform.position) - ball.Radius);
+            Photograph($"{name}-Catch-Contact");
+            for (int i = 0; i < 3; i++) await Frame();
+            Photograph($"{name}-Catch-Absorb");
+            receptions.Add(new { name, frames, leastError = float.IsInfinity(leastError) ? firstCatchFrame : leastError, firstCatchFrame });
         }
 
         try
@@ -174,12 +213,19 @@ public static class ProfessionalThrowVerification
             selection.Select(athlete);
             ball.Released += Released;
             RenderPipelineManager.endCameraRendering += ReadRenderedState;
-            File.WriteAllText(Output + "/Release-Trace.txt", "");
+            File.WriteAllText(output + "/Release-Trace.txt", "");
 
             await Possess();
             await Frame();
             Photograph("Low-Hold");
+            float palmDown = Vector3.Dot(renderedPalmNormal, Vector3.down);
+            float palmAboveBall = renderedPalmPoint.y - renderedBall.y;
+            float surfaceOffset = renderedBall.y - ball.SurfaceHeight;
+            if (palmOverBall)
+                Require(palmDown > .68f && palmAboveBall > .09f && Mathf.Abs(surfaceOffset) < .055f,
+                    $"Low hold does not cover the ball at the surface: dot {palmDown:F3}, above {palmAboveBall:F3}, offset {surfaceOffset:F3}.");
             float maxGripError = 0f;
+            float sumSurfaceError = 0f, maxSurfaceError = 0f;
             float leastHeadClearance = float.PositiveInfinity;
             int turningSamples = 0;
             foreach (float yaw in new[] { 90f, 180f, 270f, 360f, 450f, 330f, 440f })
@@ -192,6 +238,9 @@ public static class ProfessionalThrowVerification
                 {
                     await Frame();
                     maxGripError = Mathf.Max(maxGripError, Vector3.Distance(renderedBall, renderedPalm));
+                    float contactError = Mathf.Abs(Vector3.Distance(renderedBall, renderedPalmPoint) - ball.Radius);
+                    sumSurfaceError += contactError;
+                    maxSurfaceError = Mathf.Max(maxSurfaceError, contactError);
                     leastHeadClearance = Mathf.Min(leastHeadClearance, Vector3.Distance(renderedBall, renderedHead));
                     turningSamples++;
                 } while (Vector3.Dot(athlete.Motor.Facing, turningAim) < .999f && Time.time < turningDeadline);
@@ -199,7 +248,7 @@ public static class ProfessionalThrowVerification
                 Photograph("Hold-Turn-" + (int)yaw);
             }
             turnProbe = null;
-            File.WriteAllLines(Output + "/Turn-Trace.txt", turnTrace);
+            File.WriteAllLines(output + "/Turn-Trace.txt", turnTrace);
             bool turningPassed = maxGripError < .012f && leastHeadClearance > ball.Radius + .11f;
 
             await Possess();
@@ -245,7 +294,9 @@ public static class ProfessionalThrowVerification
             receiver.Motor.ResetPose(athlete.Motor.Position + direction * 4.2f, Quaternion.LookRotation(-direction));
             await ProbeThrow("Quick-Pass", () => passing.TryPassTo(receiver), BallReleaseKind.Pass, true);
 
-            return new { passed = turningPassed, turningSamples, maxGripError, leastHeadClearance, loadBehind, releaseCount, throws, pauseCancellation = true,
+            return new { passed = turningPassed, turningSamples, maxGripError, leastHeadClearance, loadBehind,
+                palmDown, palmAboveBall, surfaceOffset, maxSurfaceError, meanSurfaceError = sumSurfaceError / turningSamples,
+                releaseCount, throws, receptions, pauseCancellation = true,
                 resetCancellation = true, physicalPassCatches = 3 };
         }
         finally

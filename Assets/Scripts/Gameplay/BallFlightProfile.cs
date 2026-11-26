@@ -24,6 +24,9 @@ namespace ToduStudios.WaterPolo
         [Min(0f)] public float airDrag=0.015f;
         [Range(0f,1f)] public float skipRestitution=0.42f;
         [Range(0f,1f)] public float skipRetention=0.9f;
+        [Min(.1f)] public float skipMinimumSpeed = 6.5f;
+        [Range(.05f, .9f)] public float skipMaximumSlope = .63f;
+        [Range(1, 3)] public int maximumSkips = 2;
         [Range(0f,1f)] public float shotWaterRetention=0.26f;
         [Range(0f,1f)] public float lobWaterRetention=0.27f;
         [Min(0.1f)] public float maximumReceivingSpeed=14f;

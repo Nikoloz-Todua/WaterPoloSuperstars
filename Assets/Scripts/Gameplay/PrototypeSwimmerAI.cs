@@ -123,7 +123,9 @@ namespace ToduStudios.WaterPolo
                 Vector3 away = PrototypeTeamTactics.Planar(identity.Motor.Position - other.Motor.Position); float gap = away.magnitude;
                 if (gap > 0.01f && gap < spacing) steering += away / gap * (1f - gap / spacing);
             }
-            identity.Motor.SetMoveInput(Vector2.ClampMagnitude(new Vector2(steering.x, steering.z), 1f) * (burst?1f:movementFraction));
+            float blockMobility = tacticalTeam.BlockMobility(identity);
+            identity.Motor.SetMoveInput(Vector2.ClampMagnitude(new Vector2(steering.x, steering.z), 1f) *
+                (burst ? 1f : movementFraction) * blockMobility);
             if (Behaviour == SwimmerAIBehaviour.PursueLooseBall && ball.CanCollect && !ball.UsesAutomaticPickup)
                 identity.Interaction.TryCollect();
             if (Behaviour == SwimmerAIBehaviour.Press && ball.Owner != null && stealing != null)

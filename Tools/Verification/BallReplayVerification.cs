@@ -271,14 +271,18 @@ public static class BallReplayVerification
         var defender=One<PrototypeRoster>().FieldPlayers.First(p=>p.Team==PrototypeTeam.White);
         defender.Motor.ResetPose(new Vector3(.1f,0,-.18f),Quaternion.LookRotation(Vector3.back));
         Check(thrower.GetComponent<SwimmerPassing>().TryPassTo(receiver),"Contested pass");
+        await Until(()=>ball.Owner==null&&ball.IsAirborne,"Contested pass released from the hand");
         await Until(()=>ball.Owner!=null||!ball.IsAirborne,"Contested pass settled");
         Check(ball.Owner==defender.Interaction,$"Opponent makes swept hand interception. owner {ball.Owner?.name} ball {ball.PhysicsPosition}");
 
+        thrower.Motor.ResetPose(new Vector3(-8f,0f,-6f),Quaternion.identity);
+        receiver.Motor.ResetPose(new Vector3(-8f,0f,1f),Quaternion.identity);
         (thrower,receiver)=PassSetup(7,PrototypeTeam.White);
         receiver.Motor.SetMoveInput(Vector2.right*.43f);
         await Until(()=>receiver.Motor.Velocity.x>1.55f,"Moving receiver");
         float initialX=receiver.Motor.Position.x;
         Check(thrower.GetComponent<SwimmerPassing>().TryPassTo(receiver),"Lead pass");
+        await Until(()=>ball.Owner==null&&ball.IsAirborne,"Moving pass released from the hand");
         await Until(()=>ball.Owner!=null||!ball.IsAirborne,"Moving catch");
         Check(ball.Owner==receiver.Interaction&&receiver.Motor.Position.x>initialX+.4f,"Moving receiver catches in hand");
         receiver.Motor.StopMotion();

@@ -1,0 +1,5 @@
+Standard-Shot dt 0.235 from (-1.635, 0.471, -3.320), gripError 0.00000, velocity (18.876, 0.550, 0.000)
+Quick-Shot dt 0.276 from (0.204, 0.469, -3.330), gripError 0.00000, velocity (11.996, 0.354, 0.000)
+Short-Pass dt 0.142 from (-1.562, 0.346, -3.442), gripError 0.00000, velocity (10.323, 2.032, 1.905)
+Long-Pass dt 0.204 from (-1.559, 0.344, -3.443), gripError 0.00000, velocity (10.469, 4.018, 0.805)
+Quick-Pass dt 0.256 from (0.235, 0.339, -3.451), gripError 0.00000, velocity (7.699, 2.045, 1.907)

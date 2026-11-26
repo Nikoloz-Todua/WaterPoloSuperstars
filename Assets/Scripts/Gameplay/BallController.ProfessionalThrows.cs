@@ -13,6 +13,7 @@ namespace ToduStudios.WaterPolo
         private PendingThrow preparation;
         private ThrowMotion throwMotion;
         private Vector3 poseDirection, gatherLocalPoint, evaluatedGrip;
+        private Vector3 gatherArrival;
         private float throwStart, throwDuration, gatherUntil;
         private bool gripSampled;
 
@@ -73,9 +74,10 @@ namespace ToduStudios.WaterPolo
             !simulationPaused && State == BallState.Held && Owner == player &&
             Eligible(player) && CanRelease(player, kind);
 
-        private void BeginGather(Vector3 from)
+        private void BeginGather(Vector3 from, Vector3 arrival = default)
         {
             gatherLocalPoint = Owner.transform.InverseTransformPoint(from);
+            gatherArrival = from.y > SurfaceHeight + .12f ? arrival : Vector3.zero;
             gatherUntil = Time.time + GatherSeconds;
             gripSampled = false;
         }
@@ -127,10 +129,38 @@ namespace ToduStudios.WaterPolo
             return HasPendingThrow && Time.time >= throwStart ? throwMotion : ThrowMotion.None;
         }
 
-        internal float GetGatherProgress(out Vector3 point)
+        internal bool TryReadShotThreat(out SwimmerBallInteraction shooter, out Vector3 origin, out Vector3 direction,
+            out int sequence)
+        {
+            if (preparation.Kind == BallReleaseKind.Shot && Time.time >= throwStart + throwDuration * .32f)
+            {
+                shooter = Owner;
+                origin = PhysicsPosition;
+                direction = preparation.Direction;
+                sequence = ShotSequence + 1;
+                return shooter != null;
+            }
+            shooter = LastReleaser;
+            origin = ShotOrigin;
+            direction = Velocity;
+            sequence = ShotSequence;
+            return Owner == null && shooter != null && IsScoringShot && ReleaseKind == BallReleaseKind.Shot &&
+                Time.time <= ReleaseStartedAt + .22f && direction.sqrMagnitude > 16f;
+        }
+
+        internal float GetGatherProgress(out Vector3 point, out Vector3 incoming)
         {
             point = Owner != null ? Owner.transform.TransformPoint(gatherLocalPoint) : transform.position;
-            return Mathf.Clamp01(1f - (gatherUntil - Time.time) / GatherSeconds);
+            incoming = IsGathering ? gatherArrival : Vector3.zero;
+            float progress = Mathf.Clamp01(1f - (gatherUntil - Time.time) / GatherSeconds);
+            if (incoming.sqrMagnitude > .01f)
+            {
+                // Let the last part of the incoming motion carry into the absorbing arm.
+                // CommitEvaluatedGrip moves the same physical ball along this bounded path.
+                Vector3 contactTravel = Vector3.ClampMagnitude(incoming * Mathf.Min(.027f, progress * GatherSeconds), .24f);
+                point += contactTravel * (1f - Mathf.SmoothStep(0f, 1f, progress));
+            }
+            return progress;
         }
 
         internal bool CommitEvaluatedGrip(SwimmerBallInteraction player, Vector3 grip)
@@ -140,7 +170,7 @@ namespace ToduStudios.WaterPolo
 
             evaluatedGrip = grip;
             gripSampled = true;
-            float gather = GetGatherProgress(out Vector3 start);
+            float gather = GetGatherProgress(out Vector3 start, out _);
             Vector3 point = gather >= 1f ? grip : Vector3.Lerp(start, grip, Mathf.SmoothStep(0f, 1f, gather));
             body.position = transform.position = point;
             lastCarrierPosition = player.transform.position;

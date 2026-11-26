@@ -13,6 +13,11 @@ namespace ToduStudios.WaterPolo
         [SerializeField, Min(0.1f)] private float acceleration = 10f;
         [SerializeField, Min(0.1f)] private float deceleration = 14f;
         [SerializeField, Min(1f)] private float turnSpeed = 360f;
+        [SerializeField, Min(1f)] private float turnAcceleration = 1550f;
+        [SerializeField, Range(.2f, 1f)] private float reversalSpeedFraction = .55f;
+        [SerializeField, Range(.2f, 1f)] private float retreatSpeedFraction = .54f;
+        [SerializeField, Range(0f, 1f)] private float retreatEnterDot = .66f;
+        [SerializeField, Range(0f, 1f)] private float retreatExitDot = .32f;
         [Tooltip("Conservative horizontal clearance, in metres, for the entire turning swimmer.")]
         [SerializeField, Min(0f)] private float boundaryClearance = 1.1f;
 
@@ -24,6 +29,9 @@ namespace ToduStudios.WaterPolo
         private float speedOverride = -1f;
         private SwimmerStamina stamina;
         private SwimmerIdentity identity;
+        private SwimmerBallInteraction interaction;
+        private bool directionalInput;
+        private float angularSpeed;
         private bool leavingPeriodLine;
         private float periodAcceleration=1f;
         public void SetPeriodAcceleration(float value)=>periodAcceleration=Mathf.Clamp(value,1f,1.5f);
@@ -49,12 +57,15 @@ namespace ToduStudios.WaterPolo
         public float MaxSpeed => (speedOverride > 0f ? speedOverride : maxSpeed) * (stamina!=null?stamina.SpeedMultiplier:1f);
         public Vector3 Position => body != null ? body.position : transform.position;
         public Vector3 Facing => body!=null?body.rotation*Vector3.forward:transform.forward;
+        public bool IsRetreating { get; private set; }
 
         public void StopMotion()
         {
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
             aimDirection = Vector3.zero;
+            angularSpeed = 0f;
+            IsRetreating = false;
             ClearSpeedOverride();
             periodAcceleration=1f;
             if(stamina!=null)stamina.StopSprint();
@@ -67,15 +78,18 @@ namespace ToduStudios.WaterPolo
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
             aimDirection = Vector3.zero;
+            angularSpeed = 0f;
+            IsRetreating = false;
             ClearSpeedOverride();
             body.position = ClampMovement(position);
             body.rotation = rotation;
         }
 
-        public void SetMoveInput(Vector2 direction)
+        public void SetMoveInput(Vector2 direction, bool usePossessionFacing = false)
         {
             // Preserve analogue stick strength while limiting keyboard diagonals to unit length.
             moveInput = Vector2.ClampMagnitude(direction, 1f);
+            directionalInput = usePossessionFacing;
         }
 
         public void SetFacingDirection(Vector3 direction)
@@ -90,6 +104,7 @@ namespace ToduStudios.WaterPolo
             body = GetComponent<Rigidbody>();
             stamina = GetComponent<SwimmerStamina>();
             identity = GetComponent<SwimmerIdentity>();
+            interaction = GetComponent<SwimmerBallInteraction>();
             body.isKinematic = true;
             body.useGravity = false;
             body.interpolation = RigidbodyInterpolation.Interpolate;
@@ -115,11 +130,34 @@ namespace ToduStudios.WaterPolo
             }
             float step = Time.fixedDeltaTime;
             if(stamina!=null)stamina.Simulate(moveInput.sqrMagnitude>0.01f,step);
-            Vector3 targetVelocity = new Vector3(moveInput.x, 0f, moveInput.y) * MaxSpeed;
+            Vector3 input = new Vector3(moveInput.x, 0f, moveInput.y);
+            bool live = interaction != null && interaction.Ball != null && interaction.Ball.Match != null &&
+                interaction.Ball.Match.IsPlaying;
+            bool sprinting = stamina != null && stamina.IsSprinting;
+            Vector3 forward = Facing;
+            float retreatThreshold = IsRetreating ? Mathf.Min(retreatExitDot, retreatEnterDot) : retreatEnterDot;
+            IsRetreating = live && directionalInput && (interaction.HasBall || (IsRetreating && sprinting)) &&
+                input.sqrMagnitude > .04f && Vector3.Dot(input.normalized, forward) < -retreatThreshold;
+            if (IsRetreating && sprinting && interaction.HasBall)
+                interaction.Ball.TryReleaseForRetreat(interaction);
+
+            float speed = MaxSpeed * (IsRetreating ? (sprinting ? .80f : retreatSpeedFraction) : 1f);
+            Vector3 targetVelocity = input * speed;
             float changeRate = moveInput.sqrMagnitude > 0f ? acceleration : deceleration;
             if(stamina!=null)changeRate*=stamina.AccelerationMultiplier;
             changeRate*=periodAcceleration;
-            velocity = Vector3.MoveTowards(velocity, targetVelocity, changeRate * step);
+            if (live && velocity.sqrMagnitude > .16f && targetVelocity.sqrMagnitude > .01f)
+            {
+                float heading = Vector3.SignedAngle(velocity, targetVelocity, Vector3.up);
+                float sharpTurn = Mathf.InverseLerp(38f, 135f, Mathf.Abs(heading));
+                float glideRate = turnSpeed * (sprinting ? .62f : .84f);
+                Vector3 guided = Quaternion.AngleAxis(Mathf.Clamp(heading, -glideRate * step, glideRate * step),
+                    Vector3.up) * velocity.normalized;
+                float guidedSpeed = Mathf.MoveTowards(velocity.magnitude,
+                    targetVelocity.magnitude * Mathf.Lerp(1f, reversalSpeedFraction, sharpTurn), changeRate * step);
+                velocity = guided * guidedSpeed;
+            }
+            else velocity = Vector3.MoveTowards(velocity, targetVelocity, changeRate * step);
 
             Vector3 previous = body.position;
             Vector3 next = ClampMovement(previous + velocity * step);
@@ -127,12 +165,31 @@ namespace ToduStudios.WaterPolo
             velocity = new Vector3((next.x - previous.x) / step, 0f, (next.z - previous.z) / step);
             body.MovePosition(next);
 
-            Vector3 turnDirection = aimDirection.sqrMagnitude > 0f ? aimDirection : velocity;
+            Vector3 turnDirection = aimDirection.sqrMagnitude > 0f ? aimDirection : IsRetreating ? forward : velocity;
             if (turnDirection.sqrMagnitude > 0.0001f)
             {
-                Quaternion facing = Quaternion.LookRotation(turnDirection, Vector3.up);
-                body.MoveRotation(Quaternion.RotateTowards(body.rotation, facing, turnSpeed * step));
+                if (live)
+                {
+                    float angle = Vector3.SignedAngle(forward, turnDirection, Vector3.up);
+                    float maximum = turnSpeed * (sprinting && !IsRetreating ? .78f : 1f);
+                    float target = Mathf.Sign(angle) * Mathf.Min(maximum,
+                        Mathf.Sqrt(2f * turnAcceleration * Mathf.Abs(angle)));
+                    angularSpeed = Mathf.MoveTowards(angularSpeed, target, turnAcceleration * step);
+                    float turn = angularSpeed * step;
+                    if (turn * angle >= 0f && Mathf.Abs(turn) > Mathf.Abs(angle))
+                    {
+                        turn = angle;
+                        angularSpeed = 0f;
+                    }
+                    body.MoveRotation(Quaternion.AngleAxis(turn, Vector3.up) * body.rotation);
+                }
+                else
+                {
+                    Quaternion facing = Quaternion.LookRotation(turnDirection, Vector3.up);
+                    body.MoveRotation(Quaternion.RotateTowards(body.rotation, facing, turnSpeed * step));
+                }
             }
+            else angularSpeed = 0f;
         }
 
         private void OnDisable()
@@ -141,6 +198,8 @@ namespace ToduStudios.WaterPolo
             moveInput = Vector2.zero;
             velocity = Vector3.zero;
             aimDirection = Vector3.zero;
+            angularSpeed = 0f;
+            IsRetreating = false;
             ClearSpeedOverride();
         }
     }

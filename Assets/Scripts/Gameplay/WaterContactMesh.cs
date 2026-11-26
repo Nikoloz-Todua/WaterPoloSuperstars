@@ -95,8 +95,12 @@ namespace ToduStudios.WaterPolo
             bool low = quality == WaterEffectsQuality.Low;
             if (low && (stamp.Kind == WaterContactKind.Pull || stamp.Kind == WaterContactKind.Kick || stamp.Kind == WaterContactKind.Exit ||
                         stamp.Kind == WaterContactKind.Release || (stamp.Kind == WaterContactKind.Wake && (seed & 1) != 0))) return;
-            bool wake = stamp.Kind == WaterContactKind.Wake || stamp.Kind == WaterContactKind.Bow;
-            float lifetime = wake ? LongestLifetime : stamp.Kind == WaterContactKind.Impact ? 1.19f : .87f;
+            bool impact = stamp.Kind == WaterContactKind.Impact || stamp.Kind == WaterContactKind.SkipImpact;
+            bool wake = stamp.Kind == WaterContactKind.Wake || stamp.Kind == WaterContactKind.Bow ||
+                stamp.Kind == WaterContactKind.Turn || stamp.Kind == WaterContactKind.SkipImpact;
+            float variation = Random01(seed + 23);
+            float lifetime = wake ? Mathf.Lerp(.96f, LongestLifetime, variation) :
+                impact ? Mathf.Lerp(1.05f, 1.28f, variation) : Mathf.Lerp(.56f, .92f, variation);
             if (age >= lifetime) return;
             float distance = (stamp.Point - eye).sqrMagnitude;
             if (distance > rangeSquared) return;
@@ -111,29 +115,29 @@ namespace ToduStudios.WaterPolo
             float fade = 1f - progress;
             if (stamp.Kind != WaterContactKind.Release && stamp.Kind != WaterContactKind.Exit && SurfaceCount < surfaceBudget)
             {
-                float size = stamp.Radius * (.38f + 1.37f * Mathf.Sqrt(progress));
+                float size = stamp.Radius * (.42f + 1.32f * Mathf.Sqrt(progress)) * Mathf.Lerp(.88f, 1.11f, variation);
                 Vector3 center = stamp.Point;
                 center.y = line + SurfaceOffset;
-                if (wake) center -= axis * (.16f + age * .27f);
+                if (wake && !impact) center -= axis * (.16f + age * .27f);
                 float opacity = Mathf.Clamp01((.15f + stamp.Strength * .63f) * fade * (.72f + .28f * fade));
-                float mode = wake ? 1f : stamp.Kind == WaterContactKind.Kick || stamp.Kind == WaterContactKind.Pull ? 2f : 0f;
+                float mode = wake ? 1f : impact ? 0f : 2f;
                 Quad(center, across * (wake ? size * .63f : size), axis * (wake ? size * 1.24f : size),
                     Tint(wake ? new Color32(191, 236, 245, 255) : new Color32(202, 243, 253, 255), opacity), mode, progress);
                 SurfaceCount++;
-                if (stamp.Kind == WaterContactKind.Impact) ImpactSurfaceCount++;
+                if (impact) ImpactSurfaceCount++;
             }
 
             if (ParticleCount >= particleBudget) return;
             bool bubble = stamp.Kind == WaterContactKind.Pull || stamp.Kind == WaterContactKind.Kick;
-            bool wet = stamp.Kind == WaterContactKind.Impact || stamp.Kind == WaterContactKind.Entry || stamp.Kind == WaterContactKind.Exit ||
+            bool wet = impact || stamp.Kind == WaterContactKind.Entry || stamp.Kind == WaterContactKind.Exit ||
                        stamp.Kind == WaterContactKind.Keeper || stamp.Kind == WaterContactKind.Gather || stamp.Kind == WaterContactKind.Release ||
                        stamp.Kind == WaterContactKind.Celebration;
-            if ((!wet && !bubble) || (low && stamp.Kind != WaterContactKind.Impact && stamp.Kind != WaterContactKind.Entry)) return;
+            if ((!wet && !bubble) || (low && !impact && stamp.Kind != WaterContactKind.Entry && stamp.Kind != WaterContactKind.Keeper)) return;
             if (age >= (bubble ? .54f : .55f) || distance > rangeSquared * .54f) return;
 
             int density = quality == WaterEffectsQuality.High ? 8 : quality == WaterEffectsQuality.Standard ? 6 : 3;
             int particles = bubble ? 2 : Mathf.RoundToInt(density * (.57f + stamp.Strength * .9f));
-            if (stamp.Kind == WaterContactKind.Impact) particles += density;
+            if (impact || stamp.Kind == WaterContactKind.Keeper) particles += density;
             if (stamp.Kind == WaterContactKind.Exit || stamp.Kind == WaterContactKind.Release) particles = (particles + 1) / 2;
             for (int i = 0; i < particles && ParticleCount < particleBudget; i++)
             {
@@ -141,7 +145,9 @@ namespace ToduStudios.WaterPolo
                 float t = age - Random01(key + 4) * .064f;
                 if (t < 0f) continue;
                 var direction = across * (Random01(key + 1) * 2f - 1f) + axis * (Random01(key + 7) * 1.5f - .34f);
-                float height = (.83f + Random01(key + 9) * 2.15f) * (.52f + stamp.Strength * .85f);
+                if (stamp.Kind == WaterContactKind.SkipImpact) direction += axis * .95f;
+                float emphasis = impact || stamp.Kind == WaterContactKind.Keeper || stamp.Kind == WaterContactKind.Entry ? 1.2f : 1f;
+                float height = (.83f + Random01(key + 9) * 2.15f) * (.52f + stamp.Strength * .85f) * emphasis;
                 Vector3 position = stamp.Point + direction * ((.24f + stamp.Strength * .95f) * t + .045f);
                 if (bubble)
                     position.y = line - .12f + t * .20f;
@@ -150,7 +156,7 @@ namespace ToduStudios.WaterPolo
                     position.y += .033f + height * t - 5.8f * t * t;
                     if (position.y < line + .016f) continue;
                 }
-                float size = (.012f + .033f * Random01(key + 18)) * (.82f + stamp.Strength * .83f);
+                float size = (.012f + .033f * Random01(key + 18)) * (.82f + stamp.Strength * .83f) * emphasis;
                 float opacity = Mathf.Clamp01((1f - t / (bubble ? .50f : .54f)) * (bubble ? .33f : .94f));
                 Quad(position, right * size, up * size * (bubble ? 1f : 1.65f),
                     Tint(new Color32(213, 246, 252, 255), opacity), 3f, 0f);
@@ -198,13 +204,13 @@ namespace ToduStudios.WaterPolo
 
         internal void Clear()
         {
-            renderer.enabled = false;
+            if (renderer != null) renderer.enabled = false;
             count = SurfaceCount = ParticleCount = ImpactSurfaceCount = 0;
         }
 
         internal void Dispose()
         {
-            Object.Destroy(renderer.gameObject);
+            if (renderer != null) Object.Destroy(renderer.gameObject);
             Object.Destroy(mesh);
         }
     }

@@ -20,8 +20,15 @@ namespace ToduStudios.WaterPolo
         [SerializeField] private PrototypeTeamTactics tacticalTeam;
         [SerializeField] private bool contextualSwitching = true;
         [SerializeField, Min(0f)] private float returnPenaltySeconds = 0.8f;
+        [SerializeField, Min(0f)] private float manualProtectionSeconds = 1.05f;
+        [SerializeField, Min(.1f)] private float looseBallSwitchInterval = .30f;
+        [SerializeField, Min(.1f)] private float looseBallAdvantage = .60f;
+        [SerializeField, Min(.1f)] private float looseBallMaxArrival = 1.60f;
         private SwimmerIdentity previousManualPlayer;
         private float lastManualSwitch = float.NegativeInfinity;
+        private float nextRecoveryCheck, protectedUntil;
+
+        private bool ManualChoiceProtected => IsEligible(ActivePlayer) && Time.time < protectedUntil;
 
         private void Awake()
         {
@@ -33,13 +40,7 @@ namespace ToduStudios.WaterPolo
             }
             foreach (SwimmerIdentity player in roster.Members)
                 if (IsEligible(player)) { ActivePlayer = player; break; }
-            if (ActivePlayer == null)
-            {
-                Debug.LogError("PlayerSelection needs an eligible friendly swimmer.", this);
-                enabled = false;
-                return;
-            }
-            if (ball == null) ball = ActivePlayer.Interaction.Ball;
+            if (ball == null && ActivePlayer != null) ball = ActivePlayer.Interaction.Ball;
             lastFieldPlayer = ActivePlayer;
             ApplySelection();
         }
@@ -56,7 +57,7 @@ namespace ToduStudios.WaterPolo
 
         private void OnReleased(SwimmerBallInteraction passer, BallReleaseKind kind)
         {
-            if (SwitchingLocked || (kind != BallReleaseKind.Pass && kind != BallReleaseKind.Lob) ||
+            if (SwitchingLocked || ManualChoiceProtected || (kind != BallReleaseKind.Pass && kind != BallReleaseKind.Lob) ||
                 (ball.Match != null && !ball.Match.IsPlaying) || ball.IntendedReceiver == null ||
                 passer.GetComponent<SwimmerIdentity>().Team != humanTeam) return;
             Select(ball.IntendedReceiver.GetComponent<SwimmerIdentity>());
@@ -70,8 +71,57 @@ namespace ToduStudios.WaterPolo
         {
             if (SwitchingLocked) return;
             SwimmerIdentity carrier = next != null ? next.GetComponent<SwimmerIdentity>() : null;
-            if (IsEligible(carrier) && carrier != ActivePlayer) Select(carrier);
+            if (IsEligible(carrier) && carrier != ActivePlayer && (!ManualChoiceProtected || !carrier.IsFieldPlayer))
+                Select(carrier);
             else if (ActivePlayer != null && !ActivePlayer.IsFieldPlayer && !IsEligible(ActivePlayer)) SelectFieldFallback();
+        }
+
+        private void Update()
+        {
+            if (ball == null || ball.Match == null || !ball.Match.IsPlaying || ball.Match.AwaitingOpeningPossession ||
+                SwitchingLocked || ManualChoiceProtected || Time.time < nextRecoveryCheck)
+                return;
+            nextRecoveryCheck = Time.time + looseBallSwitchInterval;
+
+            bool hasSelection = IsEligible(ActivePlayer);
+            if (!hasSelection && ball.Owner != null)
+            {
+                OnPossessionChanged(null, ball.Owner);
+                return;
+            }
+            if (!ball.CanRecoverLooseBall) return;
+
+            Vector3 early = ball.PredictPosition(.30f);
+            Vector3 late = ball.PredictPosition(.80f);
+            if (hasSelection && ball.IsRecoveryCandidate(ActivePlayer.Interaction) &&
+                Vector3.ProjectOnPlane(early - ActivePlayer.Motor.Position, Vector3.up).sqrMagnitude < 4f)
+                return;
+            float currentArrival = hasSelection && ball.IsRecoveryCandidate(ActivePlayer.Interaction)
+                ? EstimateArrival(ActivePlayer, early, late) : float.PositiveInfinity;
+            float best = looseBallMaxArrival;
+            SwimmerIdentity target = null;
+            foreach (var player in roster.FieldPlayers)
+            {
+                if (player == ActivePlayer || !IsEligible(player) || !ball.IsRecoveryCandidate(player.Interaction)) continue;
+                float arrival = EstimateArrival(player, early, late);
+                if (arrival >= best || arrival + looseBallAdvantage >= currentArrival) continue;
+                target = player;
+                best = arrival;
+            }
+            if (target != null) Select(target);
+        }
+
+        private static float EstimateArrival(SwimmerIdentity player, Vector3 near, Vector3 farther)
+        {
+            var motor = player.Motor;
+            Vector3 firstGap = Vector3.ProjectOnPlane(near - motor.Position, Vector3.up);
+            Vector3 target = Vector3.Lerp(near, farther, Mathf.InverseLerp(1.5f, 5f, firstGap.magnitude));
+            Vector3 gap = Vector3.ProjectOnPlane(target - motor.Position, Vector3.up);
+            float alignment = Vector3.Dot(motor.Facing, gap.normalized);
+            float approach = Vector3.Dot(motor.Velocity, gap.normalized);
+            float travel = Mathf.Max(0f, gap.magnitude - Mathf.Min(player.Interaction.PickupDistance, .85f));
+            float speed = Mathf.Max(.6f, motor.MaxSpeed * .72f + Mathf.Clamp(approach * .20f, -.45f, .45f));
+            return travel / speed + Mathf.InverseLerp(.75f, -1f, alignment) * .32f;
         }
 
         public bool Select(SwimmerIdentity player)
@@ -106,8 +156,7 @@ namespace ToduStudios.WaterPolo
                 }
                 if (best != null)
                 {
-                    var previous = ActivePlayer;
-                    if (Select(best)) { previousManualPlayer = previous; lastManualSwitch = Time.time; }
+                    SelectManually(best);
                     return;
                 }
             }
@@ -117,8 +166,17 @@ namespace ToduStudios.WaterPolo
             for (int offset = 1; offset <= fields.Count; offset++)
             {
                 var candidate = fields[(index + offset) % fields.Count];
-                if (IsEligible(candidate)) { Select(candidate); return; }
+                if (IsEligible(candidate)) { SelectManually(candidate); return; }
             }
+        }
+
+        private void SelectManually(SwimmerIdentity player)
+        {
+            var previous = ActivePlayer;
+            if (!Select(player) || player == previous) return;
+            previousManualPlayer = previous;
+            lastManualSwitch = Time.time;
+            protectedUntil = lastManualSwitch + manualProtectionSeconds;
         }
 
         private void SelectFieldFallback()
@@ -138,6 +196,7 @@ namespace ToduStudios.WaterPolo
         public void SetInputLocked(bool locked)
         {
             phaseInputLocked = locked;
+            if (locked) protectedUntil = 0f;
             if (!locked && !IsEligible(ActivePlayer)) SelectFieldFallback();
             ApplySelection();
         }
