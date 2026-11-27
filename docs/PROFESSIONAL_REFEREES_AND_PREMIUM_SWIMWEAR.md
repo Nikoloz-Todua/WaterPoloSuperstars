@@ -1,6 +1,12 @@
 # Milestone 29B — Professional officials and premium swimwear
 
-Both saved OlympicMatchArena official roots use the skinned Meshy model. The 2,002-triangle swimwear fit candidate failed the body-coverage gate. The existing 820-triangle competition cut remains in production.
+## Current swimwear in Milestone 30H
+
+The saved arena uses the registered `AtlasCompetitionBriefs.fbx` with 2,688 triangles and 66 bone bindings on all fourteen athletes. Shared Blue and White URP Lit materials now use fabric maps baked from the waistband, opening and side masks in `SourceAssets/Athletes/WPS_Swimwear_001/Blender/AtlasCompetitionBriefs.blend`. The finish was checked in a dry comparison and in advancing production crawl under the existing water. [Diagnosis](MILESTONE_30H_DIAGNOSTIC_REPORT.md) · [Rendered evidence](Evidence/Milestone30H/)
+
+## Milestone 29B historical configuration
+
+Both saved OlympicMatchArena official roots used the skinned Meshy model. The 2,002-triangle swimwear fit candidate failed the body-coverage gate. The 820-triangle competition cut was the production configuration at that checkpoint.
 
 ## Referee source and rig
 

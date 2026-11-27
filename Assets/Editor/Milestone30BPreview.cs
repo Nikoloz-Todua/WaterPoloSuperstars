@@ -24,7 +24,7 @@ namespace ToduStudios.WaterPolo.Editor
             Match, FreeSwim, FreeSwimUnderwater, LongPassAway, PowerShot, QuickShot, OrdinaryFoul, DirectionalPassing,
             HeadOn, Shoulder, SprintContact, ContestedPickup, IntelligentSupport,
             MovingReceiver, LateralReceiving, HighReceiving, MissedPass,
-            FreestyleSide, FreestyleRear, Eggbeater, RefereeWalk
+            FreestyleSide, FreestyleRear, Eggbeater, RefereeWalk, KeeperNeutral, KeeperCatch, KeeperMiss
         }
 
         static Milestone30BPreview() => EditorApplication.playModeStateChanged += PlayChanged;
@@ -43,6 +43,10 @@ namespace ToduStudios.WaterPolo.Editor
         private static void RefereeWalk() => Launch(Scenario.RefereeWalk);
         [MenuItem(Lab + "Athlete and Equipment/Play Athlete Preview", false, 411)]
         private static void Equipment() => ProductionAthleteSetup.PlayPreview();
+        [MenuItem(Lab + "Athlete and Equipment/Competition Swimwear Inspection", false, 412)]
+        private static void CompetitionBriefs() => ProductionAthleteSetup.PlayPreview();
+        [MenuItem(Lab + "Athlete and Equipment/Underwater Swimwear Inspection", false, 413)]
+        private static void UnderwaterBriefs() => Launch(Scenario.FreestyleSide);
         [MenuItem(Lab + "Ball Control and Player Switching/Possession and Throwing", false, 410)]
         private static void Carry() => Launch(Scenario.Carry);
         [MenuItem(Lab + "Ball Control and Player Switching/Directional Aim and Held Rotation", false, 411)]
@@ -105,6 +109,12 @@ namespace ToduStudios.WaterPolo.Editor
         private static void KeeperRight() => Launch(Scenario.KeeperRight);
         [MenuItem(Lab + "Goalkeeper and Penalties/Keeper Save High", false, 418)]
         private static void KeeperHigh() => Launch(Scenario.KeeperHigh);
+        [MenuItem(Lab + "Goalkeeper and Penalties/Goalkeeper Neutral and Ball Tracking", false, 419)]
+        private static void KeeperNeutral() => Launch(Scenario.KeeperNeutral);
+        [MenuItem(Lab + "Goalkeeper and Penalties/Ordinary Goalkeeper Catch", false, 420)]
+        private static void KeeperCatch() => Launch(Scenario.KeeperCatch);
+        [MenuItem(Lab + "Goalkeeper and Penalties/Goalkeeper Miss and Recovery", false, 421)]
+        private static void KeeperMiss() => Launch(Scenario.KeeperMiss);
 
         private static void Launch(Scenario scenario)
         {
@@ -171,7 +181,8 @@ namespace ToduStudios.WaterPolo.Editor
             var keeper = Object.FindObjectsByType<PrototypeGoalkeeper>()
                 .First(player => player.DefendedGoal.ScoringTeam == shooter.Team);
             bool keeperScenario = scenario == Scenario.KeeperLeft || scenario == Scenario.KeeperRight ||
-                scenario == Scenario.KeeperHigh;
+                scenario == Scenario.KeeperHigh || scenario == Scenario.KeeperNeutral ||
+                scenario == Scenario.KeeperCatch || scenario == Scenario.KeeperMiss;
             Vector3 goal = keeper.DefendedGoal.transform.position;
             Vector3 forward = keeper.DefendedGoal.transform.forward;
             Vector3 right = Vector3.Cross(Vector3.up, forward);
@@ -198,6 +209,12 @@ namespace ToduStudios.WaterPolo.Editor
                 marker.Motor.ResetPose(origin + forward * 1.25f + right * .22f, Quaternion.LookRotation(-forward));
             }
             shooter.Motor.ResetPose(origin, facing);
+            if (keeperScenario)
+            {
+                float depth = new SerializedObject(keeper).FindProperty("stationDepth").floatValue;
+                keeper.Identity.Motor.ResetPose(new Vector3(goal.x, origin.y, goal.z) - forward * depth,
+                    Quaternion.LookRotation(-forward));
+            }
             selection.Select(shooter);
 
             if (scenario == Scenario.IntelligentSupport)
@@ -305,7 +322,14 @@ namespace ToduStudios.WaterPolo.Editor
             else if (scenario == Scenario.Defense)
                 camera.SetView(-1);
             else if (keeperScenario)
-                Frame(camera, keeper.Identity.Motor.Position + Vector3.up * .35f, forward, right, false);
+            {
+                Vector3 focus = keeper.Identity.Motor.Position + Vector3.up * .38f;
+                var anchor = camera.viewpoints[2];
+                anchor.position = focus - forward * 2.7f + right * 1.35f + Vector3.up * .53f;
+                anchor.LookAt(focus);
+                camera.GetComponent<Camera>().fieldOfView = 49f;
+                camera.SetView(2);
+            }
             else Frame(camera, origin + forward * .42f, forward, right, scenario == Scenario.Underwater);
             if (scenario == Scenario.Underwater || scenario == Scenario.Carry ||
                 scenario == Scenario.PowerShot || scenario == Scenario.QuickShot)
@@ -313,19 +337,42 @@ namespace ToduStudios.WaterPolo.Editor
             if (scenario == Scenario.MovingReceiver || scenario == Scenario.LateralReceiving)
                 _ = RunMovingPassOnT(ball, shooter, receiver, scenario == Scenario.MovingReceiver ? forward : right);
 
-            if (!keeperScenario && scenario != Scenario.Skip) return;
-            await Awaitable.WaitForSecondsAsync(.55f);
-            Vector3 aim = forward;
+            if (scenario == Scenario.KeeperNeutral) return;
             if (keeperScenario)
             {
-                float side = scenario == Scenario.KeeperLeft ? -.92f : scenario == Scenario.KeeperRight ? .92f : .04f;
-                aim = Vector3.ProjectOnPlane(goal + right * side - shooter.Motor.Position, Vector3.up).normalized;
-                shooter.Motor.ResetPose(shooter.Motor.Position, Quaternion.LookRotation(aim));
-                await Awaitable.FixedUpdateAsync();
+                await Awaitable.WaitForSecondsAsync(.55f);
+                float side = scenario == Scenario.KeeperMiss ? keeper.DefendedGoal.Width * .5f - ball.Radius - .08f :
+                    scenario == Scenario.KeeperCatch ? -.31f : scenario == Scenario.KeeperLeft ? -.71f :
+                    scenario == Scenario.KeeperRight ? .63f : .025f;
+                Vector3 start = goal - forward * (scenario == Scenario.KeeperMiss ? 4.5f : 6f) + right * side;
+                start.y = ball.SurfaceHeight + (scenario == Scenario.KeeperHigh ? .93f : .43f);
+                if (scenario == Scenario.KeeperCatch)
+                {
+                    Vector3 end = start + forward * 4.35f;
+                    typeof(BallController).GetMethod("LaunchPass", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .Invoke(ball, new object[] { shooter.Interaction, start, end, .50f, null, PassDelivery.Dry,
+                            .08f, .8f, BallActionSource.HumanInput });
+                }
+                else
+                {
+                    // Contract fixture: prescribe the initial trajectory only, before the first physics step.
+                    bool elevated = scenario == Scenario.KeeperHigh || scenario == Scenario.KeeperMiss;
+                    float speed = scenario == Scenario.KeeperMiss ? 23f : scenario == Scenario.KeeperHigh ? 11.5f : 12f;
+                    float height = elevated ? keeper.DefendedGoal.Height - ball.Radius - .16f : .43f;
+                    Vector3 end = goal + right * side + Vector3.up * height;
+                    float flight = Vector3.Dot(end - start, forward) / speed;
+                    typeof(BallController).GetMethod("LaunchShot", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .Invoke(ball, new object[] { shooter.Interaction, forward, speed,
+                            elevated ? ShotType.High : ShotType.Normal, start, BallActionSource.HumanInput });
+                    typeof(BallController).GetMethod("BeginFlight", BindingFlags.Instance | BindingFlags.NonPublic)
+                        .Invoke(ball, new object[] { start, BallTrajectory.Velocity(start, end, flight) });
+                }
+                return;
             }
-            var shot = scenario == Scenario.Skip ? ShotType.Skip :
-                scenario == Scenario.KeeperHigh ? ShotType.High : ShotType.Normal;
-            if (!ball.TryShoot(shooter.Interaction, scenario == Scenario.Skip ? 20f : 12f, shot))
+
+            if (scenario != Scenario.Skip) return;
+            await Awaitable.WaitForSecondsAsync(.55f);
+            if (!ball.TryShoot(shooter.Interaction, 20f, ShotType.Skip))
                 throw new InvalidOperationException("The preview shot was rejected.");
         }
 

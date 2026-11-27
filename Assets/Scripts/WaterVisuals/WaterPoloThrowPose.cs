@@ -8,7 +8,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         private static readonly Vector3 Up = Vector3.up;
         private readonly Transform upper, forearm, wrist, chest, head;
         private readonly Transform leftUpper, leftForearm, leftWrist;
-        private readonly Vector3 palmLocal, palmNormalLocal, fingerAxisLocal;
+        private readonly Vector3 palmLocal, leftPalmLocal, palmNormalLocal, fingerAxisLocal;
         private readonly Quaternion upperFrame, forearmFrame, handFrame, headFrame;
         private readonly Quaternion leftHandFrame;
         private readonly FingerJoint[] fingers;
@@ -100,6 +100,10 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             handFrame = Quaternion.LookRotation(fingerAxisLocal, palmNormalLocal);
             leftHandFrame = PalmFrame(leftWrist, "l");
             palmLocal = knuckles * .64f + palmNormalLocal * .013f;
+            Transform leftIndex = leftWrist != null ? leftWrist.Find("index_01_l") : null;
+            Transform leftPinky = leftWrist != null ? leftWrist.Find("pinky_01_l") : null;
+            if (leftIndex != null && leftPinky != null)
+                leftPalmLocal = (leftIndex.localPosition + leftPinky.localPosition) * .32f + leftHandFrame * Up * .013f;
             var joints = new System.Collections.Generic.List<FingerJoint>(12);
             string[] digits = { "index", "middle", "ring", "pinky" };
             float[] spread = { -8f, -2f, 4f, 12f };
@@ -287,28 +291,53 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             Look(facing, target - head.position, amount, 58f);
         }
 
-        public void Keeper(Vector3 facing, Vector3 tracking, Vector3 contact, float dive, bool twoHands, float radius)
+        public bool TryKeeperPalms(out Vector3 left, out Vector3 right)
+        {
+            left = right = default;
+            if (!Ready || leftWrist == null) return false;
+            left = leftWrist.TransformPoint(leftPalmLocal) - leftWrist.TransformDirection(leftHandFrame * Up) * .018f;
+            right = PalmPosition - PalmDirection * .018f;
+            return true;
+        }
+
+        public void Keeper(Vector3 facing, Vector3 tracking, Vector3 contact, float dive, float readiness,
+            bool shot, Vector3 incoming, float radius, float surface)
         {
             if (leftUpper == null || leftForearm == null || leftWrist == null) return;
             Vector3 right = Vector3.Cross(Up, facing);
             float lateral = Vector3.Dot(contact - chest.position, right);
-            float height = contact.y - chest.position.y;
-            bool central = twoHands && Mathf.Abs(lateral) < .26f && height > .23f;
-            bool rightSide = lateral >= 0f;
-            chest.rotation = Quaternion.AngleAxis(-Mathf.Clamp(lateral * 35f, -22f, 22f) * dive, facing) *
-                Quaternion.AngleAxis(7f * dive, right) * chest.rotation;
-            Vector3 interception = contact - facing * (radius * .65f);
-            Vector3 rightReady = upper.position + right * .33f + facing * .33f - Up * .03f;
-            Vector3 leftReady = leftUpper.position - right * .33f + facing * .33f - Up * .03f;
-            Vector3 rightTarget = central ? interception + right * .11f : rightSide ? interception : rightReady - Up * .14f;
-            Vector3 leftTarget = central ? interception - right * .11f : !rightSide ? interception : leftReady - Up * .14f;
-            Reach(upper, forearm, wrist, Vector3.Lerp(rightReady, rightTarget, dive),
-                upper.position + right * .35f - Up * .18f, Mathf.Lerp(.57f, 1f, dive));
-            Reach(leftUpper, leftForearm, leftWrist, Vector3.Lerp(leftReady, leftTarget, dive),
-                leftUpper.position - right * .35f - Up * .18f, Mathf.Lerp(.57f, 1f, dive));
-            OpenHand(wrist, forearm, handFrame, facing, Mathf.Lerp(.52f, .90f, dive));
-            OpenHand(leftWrist, leftForearm, leftHandFrame, facing, Mathf.Lerp(.52f, .90f, dive));
+            bool centralHigh = shot && Mathf.Abs(lateral) < .22f && contact.y > surface + .65f;
+            bool reachRight = centralHigh || lateral >= (shot ? 0f : -.34f);
+            bool reachLeft = centralHigh || !reachRight;
+            float lean = Mathf.Clamp(lateral * 38f, -26f, 26f) * dive * (shot ? 1f : .54f);
+            chest.rotation = Quaternion.AngleAxis(-lean, facing) * Quaternion.AngleAxis(6f * dive, right) * chest.rotation;
+            Vector3 normal = Vector3.ProjectOnPlane(-incoming, Up).normalized;
+            if (normal.sqrMagnitude < .01f) normal = facing;
+            float spread = centralHigh ? radius * .73f : 0f;
+            KeeperArm(upper, forearm, wrist, handFrame, palmLocal, facing, right, contact, normal,
+                readiness, reachRight ? dive : 0f, spread, radius);
+            KeeperArm(leftUpper, leftForearm, leftWrist, leftHandFrame, leftPalmLocal, facing, -right, contact, normal,
+                readiness, reachLeft ? dive : 0f, spread, radius);
+            if (reachRight && dive > .03f) PoseFingers(0f, dive * .70f);
             Look(facing, tracking - head.position, .75f, 68f);
+        }
+
+        private static void KeeperArm(Transform shoulder, Transform elbow, Transform hand, Quaternion frame,
+            Vector3 localPalm, Vector3 facing, Vector3 outside, Vector3 ball, Vector3 normal, float readiness,
+            float reach, float spread, float radius)
+        {
+            Vector3 rest = shoulder.position + outside * .25f + facing * .22f + Up * Mathf.Lerp(-.26f, -.09f, readiness);
+            Vector3 pole = shoulder.position + outside * .37f - Up * .25f;
+            Reach(shoulder, elbow, hand, rest, pole, Mathf.Lerp(.34f, .67f, readiness));
+            OpenHand(hand, elbow, frame, Vector3.Lerp(-Up, facing, readiness), .30f);
+            if (reach <= .005f) return;
+
+            Vector3 palm = (normal - outside * (spread / radius)).normalized;
+            Vector3 fingers = Vector3.ProjectOnPlane(Up + outside * .52f, palm).normalized;
+            Quaternion presented = Quaternion.LookRotation(fingers, palm) * Quaternion.Inverse(frame);
+            Vector3 target = ball - palm * radius - presented * Vector3.Scale(localPalm, hand.lossyScale);
+            Reach(shoulder, elbow, hand, target, pole, reach);
+            hand.rotation = Quaternion.Slerp(hand.rotation, presented, reach);
         }
 
         private static Quaternion PalmFrame(Transform hand, string side)

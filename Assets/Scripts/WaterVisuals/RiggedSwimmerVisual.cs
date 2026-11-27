@@ -42,6 +42,8 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         float followAt, loadedWeight, carryWeight;
         Vector3 saveContact, blockTarget;
         float saveWeight, blockWeight, receiveRise;
+        float keeperRise, keeperReadiness;
+        bool keeperShot, keeperSplash;
         float shotLift, shootingLean;
         bool shootingSplash;
         const float FollowSeconds = .22f;
@@ -104,7 +106,8 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         }
         void Update()
         {
-            bool paused=match!=null&&(match.IsPaused||match.GoalPresentationActive||match.IsPreMatchPresentation);
+            bool paused = match != null && (match.IsPaused || match.IsPreMatchPresentation ||
+                match.GoalPresentationActive && !SettlingKeeper);
             animator.speed = paused ? 0f : Preview ? PreviewPlaybackSpeed
                 : motor.IsRetreating ? Mathf.Lerp(1f, 1.28f, motor.Velocity.magnitude / 4f) : 1f;
             if(paused)return;
@@ -145,8 +148,13 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                     Locomotion = Mathf.Min(Locomotion, .12f);
                 animator.SetBool(Hold,!evaluatedHold &&
                     ((identity.Interaction.HasBall && !ball.IsDribbling)||(charge!=null&&charge.IsCharging)));
-                animator.SetBool(Block,keeper!=null&&keeper.ThreateningShot);
-                if(keeper!=null&&keeper.SaveAttempts!=saveAttempts){saveAttempts=keeper.SaveAttempts;animator.SetTrigger("Save");SaveAnimations++;}
+                animator.SetBool(Block, keeper != null && !keeper.UsesAnimatedHands && keeper.ThreateningShot);
+                if (keeper != null && keeper.SaveAttempts != saveAttempts)
+                {
+                    saveAttempts = keeper.SaveAttempts;
+                    if (!keeper.UsesAnimatedHands) animator.SetTrigger("Save");
+                    SaveAnimations++;
+                }
             }
             animator.SetFloat(Move,Locomotion,evaluatedHold ? .042f : .16f,Time.deltaTime);
             // Empty override states retain their last sampled muscles with write-defaults off.
@@ -157,7 +165,8 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         }
         void LateUpdate()
         {
-            if(head==null||alignmentRoot==null||(match!=null&&(match.IsPaused||match.GoalPresentationActive||match.IsPreMatchPresentation)))return;
+            if (head == null || alignmentRoot == null || match != null && (match.IsPaused ||
+                match.IsPreMatchPresentation || match.GoalPresentationActive && !SettlingKeeper)) return;
             float surface=pool!=null?pool.Waterline:0;
             float turn=Mathf.SmoothStep(0,1,Mathf.Clamp01((throwAt-Time.time)*5f));
             alignmentRoot.localRotation=restAlignment*Quaternion.Euler(0f,throwTurn*turn,0f);
@@ -175,7 +184,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                     support = Mathf.Max(support, Mathf.Max(loadedWeight * .66f, ball.HasPendingThrow ? .9f : 0f));
                 elevation = Mathf.Lerp(.15f, professional ? .087f : .12f, moving) + (professional ? .048f : .038f) * support +
                     Mathf.Sin(now * 5.4f) * Mathf.Lerp(.009f, .003f, moving);
-                elevation += saveWeight * .22f + blockWeight * .095f;
+                elevation += keeperRise + blockWeight * .095f;
                 float high = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(surface + .55f, surface + .79f, reception.Point.y));
                 float receiveTarget = professional ? receiveWeight * Mathf.Lerp(.055f, .41f, high) : 0f;
                 receiveRise = Mathf.MoveTowards(receiveRise, receiveTarget, (receiveTarget > receiveRise ? 2.3f : 1.65f) * Time.deltaTime);
@@ -210,6 +219,8 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                 Vector3 facing = identity != null ? identity.transform.forward : alignmentRoot.forward;
                 if (shotLift > .08f)
                     flutter?.PressWater(facing, Mathf.InverseLerp(.08f, .48f, shotLift) * .72f);
+                else if (keeperShot && keeperRise > .11f)
+                    flutter?.PressWater(facing, Mathf.InverseLerp(.11f, .43f, keeperRise) * .80f);
                 else
                     flutter?.Apply(facing, animator.GetFloat(Move), animator.GetCurrentAnimatorStateInfo(0).normalizedTime);
             }
@@ -273,7 +284,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                 followMotion = ThrowMotion.None;
             }
 
-            bool keeperStation = keeper != null && !keeper.Stopped && (keeper.AtStation || saveWeight > .01f);
+            bool keeperStation = keeper != null && (!keeper.Stopped && keeper.AtStation || SettlingKeeper);
             if ((!active && !keeperStation) || !identity.EligibleForPlay)
             {
                 evaluatedPose.ResetFingers();
@@ -289,10 +300,8 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             evaluatedPose.ResetFingers();
             if (keeperStation)
             {
-                Transform goal = keeper.DefendedGoal.transform;
-                bool twoHands = Vector3.Distance(motor.Position, goal.position) < 6f &&
-                    Mathf.Abs(goal.InverseTransformPoint(saveContact).x) < .48f;
-                evaluatedPose.Keeper(forward, ball.transform.position, saveContact, saveWeight, twoHands, ball.Radius);
+                evaluatedPose.Keeper(forward, ball.transform.position, saveContact, saveWeight,
+                    keeperReadiness, keeperShot, ball.Velocity, ball.Radius, ball.SurfaceHeight);
             }
             else if (blockWeight > 0f)
                 evaluatedPose.Guard(forward, blockTarget, blockWeight);
@@ -315,14 +324,38 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             blockWeight = tactics != null ? tactics.BlockPose(identity, out blockTarget) : 0f;
             if (keeper == null) return;
             float drive = 0f;
-            if (keeper.TryGetSavePresentation(out Vector3 contact, out float weight))
+            if (keeper.TryGetSavePresentation(out Vector3 contact, out float weight, out bool shot))
             {
                 saveContact = saveWeight < .02f ? contact : Vector3.Lerp(saveContact, contact,
-                    1f - Mathf.Exp(-20f * Time.deltaTime));
+                    1f - Mathf.Exp(-30f * Time.deltaTime));
                 drive = weight;
+                keeperShot = shot;
             }
-            saveWeight = Mathf.MoveTowards(saveWeight, drive, Time.deltaTime * (drive > saveWeight ? 9f : 3.7f));
+            if (drive <= 0f && saveWeight < .01f) keeperShot = false;
+            saveWeight = Mathf.MoveTowards(saveWeight, drive, Time.deltaTime * (drive > saveWeight ? 15f : 4.5f));
+            keeperReadiness = Mathf.MoveTowards(keeperReadiness, keeper.Readiness, Time.deltaTime * 4f);
+            float high = Mathf.InverseLerp(ball.SurfaceHeight + .26f, ball.SurfaceHeight + 1.25f, saveContact.y);
+            float rise = saveWeight * (keeperShot ? Mathf.Lerp(.08f, .46f, high) : Mathf.Lerp(.02f, .13f, high));
+            keeperRise = Mathf.MoveTowards(keeperRise, rise, Time.deltaTime * (rise > keeperRise ? 8.5f : 1.85f));
+            if (!keeperSplash && keeperShot && keeperRise > .25f)
+            {
+                keeperSplash = true;
+                water?.EmitAthleteSurface(motor.Position, .56f, true);
+            }
+            else if (keeperSplash && keeperRise < .08f)
+            {
+                keeperSplash = false;
+                water?.EmitAthleteSurface(motor.Position, .28f, true);
+            }
         }
+
+        internal bool TryReadKeeperPalms(out Vector3 left, out Vector3 right)
+        {
+            left = right = default;
+            return SupportsEvaluatedGrip && evaluatedPose.TryKeeperPalms(out left, out right);
+        }
+
+        private bool SettlingKeeper => keeper != null && (saveWeight > 0f || keeperRise > 0f);
 
         void OnDrawGizmosSelected()
         {

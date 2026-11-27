@@ -784,7 +784,8 @@ namespace ToduStudios.WaterPolo
             if (!(Live || match!=null && !match.IsPaused && match.Phase==MatchPhase.PenaltyFlight) || !isActiveAndEnabled || simulationPaused || Owner != null || State == BallState.Held || identity == null || !identity.EligibleForPlay || identity.IsFieldPlayer || !claimant.isActiveAndEnabled || claimant.CarryAnchor == null)
                 return false;
             Vector3 incoming=Velocity;
-            AssignOwner(claimant,contact);
+            AssignOwner(claimant, contact, dryPassCatch: professionalThrows && claimant.Visual != null &&
+                claimant.Visual.SupportsEvaluatedGrip);
             Saved?.Invoke();
             Contact?.Invoke(new BallImpactEvent(BallImpactKind.Save,contact,incoming,Vector3.zero));
             return true;
@@ -1023,6 +1024,8 @@ namespace ToduStudios.WaterPolo
             ref SwimmerBallInteraction catcher, ref Vector3 point, ref float first)
         {
             if (!Eligible(player.Interaction)) return;
+            if (professionalThrows && !player.IsFieldPlayer && player.Interaction.Visual != null &&
+                player.Interaction.Visual.SupportsEvaluatedGrip) return;
             Vector3 motion = to-from;
             if (motion.sqrMagnitude < .000001f || (player.Motor.Position - to).sqrMagnitude > 2.5f) return;
             Vector3 arrival = Vector3.ProjectOnPlane(motion,Vector3.up).normalized;

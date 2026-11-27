@@ -1,4 +1,4 @@
-"""Bake Atlas sewn-band masks into the White kit using its existing FabricWrap UVs."""
+"""Bake both Atlas competition kits from the registered FabricWrap and seam masks."""
 
 from array import array
 from math import ceil, floor
@@ -39,15 +39,17 @@ neutral = bpy.data.images.load(str(textures / "BriefsNeutral.png"), check_existi
 neutral.scale(size, size)
 pixels = array("f", [0.0]) * (size * size * 4)
 neutral.pixels.foreach_get(pixels)
-for index, strength in enumerate(trim):
-    at = index * 4
-    for channel, accent in enumerate((.16, .26, .40)):
-        cloth = min(1.0, pixels[at + channel] * 1.15)
-        pixels[at + channel] = cloth * (1 - strength + accent * strength)
-    pixels[at + 3] = 1.0
-
-baked = bpy.data.images.new("White Briefs Fabric", width=size, height=size, alpha=False)
-baked.pixels.foreach_set(pixels)
-baked.file_format = "PNG"
-baked.filepath_raw = str(textures / "WhiteBriefsFabric.png")
-baked.save()
+for team in ("Blue", "White"):
+    finish = array("f", pixels)
+    for index, strength in enumerate(trim):
+        at = index * 4
+        for channel, accent in enumerate((.23, .37, .54)):
+            cloth = min(.96, pixels[at + channel] * 1.08)
+            finish[at + channel] = (min(.98, cloth * (1 + .48 * strength) + .064 * strength)
+                                    if team == "Blue" else cloth * (1 - strength * (1 - accent)))
+        finish[at + 3] = 1.0
+    baked = bpy.data.images.new(f"{team} Briefs Fabric", width=size, height=size, alpha=False)
+    baked.pixels.foreach_set(finish)
+    baked.file_format = "PNG"
+    baked.filepath_raw = str(textures / f"{team}BriefsFabric.png")
+    baked.save()
