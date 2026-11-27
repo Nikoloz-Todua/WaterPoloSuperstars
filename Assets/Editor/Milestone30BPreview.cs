@@ -17,12 +17,14 @@ namespace ToduStudios.WaterPolo.Editor
     {
         private const string Lab = "Tools/Water Polo/Test Lab/";
         private const string Pending = "WaterPolo.M30B.Preview";
+        private const string DeckPreview = "WaterPolo.DeckPreview";
         private enum Scenario
         {
             Carry, Passing, Underwater, Drop, Skip, Defense, KeeperLeft, KeeperRight, KeeperHigh,
             Match, FreeSwim, FreeSwimUnderwater, LongPassAway, PowerShot, QuickShot, OrdinaryFoul, DirectionalPassing,
             HeadOn, Shoulder, SprintContact, ContestedPickup, IntelligentSupport,
-            MovingReceiver, LateralReceiving, HighReceiving, MissedPass
+            MovingReceiver, LateralReceiving, HighReceiving, MissedPass,
+            FreestyleSide, FreestyleRear, Eggbeater, RefereeWalk
         }
 
         static Milestone30BPreview() => EditorApplication.playModeStateChanged += PlayChanged;
@@ -33,6 +35,12 @@ namespace ToduStudios.WaterPolo.Editor
         private static void PlayMatch() => Launch(Scenario.Match);
         [MenuItem(Lab + "Ceremony and Walking/Arena Walkout and Pennants", false, 410)]
         private static void Ceremony() => Launch(Scenario.Match);
+        [MenuItem(Lab + "Ceremony and Walking/Natural Athlete Walk", false, 411)]
+        private static void NaturalWalk() => LaunchDeckPreview(false);
+        [MenuItem(Lab + "Ceremony and Walking/Standing and Foot Placement", false, 412)]
+        private static void NaturalStand() => LaunchDeckPreview(true);
+        [MenuItem(Lab + "Ceremony and Walking/Referee Walking", false, 413)]
+        private static void RefereeWalk() => Launch(Scenario.RefereeWalk);
         [MenuItem(Lab + "Athlete and Equipment/Play Athlete Preview", false, 411)]
         private static void Equipment() => ProductionAthleteSetup.PlayPreview();
         [MenuItem(Lab + "Ball Control and Player Switching/Possession and Throwing", false, 410)]
@@ -71,6 +79,12 @@ namespace ToduStudios.WaterPolo.Editor
         private static void FreeSwimUnderwater() => Launch(Scenario.FreeSwimUnderwater);
         [MenuItem(Lab + "Swimming and Floating/Underwater Sprint Freestyle", false, 413)]
         private static void SprintFreestyle() => Launch(Scenario.FreeSwimUnderwater);
+        [MenuItem(Lab + "Swimming and Floating/Freestyle Side View", false, 414)]
+        private static void FreestyleSide() => Launch(Scenario.FreestyleSide);
+        [MenuItem(Lab + "Swimming and Floating/Freestyle Rear View", false, 415)]
+        private static void FreestyleRear() => Launch(Scenario.FreestyleRear);
+        [MenuItem(Lab + "Swimming and Floating/Eggbeater Comparison", false, 416)]
+        private static void Eggbeater() => Launch(Scenario.Eggbeater);
         [MenuItem(Lab + "Arena and Water/Ordinary Ball Drop", false, 413)]
         private static void Drop() => Launch(Scenario.Drop);
         [MenuItem(Lab + "Shooting and Passing/Skip Shot", false, 414)]
@@ -107,12 +121,26 @@ namespace ToduStudios.WaterPolo.Editor
 
         private static void PlayChanged(PlayModeStateChange state)
         {
+            int deckPreview = SessionState.GetInt(DeckPreview, -1);
+            if (deckPreview >= 0 && state == PlayModeStateChange.EnteredPlayMode)
+            {
+                Object.FindAnyObjectByType<AthletePreviewCamera>()?.ShowProfessionalDeck(deckPreview == 1);
+                EditorWindow.GetWindow(typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.GameView")).Focus();
+                SessionState.EraseInt(DeckPreview);
+            }
             int scenario = SessionState.GetInt(Pending, -1);
             if (scenario < 0) return;
             if (state == PlayModeStateChange.EnteredPlayMode) _ = SetUpLogged((Scenario)scenario);
             if (state != PlayModeStateChange.EnteredEditMode) return;
             SessionState.EraseInt(Pending);
             Milestone12HubSetup.SetBootEntry();
+        }
+
+        private static void LaunchDeckPreview(bool standing)
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode || EditorApplication.isCompiling) return;
+            SessionState.SetInt(DeckPreview, standing ? 1 : 0);
+            ProductionAthleteSetup.PlayPreview();
         }
 
         private static async Task SetUpLogged(Scenario scenario)
@@ -184,18 +212,45 @@ namespace ToduStudios.WaterPolo.Editor
                 StageContact(scenario, roster, ball, selection, camera, origin, forward, right);
                 return;
             }
-            if (scenario == Scenario.FreeSwim || scenario == Scenario.FreeSwimUnderwater)
+            bool swimView = scenario >= Scenario.FreestyleSide && scenario <= Scenario.Eggbeater;
+            if (scenario == Scenario.FreeSwim || scenario == Scenario.FreeSwimUnderwater || swimView)
             {
                 ball.ResetForRestart(forward * 10f);
-                Frame(camera, origin - forward * .34f, forward, right, scenario == Scenario.FreeSwimUnderwater);
-                FollowAthlete(camera, shooter.Motor);
+                Frame(camera, origin - forward * .34f, forward, right, scenario == Scenario.FreeSwimUnderwater || swimView);
+                if (swimView)
+                {
+                    var anchor = camera.viewpoints[2];
+                    Vector3 focus = origin - forward * .48f + Vector3.down * (scenario == Scenario.Eggbeater ? .37f : .21f);
+                    anchor.position = focus + (scenario == Scenario.FreestyleRear
+                        ? -forward * 2.0f + right * .34f : right * 2.22f - forward * .17f) - Vector3.up * .28f;
+                    anchor.LookAt(focus);
+                    camera.GetComponent<Camera>().fieldOfView = 48f;
+                }
+                FollowInspection(camera, () => shooter != null ? shooter.Motor.Position : (Vector3?)null);
+                return;
+            }
+            if (scenario == Scenario.RefereeWalk)
+            {
+                ball.ResetForRestart(origin + forward * .85f);
+                if (!shooter.Interaction.TryCollect())
+                    throw new InvalidOperationException("The referee fixture could not establish possession.");
+                var official = Object.FindObjectsByType<PoolsideReferee>().OrderBy(p => p.transform.position.x)
+                    .First(p => p.GetComponentInChildren<RefereeVisual>()?.UsesProfessional == true);
+                Vector3 focus = official.transform.position + Vector3.up * .83f;
+                var anchor = camera.viewpoints[2];
+                anchor.position = focus + Vector3.right * Mathf.Sign(-official.transform.position.x) * 2.60f +
+                    Vector3.forward * .88f + Vector3.up * .36f;
+                anchor.LookAt(focus);
+                camera.SetView(2);
+                camera.GetComponent<Camera>().fieldOfView = 48f;
+                FollowInspection(camera, () => official != null ? official.transform.position : (Vector3?)null);
                 return;
             }
             if (scenario == Scenario.Passing)
                 receiver.Motor.ResetPose(origin + forward * 4.6f + right * .43f, Quaternion.LookRotation(-forward));
             if (scenario == Scenario.LongPassAway)
                 receiver.Motor.ResetPose(origin + forward * 8.2f + right * .25f, facing);
-            if (scenario >= Scenario.MovingReceiver)
+            if (scenario >= Scenario.MovingReceiver && scenario <= Scenario.MissedPass)
             {
                 Vector3 receiverFacing = scenario == Scenario.MovingReceiver ? forward :
                     scenario == Scenario.LateralReceiving ? right : -forward;
@@ -241,7 +296,8 @@ namespace ToduStudios.WaterPolo.Editor
                 outlets[0].Motor.ResetPose(origin - across * 4.6f, Quaternion.LookRotation(across));
                 outlets[1].Motor.ResetPose(origin + across * 4.6f, Quaternion.LookRotation(-across));
             }
-            else if (scenario == Scenario.Passing || scenario == Scenario.LongPassAway || scenario >= Scenario.MovingReceiver)
+            else if (scenario == Scenario.Passing || scenario == Scenario.LongPassAway ||
+                scenario >= Scenario.MovingReceiver && scenario <= Scenario.MissedPass)
             {
                 Frame(camera, receiver.Motor.Position + Vector3.up * .21f, -forward, right, false);
                 camera.SetView(-1);
@@ -253,7 +309,7 @@ namespace ToduStudios.WaterPolo.Editor
             else Frame(camera, origin + forward * .42f, forward, right, scenario == Scenario.Underwater);
             if (scenario == Scenario.Underwater || scenario == Scenario.Carry ||
                 scenario == Scenario.PowerShot || scenario == Scenario.QuickShot)
-                FollowAthlete(camera, shooter.Motor);
+                FollowInspection(camera, () => shooter != null ? shooter.Motor.Position : (Vector3?)null);
             if (scenario == Scenario.MovingReceiver || scenario == Scenario.LateralReceiving)
                 _ = RunMovingPassOnT(ball, shooter, receiver, scenario == Scenario.MovingReceiver ? forward : right);
 
@@ -364,18 +420,19 @@ namespace ToduStudios.WaterPolo.Editor
             camera.SetView(2);
         }
 
-        private static void FollowAthlete(ArenaDeveloperCamera camera, SwimmerMotor motor)
+        private static void FollowInspection(ArenaDeveloperCamera camera, Func<Vector3?> followPoint)
         {
             var anchor = camera.viewpoints[2];
-            Vector3 prior = motor.Position;
+            Vector3 prior = followPoint() ?? anchor.position;
             void Follow()
             {
-                if (!EditorApplication.isPlaying || camera == null || motor == null || camera.ViewIndex != 2)
+                Vector3? point = EditorApplication.isPlaying ? followPoint() : null;
+                if (!point.HasValue || camera == null || camera.ViewIndex != 2)
                 {
                     EditorApplication.update -= Follow;
                     return;
                 }
-                Vector3 position = motor.Position;
+                Vector3 position = point.Value;
                 anchor.position += position - prior;
                 prior = position;
             }

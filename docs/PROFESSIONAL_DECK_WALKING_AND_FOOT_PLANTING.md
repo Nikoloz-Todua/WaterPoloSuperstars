@@ -1,0 +1,19 @@
+# Professional deck walking and foot planting
+
+## Diagnosis and source
+
+The production walk used the Meshy Walking take in `MeshyDeckSource.fbx`. Its Humanoid upper body was sampled to route distance. The runtime moved the legs through a second gait and reconstructed the ankle from a nominal joint slope. The source athlete bind joints place the ankle about 86.5 mm above the floor and the ball-of-foot joint about 15.2 mm above it in Blender. The nominal heel and toe depths were 65 and 16 mm. The difference made neutral foot orientation dependent on the solver's assumptions, particularly during formal standing. The walkout, captain movement and standing also used different pose paths that could reset abruptly.
+
+`WPSDeckWalk` and `WPSDeckStand` are editable 60 Hz Actions in `SourceAssets/Athletes/WPS_Animations_001/Blender/WPS_AquaticMotion_001.blend`. `Tools/Art/AuthorProfessionalDeck.py` builds them on the existing athlete skeleton. The walk uses modest counter-swing, subtle pelvis rotation, alternating weight transfer, heel contact, loading response, flat stance, heel rise, toe-off and swing with clearance. The in-place cycle lasts 1.10 seconds at 1.28 m per same-foot cycle. The stand is 2.50 seconds with a small shift and relaxed arms.
+
+The authoring script exports two animation-only FBX files and a small contact curve. The two Unity Metas set Humanoid, copy the existing Avatar and bake displacement into the pose. Ceremony actors and officials sample the shared authoring at distance-driven phases. The regular scene and ceremony routes still determine displacement and stage timing. [Normal gait phase reference](https://www.ouhsc.edu/bserdac/dthompso/web/gait/terms.htm) · [Unity root motion](https://docs.unity3d.com/6000.6/Documentation/Manual/RootMotion.html) · [Unity animation import settings](https://docs.unity.cn/6000.6/Documentation/Manual/class-AnimationClip.html)
+
+## Production contact and transition
+
+`PrematchCast` blends the two deck clips through the walkout, lineup and captain movement without disposing the walking graph at each stop. Step offsets vary slightly with cap number. The route eases into and out of the walk. Captains use the same legs while retaining the right-arm pennant gesture and turn back toward their marks. The professional officials use the same stand and stride with their own Avatar and scale. Their existing head tracking and officiating gestures are applied after the gait. Brief pivot steps accompany a change of heading at low speed.
+
+`DeckFootPlacement` reads the athlete's or official's own ankle and toe bind frames from its skinned mesh once. It uses a heel and forefoot pivot at the authored ground phase, then resets the toe joint to its neutral bind. Foot targets follow the same phase as the body. A bounded stance anchor limits foot motion if a step crosses a route turn. The two-joint knee solve stays within the leg reach. The movement blend settles the feet toward standing as route speed falls.
+
+## Inspection and remaining limits
+
+The advancing Windows Editor probe captured the production team walking, the lineup, and the captain approach, exchange and return. The standalone skinned preview captured a raised-toe sample from the imported walk and shows the authored walk and stand on the same body. The live official travelled 1.50 m in the recorded segment, then pivoted and matched a reversed ball location. The two sole pivots approximate curved floor contact using the bind geometry. Exact support-foot slip and full surface clearance were not instrumented. Personal visual approval and device performance remain open. [Walkout evidence](Evidence/Milestone30G/Walking-Gait-Sequence.jpg) · [Standalone clip comparison](Evidence/Milestone30G/Walking-Clip-Comparison.jpg) · [Standing and exchange](Evidence/Milestone30G/Natural-Standing-and-Captain.jpg) · [Official walking](Evidence/Milestone30G/Referee-Walking.jpg)

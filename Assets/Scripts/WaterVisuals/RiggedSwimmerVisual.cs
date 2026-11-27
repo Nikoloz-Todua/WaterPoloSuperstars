@@ -208,9 +208,10 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             if (useAuthoredWaterline)
             {
                 Vector3 facing = identity != null ? identity.transform.forward : alignmentRoot.forward;
-                flutter?.Apply(facing, animator.GetFloat(Move), animator.GetCurrentAnimatorStateInfo(0).normalizedTime);
                 if (shotLift > .08f)
                     flutter?.PressWater(facing, Mathf.InverseLerp(.08f, .48f, shotLift) * .72f);
+                else
+                    flutter?.Apply(facing, animator.GetFloat(Move), animator.GetCurrentAnimatorStateInfo(0).normalizedTime);
             }
             if (ball != null && ball.ProfessionalThrows && SupportsEvaluatedGrip)
                 FinishEvaluatedPose();

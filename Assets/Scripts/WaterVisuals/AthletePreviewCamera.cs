@@ -65,6 +65,8 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             if (keyboard.f3Key.wasPressedThisFrame) framing = 2;
             if (keyboard.f4Key.wasPressedThisFrame) SelectDeckClip(walk);
             if (keyboard.f5Key.wasPressedThisFrame) SelectDeckClip(run);
+            if (keyboard.f7Key.wasPressedThisFrame) ShowProfessionalDeck(false);
+            if (keyboard.f9Key.wasPressedThisFrame) ShowProfessionalDeck(true);
             if (keyboard.oKey.wasPressedThisFrame) elevation = elevation > 60f ? 0f : 83f;
             if (keyboard.uKey.wasPressedThisFrame) elevation = elevation < -20f ? 0f : -38f;
             if (keyboard.pKey.wasPressedThisFrame) playbackRate = playbackRate >= .99f ? .25f : 1f;
@@ -85,6 +87,14 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             poseMode = -1;
         }
 
+        public void ShowProfessionalDeck(bool standing)
+        {
+            SelectDeckClip(standing ? DeckMotion.Stand : DeckMotion.Walk);
+            angle = 76f;
+            elevation = 0f;
+            framing = 0;
+        }
+
         void LateUpdate()
         {
             if (athlete == null || animator == null) return;
@@ -103,7 +113,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                     deckGraph = PlayableGraph.Create("Athlete deck clip inspection");
                     deckGraph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
                     deckPlayable = AnimationClipPlayable.Create(deckGraph, deckClip);
-                    deckPlayable.SetApplyFootIK(true);
+                    deckPlayable.SetApplyFootIK(deckClip != DeckMotion.Walk && deckClip != DeckMotion.Stand);
                     AnimationPlayableOutput.Create(deckGraph, "Athlete pose", animator).SetSourcePlayable(deckPlayable);
                     deckGraph.Play();
                 }

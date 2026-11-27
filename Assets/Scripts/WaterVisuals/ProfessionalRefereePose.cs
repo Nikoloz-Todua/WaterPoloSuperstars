@@ -11,14 +11,16 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         [SerializeField] AnimationClip walking;
         Animator animator;
         PlayableGraph graph;
-        AnimationClipPlayable gait;
+        AnimationClipPlayable gait, idle;
+        AnimationMixerPlayable blend;
+        AnimationClip deckWalk, deckStand;
         Transform[] bones;
         Vector3[] positions;
         Quaternion[] rotations;
         Transform leftArm, leftElbow, leftHand, rightArm, rightElbow, rightHand, head, chest, neck, leftFoot, rightFoot;
         Quaternion modelFacing, bodyHeading;
         DeckFootPlacement footPlacement;
-        float stride, gazeYaw, gazePitch;
+        float stride, gazeYaw, gazePitch, walkWeight, turnWeight, idleTime;
         Vector3 headLocalForward;
         RefereeSignal lastSignal;
         float signalAge;
@@ -27,6 +29,8 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         void Awake()
         {
             animator = GetComponent<Animator>();
+            deckWalk = DeckMotion.Walk != null ? DeckMotion.Walk : walking;
+            deckStand = DeckMotion.Stand;
             animator.applyRootMotion = false;
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             modelFacing = transform.localRotation;
@@ -61,6 +65,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             RestoreRest();
             transform.localRotation = modelFacing;
             bodyHeading = transform.rotation;
+            walkWeight = turnWeight = 0f;
             RelaxArms();
         }
 
@@ -82,19 +87,31 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             RestoreRest();
             Vector3 facing = Mathf.Abs(travelDirection) > .5f ? Vector3.forward * travelDirection :
                 Vector3.ProjectOnPlane(observation - transform.position, Vector3.up);
+            Quaternion previousHeading = bodyHeading;
             if (facing.sqrMagnitude > .01f)
                 bodyHeading = Quaternion.RotateTowards(bodyHeading, Quaternion.LookRotation(facing), Time.deltaTime * 210f);
             transform.rotation = bodyHeading;
 
             var feet = new Vector3(transform.position.x, deck, transform.position.z);
-            float strideLength = 1.36f * transform.lossyScale.y;
-            if (Mathf.Abs(travelled) > .0002f && walking != null)
+            float strideLength = DeckMotion.Stride * transform.lossyScale.y;
+            if (deckWalk != null && deckStand != null)
             {
-                SampleWalk(Mathf.Abs(travelled), strideLength, false);
-                float speed = Mathf.Abs(travelled) / Mathf.Max(.001f, Time.deltaTime);
-                footPlacement.Apply(transform, feet, Vector3.forward * travelDirection, stride,
-                    strideLength, Mathf.InverseLerp(.03f, .55f, speed));
+                float step = Mathf.Max(.001f, Time.deltaTime);
+                float speed = Mathf.Abs(travelled) / step;
+                float turn = Quaternion.Angle(previousHeading, bodyHeading);
+                float slow = 1f - Mathf.InverseLerp(.07f, .28f, speed);
+                float pivot = slow * Mathf.InverseLerp(12f, 105f, turn / step);
+                turnWeight = Mathf.MoveTowards(turnWeight, pivot, Time.deltaTime * (pivot > turnWeight ? 7f : 4.8f));
+                float weight = Mathf.Max(Mathf.InverseLerp(.025f, .52f, speed), turnWeight * .52f);
+                float distance = Mathf.Abs(travelled) + turn * Mathf.Deg2Rad * .18f * slow;
+                strideLength *= Mathf.Lerp(1f, .55f, turnWeight);
+                walkWeight = Mathf.MoveTowards(walkWeight, weight, Time.deltaTime * (weight > walkWeight ? 6f : 5f));
+                SampleWalk(distance, strideLength, false, walkWeight);
+                Vector3 travel = Vector3.Lerp(Vector3.forward * travelDirection, transform.forward, turnWeight);
+                footPlacement.Apply(transform, feet, travel, stride, strideLength, walkWeight);
             }
+            else if (deckWalk != null && Mathf.Abs(travelled) > .0002f)
+                SampleWalk(Mathf.Abs(travelled), strideLength);
             else
             {
                 footPlacement.Apply(transform, feet, transform.forward, stride, strideLength, 0f);
@@ -247,25 +264,42 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             // Recovery path for the Milestone 29 presentation.
             Quaternion target = Quaternion.LookRotation(Vector3.forward * Mathf.Sign(speed));
             transform.rotation = Quaternion.Slerp(previousFacing, target, 1f - Mathf.Exp(-14f * Time.deltaTime));
-            SampleWalk(Mathf.Abs(speed) * Time.deltaTime, 1.36f);
+            if (deckWalk != null) SampleWalk(Mathf.Abs(speed) * Time.deltaTime, DeckMotion.Stride);
             float deck = transform.parent.position.y;
             float sole = Mathf.Min(leftFoot.position.y, rightFoot.position.y) - .073f * transform.lossyScale.y;
             transform.position += Vector3.up * Mathf.Clamp(deck - sole, -.12f, .12f);
         }
 
-        void SampleWalk(float distance, float strideDistance, bool useFootIK = true)
+        void SampleWalk(float distance, float strideDistance, bool useFootIK = true, float movement = 1f)
         {
             if (!graph.IsValid())
             {
                 graph = PlayableGraph.Create("Official deck gait");
                 graph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
-                gait = AnimationClipPlayable.Create(graph, walking);
-                AnimationPlayableOutput.Create(graph, "Deck walking", animator).SetSourcePlayable(gait);
+                gait = AnimationClipPlayable.Create(graph, deckWalk);
+                var output = AnimationPlayableOutput.Create(graph, "Deck walking", animator);
+                if (deckStand != null)
+                {
+                    idle = AnimationClipPlayable.Create(graph, deckStand);
+                    idle.SetApplyFootIK(false);
+                    blend = AnimationMixerPlayable.Create(graph, 2);
+                    graph.Connect(idle, 0, blend, 0);
+                    graph.Connect(gait, 0, blend, 1);
+                    output.SetSourcePlayable(blend);
+                }
+                else output.SetSourcePlayable(gait);
                 graph.Play();
             }
             gait.SetApplyFootIK(useFootIK);
             stride = Mathf.Repeat(stride + distance / strideDistance, 1f);
-            gait.SetTime(stride * walking.length);
+            gait.SetTime(stride * deckWalk.length);
+            if (deckStand != null)
+            {
+                idleTime = Mathf.Repeat(idleTime + Time.deltaTime, deckStand.length);
+                idle.SetTime(idleTime);
+                blend.SetInputWeight(0, 1f - movement);
+                blend.SetInputWeight(1, movement);
+            }
             graph.Evaluate(0f);
         }
 

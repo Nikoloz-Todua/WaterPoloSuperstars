@@ -4,6 +4,10 @@ Start these commands in Unity 6000.6.7f1 with the arena saved and Play stopped. 
 
 ## Menu map
 
+### Milestone 30G additions
+
+Under **Swimming and Floating**, use **Freestyle Side View**, **Freestyle Rear View** or **Eggbeater Comparison** for the close arena cameras. Under **Ceremony and Walking**, **Natural Athlete Walk** and **Standing and Foot Placement** open the authored clips in AthletePreview. **Referee Walking** opens a close camera on the actual arena official. **Arena Walkout and Pennants** retains the production ceremony view. [30G manual animation checks](MILESTONE_30G_MANUAL_TEST_GUIDE.md)
+
 ### Milestone 30F additions
 
 Open **Tools > Water Polo > Test Lab > Team Tactics > Intelligent Team Support** to compare outlets and marking before and after moving the carrier. Under **Shooting and Passing**, use **Long Pass to Receiver Facing Away** or **Stationary Dry Pass** with **B**, **Moving Receiver** or **Lateral Receiving** with **T**, **High Receiving** with **L** and **Missed Pass and Recovery** with **B** followed by movement toward the loose ball. Press **F8** three times from broadcast in the receiving fixtures for the receiver close-up and once more to return. [30F manual tests](MILESTONE_30F_MANUAL_TEST_GUIDE.md)

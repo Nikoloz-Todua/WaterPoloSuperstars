@@ -1,5 +1,9 @@
 # Professional aquatic and deck animation
 
+## Milestone 30G authored motion
+
+The lower-body flutter now comes from editable normal and sprint Blender Actions on the 66-bone athlete. A compact Blender export supplies the pelvis, thigh, shin, foot and toe rotations. The Unity layer blends those rotations on the unchanged Humanoid rig after Animator sampling. The new walk and stand also come from Blender. The shared deck contact solver uses the rendered rig's bind frames and an authored stride profile so the walkout, captain movement and live officials have the same contact timing. [Freestyle diagnosis and evidence](PROFESSIONAL_FREESTYLE_ANIMATION_REPAIR.md) · [Deck gait and editable source](PROFESSIONAL_DECK_WALKING_AND_FOOT_PLANTING.md) · [Manual Test Lab guide](MILESTONE_30G_MANUAL_TEST_GUIDE.md)
+
 ## Milestone 30D prone chain revision
 
 The developer rejected the 30C appearance in live play. The new audit sampled the Blender Action and reimported motion-only FBX at 0%, 25%, 50%, 75% and 100%. The FBX joint geometry tracked the Action, including its approximately 0.40 m hip-relative toe excursion. The source aimed thighs and calves against a fixed world-space reference while the torso rolled. The 30C ankle/calf correction restored axial shin orientation but kept the source excursion, femur orientation and mismatch to pelvis roll.

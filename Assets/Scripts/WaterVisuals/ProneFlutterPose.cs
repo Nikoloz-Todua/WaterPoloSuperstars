@@ -1,102 +1,126 @@
+using Unity.Profiling;
 using UnityEngine;
 
 namespace ToduStudios.WaterPolo.WaterVisuals
 {
-    /// <summary>Applies the prone kick in the sampled pelvis frame on the production skeleton.</summary>
+    /// <summary>Samples the authored flutter on the production rig after Humanoid evaluation.</summary>
     internal sealed class ProneFlutterPose
     {
-        private readonly Transform pelvis;
-        private readonly Vector3 pelvisAnterior;
-        private readonly Leg left, right;
+        [System.Serializable]
+        private sealed class Cycle
+        {
+            public int frames;
+            public Quaternion[] rotations;
+            public bool Valid => frames > 0 && rotations != null && rotations.Length == (frames + 1) * JointCount;
+        }
+
+        [System.Serializable]
+        private sealed class Motion
+        {
+            public Cycle crawl, sprint;
+        }
+
+        private static readonly ProfilerMarker Sampling = new ProfilerMarker("WaterPolo.AuthoredFlutter");
+        private static readonly HumanBodyBones[] Joints =
+        {
+            HumanBodyBones.Hips,
+            HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg, HumanBodyBones.LeftFoot, HumanBodyBones.LeftToes,
+            HumanBodyBones.RightUpperLeg, HumanBodyBones.RightLowerLeg, HumanBodyBones.RightFoot, HumanBodyBones.RightToes
+        };
+        private static readonly int[] Parents = { -1, 0, 1, 2, 3, 0, 5, 6, 7 };
+        private const int JointCount = 9;
+        private static Motion motion;
+        private static bool loaded;
+
+        private readonly Transform[] joints = new Transform[JointCount];
+        private readonly Quaternion[] bind = new Quaternion[JointCount];
+        private readonly Quaternion[] parentBind = new Quaternion[JointCount];
+        private readonly Quaternion[] deltas = new Quaternion[JointCount];
+        private readonly Transform spine;
+        private readonly bool ready;
 
         internal ProneFlutterPose(Animator animator, Transform model)
         {
-            pelvis = animator.GetBoneTransform(HumanBodyBones.Hips);
-            pelvisAnterior = pelvis != null ? pelvis.InverseTransformDirection(model.forward) : Vector3.forward;
-            left = new Leg(animator, model, HumanBodyBones.LeftUpperLeg, HumanBodyBones.LeftLowerLeg,
-                HumanBodyBones.LeftFoot, HumanBodyBones.LeftToes);
-            right = new Leg(animator, model, HumanBodyBones.RightUpperLeg, HumanBodyBones.RightLowerLeg,
-                HumanBodyBones.RightFoot, HumanBodyBones.RightToes);
+            if (!loaded)
+            {
+                loaded = true;
+                var asset = Resources.Load<TextAsset>("WPSFlutterMotion");
+                if (asset != null) motion = JsonUtility.FromJson<Motion>(asset.text);
+            }
+            Quaternion inverse = Quaternion.Inverse(model.rotation);
+            for (int i = 0; i < JointCount; i++)
+            {
+                Transform bone = animator.GetBoneTransform(Joints[i]);
+                joints[i] = bone;
+                if (bone == null) continue;
+                bind[i] = inverse * bone.rotation;
+                parentBind[i] = inverse * bone.parent.rotation;
+            }
+            spine = animator.GetBoneTransform(HumanBodyBones.Spine);
+            ready = joints[0] != null && joints[1] != null && joints[2] != null && joints[3] != null &&
+                joints[5] != null && joints[6] != null && joints[7] != null &&
+                motion?.crawl?.Valid == true && motion.sprint?.Valid == true;
         }
 
         internal void Apply(Vector3 facing, float movement, float phase)
         {
-            float weight = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.47f, .92f, movement));
-            if (weight <= 0f || pelvis == null) return;
-            Vector3 aft = Vector3.ProjectOnPlane(-facing, Vector3.up).normalized;
-            Vector3 dorsal = Vector3.ProjectOnPlane(-pelvis.TransformDirection(pelvisAnterior), aft).normalized;
-            if (Vector3.Dot(dorsal, Vector3.up) < .48f) return;
-            Vector3 rear = (aft - dorsal * .14f).normalized;
-            Vector3 across = Vector3.Cross(rear, dorsal).normalized;
+            float weight = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.48f, .95f, movement));
+            if (!ready || weight <= 0f) return;
+
+            using var measurement = Sampling.Auto();
             float sprint = Mathf.Clamp01(movement - 1f);
-            float beat = phase * (6f * Mathf.PI);
-            left.Apply(rear, dorsal, across, beat, -1f, sprint, weight);
-            right.Apply(rear, dorsal, across, beat + Mathf.PI, 1f, sprint, weight);
+            phase = Mathf.Repeat(phase, 1f);
+            float normalFrame = phase * motion.crawl.frames;
+            float sprintFrame = phase * motion.sprint.frames;
+            int normal = Mathf.Min(Mathf.FloorToInt(normalFrame), motion.crawl.frames - 1);
+            int fast = Mathf.Min(Mathf.FloorToInt(sprintFrame), motion.sprint.frames - 1);
+            for (int i = 0; i < joints.Length; i++)
+            {
+                var a = Sample(motion.crawl, normal, normalFrame - normal, i);
+                deltas[i] = sprint > 0f
+                    ? Quaternion.Slerp(a, Sample(motion.sprint, fast, sprintFrame - fast, i), sprint)
+                    : a;
+            }
+
+            Quaternion upperBody = spine != null ? spine.rotation : Quaternion.identity;
+            var root = joints[0];
+            Quaternion desiredRoot = Quaternion.LookRotation(facing, Vector3.up) * deltas[0] * bind[0];
+            root.rotation = Quaternion.Slerp(root.rotation, desiredRoot, weight);
+            if (spine != null) spine.rotation = upperBody;
+            for (int i = 1; i < joints.Length; i++)
+            {
+                var bone = joints[i];
+                if (bone == null) continue;
+                // The bind frames are the production bones, including their FBX roll.
+                // Work in parent space so the transition blends both ends of the chain coherently.
+                Quaternion authoredParent = deltas[Parents[i]] * parentBind[i];
+                Quaternion desired = Quaternion.Inverse(authoredParent) * deltas[i] * bind[i];
+                bone.localRotation = Quaternion.Slerp(bone.localRotation, desired, weight);
+            }
+        }
+
+        private static Quaternion Sample(Cycle cycle, int frame, float blend, int joint)
+        {
+            int index = frame * JointCount + joint;
+            return Quaternion.Slerp(cycle.rotations[index], cycle.rotations[index + JointCount], blend);
         }
 
         internal void PressWater(Vector3 forward, float strength)
         {
             Vector3 side = Vector3.Cross(Vector3.up, forward);
-            left.Extend(forward, -side, strength);
-            right.Extend(forward, side, strength);
+            Extend(joints[1], joints[2], joints[3], forward, -side, strength);
+            Extend(joints[5], joints[6], joints[7], forward, side, strength);
         }
 
-        private readonly struct Leg
+        private static void Extend(Transform thigh, Transform shin, Transform ankle, Vector3 forward, Vector3 outside, float strength)
         {
-            private readonly Transform thigh, shin, ankle, toe;
-            private readonly Quaternion thighFrame, shinFrame, footFrame, toeRest;
-
-            internal Leg(Animator animator, Transform model, HumanBodyBones hipBone, HumanBodyBones kneeBone,
-                HumanBodyBones ankleBone, HumanBodyBones toeBone)
-            {
-                thigh = animator.GetBoneTransform(hipBone);
-                shin = animator.GetBoneTransform(kneeBone);
-                ankle = animator.GetBoneTransform(ankleBone);
-                toe = animator.GetBoneTransform(toeBone);
-                thighFrame = Frame(thigh, shin, model.forward);
-                shinFrame = Frame(shin, ankle, model.forward);
-                footFrame = Frame(ankle, toe, model.up);
-                toeRest = toe != null ? toe.localRotation : Quaternion.identity;
-            }
-
-            private static Quaternion Frame(Transform bone, Transform next, Vector3 reference) =>
-                bone != null && next != null
-                    ? Quaternion.Inverse(bone.rotation) * Quaternion.LookRotation(next.position - bone.position, reference)
-                    : Quaternion.identity;
-
-            internal void Apply(Vector3 rear, Vector3 dorsal, Vector3 across, float beat, float side, float sprint, float weight)
-            {
-                if (thigh == null || shin == null || ankle == null || toe == null) return;
-                float hip = Mathf.Sin(beat) * Mathf.Lerp(5.2f, 7f, sprint) * Mathf.Deg2Rad;
-                float flex = Mathf.Lerp(6f, Mathf.Lerp(17f, 20f, sprint),
-                    .5f + .5f * Mathf.Sin(beat - .84f)) * Mathf.Deg2Rad;
-                float plant = Mathf.Lerp(12f, 22f, .5f + .5f * Mathf.Sin(beat - 1.4f)) * Mathf.Deg2Rad;
-                Vector3 upper = (rear + dorsal * Mathf.Tan(hip) + across * (side * .034f)).normalized;
-                Vector3 kneeDorsal = Vector3.ProjectOnPlane(dorsal, upper).normalized;
-                Vector3 lower = upper * Mathf.Cos(flex) + kneeDorsal * Mathf.Sin(flex);
-                Vector3 shinDorsal = Quaternion.FromToRotation(upper, lower) * kneeDorsal;
-                Vector3 toes = lower * Mathf.Cos(plant) - shinDorsal * Mathf.Sin(plant);
-                Quaternion sampledShin = shin.rotation;
-                Quaternion sampledFoot = ankle.rotation;
-                thigh.rotation = Quaternion.Slerp(thigh.rotation,
-                    Quaternion.LookRotation(upper, -kneeDorsal) * Quaternion.Inverse(thighFrame), weight);
-                shin.rotation = Quaternion.Slerp(sampledShin,
-                    Quaternion.LookRotation(lower, -shinDorsal) * Quaternion.Inverse(shinFrame), weight);
-                ankle.rotation = Quaternion.Slerp(sampledFoot,
-                    Quaternion.LookRotation(toes, shinDorsal) * Quaternion.Inverse(footFrame), weight);
-                toe.localRotation = Quaternion.Slerp(toe.localRotation, toeRest, weight);
-            }
-
-            internal void Extend(Vector3 forward, Vector3 outside, float strength)
-            {
-                if (thigh == null || shin == null || ankle == null) return;
-                Vector3 thighDirection = -Vector3.up + forward * .24f + outside * .25f;
-                Vector3 shankDirection = -Vector3.up - forward * .19f + outside * .11f;
-                thigh.rotation = Quaternion.Slerp(Quaternion.identity,
-                    Quaternion.FromToRotation(shin.position - thigh.position, thighDirection), strength) * thigh.rotation;
-                shin.rotation = Quaternion.Slerp(Quaternion.identity,
-                    Quaternion.FromToRotation(ankle.position - shin.position, shankDirection), strength) * shin.rotation;
-            }
+            if (thigh == null || shin == null || ankle == null) return;
+            Vector3 thighDirection = -Vector3.up + forward * .24f + outside * .25f;
+            Vector3 shankDirection = -Vector3.up - forward * .19f + outside * .11f;
+            thigh.rotation = Quaternion.Slerp(Quaternion.identity,
+                Quaternion.FromToRotation(shin.position - thigh.position, thighDirection), strength) * thigh.rotation;
+            shin.rotation = Quaternion.Slerp(Quaternion.identity,
+                Quaternion.FromToRotation(ankle.position - shin.position, shankDirection), strength) * shin.rotation;
         }
     }
 }

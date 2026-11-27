@@ -25,13 +25,14 @@ namespace ToduStudios.WaterPolo
             public Transform Hand => Joint(HumanBodyBones.RightHand);
             public bool UsesDeckWalk => deckWalk != null;
             readonly Animator deckAnimator;
-            readonly AnimationClip deckWalk;
+            readonly AnimationClip deckWalk, deckStand;
             readonly (Transform Joint, Vector3 Position, Quaternion Rotation)[] deckRest;
             readonly DeckFootPlacement footPlacement;
             PlayableGraph walkGraph;
-            AnimationClipPlayable walkPlayable;
+            AnimationClipPlayable walkPlayable, standPlayable;
+            AnimationMixerPlayable deckBlend;
             Vector3 previousFeet;
-            float previousTime, routeDistance;
+            float previousTime, routeDistance, walkWeight;
 
             public Athlete(SwimmerIdentity player, Transform parent, Transform mark, Vector3 entry, bool captain,
                 HubCatalog catalog, bool refinedWalking)
@@ -53,17 +54,21 @@ namespace ToduStudios.WaterPolo
                         rest[i]=joint.localRotation;
                     }
                 }
-                if (visual.deckWalk != null && visual.deckWalk.humanMotion &&
+                var authored = refinedWalking && DeckMotion.Walk != null && DeckMotion.Stand != null;
+                var walk = authored ? DeckMotion.Walk : visual.deckWalk;
+                if (walk != null && walk.humanMotion &&
                     bones.TryGetValue(visual.transform, out var modelRoot))
                 {
-                    deckWalk = visual.deckWalk;
+                    deckWalk = walk;
+                    deckStand = authored ? DeckMotion.Stand : null;
                     deckRest = modelRoot.GetComponentsInChildren<Transform>(true)
                         .Select(t => (t, t.localPosition, t.localRotation)).ToArray();
                     deckAnimator = modelRoot.gameObject.AddComponent<Animator>();
                     deckAnimator.avatar = visual.Animator.avatar;
                     deckAnimator.applyRootMotion = false;
                     deckAnimator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
-                    if (refinedWalking) footPlacement = new DeckFootPlacement(Joint, modelRoot, .065f, .016f);
+                    if (authored) footPlacement = new DeckFootPlacement(Joint, modelRoot, .065f, .016f);
+                    routeDistance = authored ? (Identity.CapNumber % 5) * .10f : 0f;
                 }
             }
 
@@ -86,12 +91,18 @@ namespace ToduStudios.WaterPolo
                     travel = Vector3.zero;
                 float movement = gait > .01f ? Mathf.InverseLerp(.03f, .55f, travel.magnitude / Mathf.Max(.001f, elapsed)) : 0f;
                 if (gait > .01f) routeDistance += travel.magnitude;
-                else routeDistance = 0f;
+                else if (deckStand == null) routeDistance = 0f;
+                walkWeight = Mathf.MoveTowards(walkWeight, movement, Mathf.Clamp(elapsed, 0f, .05f) * (movement > walkWeight ? 5.8f : 5.2f));
                 previousFeet = feet;
                 previousTime = time;
+                if (deckStand != null)
+                {
+                    Walk(feet, travel, walkWeight, time, offer);
+                    return;
+                }
                 if (deckAnimator != null && useWalk && gait > .01f)
                 {
-                    Walk(feet, travel, movement);
+                    Walk(feet, travel, movement, time, 0f);
                     return;
                 }
                 if (walkGraph.IsValid())
@@ -111,11 +122,8 @@ namespace ToduStudios.WaterPolo
                 Point(HumanBodyBones.RightUpperLeg,HumanBodyBones.RightLowerLeg,-Vector3.up+right*.10f-forward*swing*.40f);
                 Point(HumanBodyBones.LeftLowerLeg,HumanBodyBones.LeftFoot,-Vector3.up-forward*Mathf.Max(0,swing)*.48f);
                 Point(HumanBodyBones.RightLowerLeg,HumanBodyBones.RightFoot,-Vector3.up-forward*Mathf.Max(0,-swing)*.48f);
-                if (footPlacement == null)
-                {
-                    Point(HumanBodyBones.LeftFoot,HumanBodyBones.LeftToes,forward);
-                    Point(HumanBodyBones.RightFoot,HumanBodyBones.RightToes,forward);
-                }
+                Point(HumanBodyBones.LeftFoot,HumanBodyBones.LeftToes,forward);
+                Point(HumanBodyBones.RightFoot,HumanBodyBones.RightToes,forward);
                 Point(HumanBodyBones.LeftUpperArm,HumanBodyBones.LeftLowerArm,-Vector3.up-right*.22f-forward*swing*.27f);
                 Point(HumanBodyBones.RightUpperArm,HumanBodyBones.RightLowerArm,
                     Vector3.Lerp(-Vector3.up+right*.20f+forward*swing*.27f,forward-Vector3.up*.55f,offer));
@@ -124,14 +132,12 @@ namespace ToduStudios.WaterPolo
                     Vector3.Lerp(-Vector3.up+forward*.14f,forward*.85f+Vector3.up*.28f,offer));
                 var lf=Joint(HumanBodyBones.LeftFoot);
                 var rf=Joint(HumanBodyBones.RightFoot);
-                if (footPlacement != null)
-                    footPlacement.Apply(Root, feet, travel, routeDistance / 1.36f, 1.36f, movement);
-                else if (lf!=null&&rf!=null) Root.position+=Vector3.up*(feet.y+.05f-Mathf.Min(lf.position.y,rf.position.y));
+                if (lf!=null&&rf!=null) Root.position+=Vector3.up*(feet.y+.05f-Mathf.Min(lf.position.y,rf.position.y));
                 var head=Joint(HumanBodyBones.Head);
                 if (head!=null) head.rotation=Quaternion.AngleAxis(Mathf.Sin(time*1.45f)*2f,Root.up)*head.rotation;
             }
 
-            void Walk(Vector3 feet, Vector3 travel, float movement)
+            void Walk(Vector3 feet, Vector3 travel, float movement, float time, float offer)
             {
                 if (!walkGraph.IsValid())
                 {
@@ -139,17 +145,47 @@ namespace ToduStudios.WaterPolo
                     walkGraph.SetTimeUpdateMode(DirectorUpdateMode.Manual);
                     walkPlayable = AnimationClipPlayable.Create(walkGraph, deckWalk);
                     walkPlayable.SetApplyFootIK(footPlacement == null);
-                    AnimationPlayableOutput.Create(walkGraph, "Deck athlete", deckAnimator).SetSourcePlayable(walkPlayable);
+                    var output = AnimationPlayableOutput.Create(walkGraph, "Deck athlete", deckAnimator);
+                    if (deckStand != null)
+                    {
+                        standPlayable = AnimationClipPlayable.Create(walkGraph, deckStand);
+                        standPlayable.SetApplyFootIK(false);
+                        deckBlend = AnimationMixerPlayable.Create(walkGraph, 2);
+                        walkGraph.Connect(standPlayable, 0, deckBlend, 0);
+                        walkGraph.Connect(walkPlayable, 0, deckBlend, 1);
+                        output.SetSourcePlayable(deckBlend);
+                    }
+                    else output.SetSourcePlayable(walkPlayable);
                     walkGraph.Play();
                 }
 
                 // Match the in-place stride to distance along the existing deck route.
-                const float cycleDistance = 1.36f;
-                walkPlayable.SetTime(Mathf.Repeat(routeDistance / cycleDistance, 1f) * deckWalk.length);
+                float cycleDistance = deckStand != null ? DeckMotion.Stride : 1.36f;
+                float phase = routeDistance / cycleDistance;
+                walkPlayable.SetTime(Mathf.Repeat(phase, 1f) * deckWalk.length);
+                if (deckStand != null)
+                {
+                    standPlayable.SetTime(Mathf.Repeat(time + Identity.CapNumber * .173f, deckStand.length));
+                    deckBlend.SetInputWeight(0, 1f - movement);
+                    deckBlend.SetInputWeight(1, movement);
+                }
                 walkGraph.Evaluate(0f);
                 if (footPlacement != null)
                 {
-                    footPlacement.Apply(Root, feet, travel, routeDistance / cycleDistance, cycleDistance, movement);
+                    footPlacement.Apply(Root, feet, travel, phase, cycleDistance, movement);
+                    if (offer > 0f)
+                    {
+                        Transform arm = Joint(HumanBodyBones.RightUpperArm);
+                        Transform elbow = Joint(HumanBodyBones.RightLowerArm);
+                        Transform hand = Joint(HumanBodyBones.RightHand);
+                        if (arm != null && elbow != null && hand != null)
+                        {
+                            Point(HumanBodyBones.RightUpperArm, HumanBodyBones.RightLowerArm,
+                                Vector3.Slerp(elbow.position - arm.position, Root.forward - Vector3.up * .55f, offer));
+                            Point(HumanBodyBones.RightLowerArm, HumanBodyBones.RightHand,
+                                Vector3.Slerp(hand.position - elbow.position, Root.forward * .85f + Vector3.up * .28f, offer));
+                        }
+                    }
                     return;
                 }
                 float floor = Mathf.Min(EstimateSole(HumanBodyBones.LeftFoot, HumanBodyBones.LeftToes),
@@ -343,9 +379,11 @@ namespace ToduStudios.WaterPolo
                     var movement=p<bend?doorway-athlete.Entry:athlete.Mark-doorway;
                     if (refinedWalking)
                     {
-                        const float brakeAt = .84f;
+                        const float startAt = .088f, brakeAt = .84f;
+                        float start = Mathf.InverseLerp(0f, startAt, p);
                         float t = Mathf.InverseLerp(brakeAt, 1f, p);
-                        float route = p < brakeAt ? p : Mathf.Lerp(brakeAt, 1f, t + t * t - t * t * t);
+                        float route = p < startAt ? startAt * start * start * (2f - start) :
+                            p < brakeAt ? p : Mathf.Lerp(brakeAt, 1f, t + t * t - t * t * t);
                         feet = WalkoutPoint(athlete.Entry, doorway, athlete.Mark, route);
                         movement = WalkoutPoint(athlete.Entry, doorway, athlete.Mark, Mathf.Min(1f, route + .006f)) -
                             WalkoutPoint(athlete.Entry, doorway, athlete.Mark, Mathf.Max(0f, route - .006f));
@@ -357,7 +395,15 @@ namespace ToduStudios.WaterPolo
                 if (athlete.Captain && phase==PreMatchStage.CaptainExchange)
                 {
                     feet=Vector3.Lerp(feet,centre+new Vector3(side==0?-.64f:.64f,0,1.05f),step);
-                    facing=Vector3.Slerp(facing,side==0?Vector3.right:Vector3.left,step*.88f);
+                    Vector3 exchangeFacing = side == 0 ? Vector3.right : Vector3.left;
+                    facing=Vector3.Slerp(facing,exchangeFacing,step*.88f);
+                    if (refinedWalking && progress > .74f)
+                    {
+                        Vector3 retreat = Vector3.ProjectOnPlane(athlete.Mark - feet, Vector3.up);
+                        float turn = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.74f, .87f, progress)) *
+                            (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(.92f, 1f, progress)));
+                        if (retreat.sqrMagnitude > .001f) facing = Vector3.Slerp(facing, retreat.normalized, turn);
+                    }
                     gait=progress<.24f||progress>.74f?.55f*step:0f;
                     offer=step;
                 }
