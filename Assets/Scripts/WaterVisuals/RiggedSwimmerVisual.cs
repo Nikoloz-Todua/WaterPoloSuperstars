@@ -216,14 +216,17 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             {
                 followMotion = ThrowMotion.None;
                 ThrowMotion motion = ball.GetThrowMotion(out float phase, out Vector3 queuedAim);
-                float readiness = charge != null && charge.IsCharging ? 1f : motor.IsRetreating ? .72f : 0f;
+                bool protectedCarry = active && motor.UsesProtectedCarry;
+                float readiness = charge != null && charge.IsCharging ? 1f : protectedCarry ? motor.ProtectedCarry :
+                    motor.IsRetreating ? .72f : 0f;
                 // The queued standard throw starts from the wind-up already visible at button release.
                 if (motion != ThrowMotion.Shot)
-                    loadedWeight = Mathf.MoveTowards(loadedWeight, readiness, Time.deltaTime * 8f);
-                float carry = motor.IsRetreating ? .55f : Mathf.InverseLerp(.42f, 1.65f, motor.Velocity.magnitude) * .64f;
+                    loadedWeight = Mathf.MoveTowards(loadedWeight, readiness, Time.deltaTime * 10f);
+                float carry = protectedCarry ? 0f : motor.IsRetreating ? .55f :
+                    Mathf.InverseLerp(.42f, 1.65f, motor.Velocity.magnitude) * .64f;
                 carryWeight = Mathf.MoveTowards(carryWeight, carry, Time.deltaTime * 5f);
                 float gather = ball.GetGatherProgress(out Vector3 gatheringAt, out Vector3 arrival);
-                Vector3 aim = ball.HasPendingThrow ? queuedAim : forward;
+                Vector3 aim = motion != ThrowMotion.None ? queuedAim : forward;
                 evaluatedPose.Apply(ball.Radius, ball.SurfaceHeight, forward, aim, loadedWeight,
                     gather, gatheringAt, motion, phase, 0f, carryWeight, arrival, shootingLean);
                 if (ball.CommitEvaluatedGrip(identity.Interaction, evaluatedPose.Grip(ball.Radius)))

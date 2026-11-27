@@ -1,6 +1,27 @@
 # Water Polo Superstars — Project Plan and Handoff
 
-Last updated: 2026-11-26.
+Last updated: 2026-11-27.
+
+## Current handoff — Milestone 30E protected possession and directional passing
+
+Milestone 30E starts at human checkpoint `3974e80` on Unity 6000.6.7f1. The saved OlympicMatchArena and its existing athlete, camera, selection ring and ball references are reused. The development fixtures stage only runtime objects in the production arena. [Technical report](docs/MILESTONE_30E_FINAL_REPORT.md) · [Live handoff](docs/MILESTONE_30E_LIVE_HANDOFF.md) · [Manual Test Lab guide](docs/MILESTONE_30E_MANUAL_TEST_GUIDE.md)
+
+- `SwimmerMotor` uses the existing weighted rigidbody yaw while the athlete carries. Intentional translation gates on the protected raise and uses a configurable fraction of ordinary speed. Retreat retains its travel input through independent aiming, then exits when movement changes. `RiggedSwimmerVisual` applies the existing shot load in the current body frame. `BallController` still owns possession, evaluated grip, gathering, leading, voluntary release and physical flight.
+- `SwimmerInput` accepts camera-relative steering, Left Alt aim in place, independent numpad aim and the existing PASS drag. `PlayerSelection` attaches a two-segment chevron to the selected athlete's ring. `SwimmerPassing` and `BallController` enforce the accepted cone at choice and launch. If the receiver leaves the cone or no outlet qualifies, the pass follows the accepted heading into open water. Human passes retain provenance and turn-aware evaluated release. [Evidence](docs/Evidence/Milestone30E/)
+- Use **Tools > Water Polo > Test Lab > Ball Control and Player Switching > Directional Aim and Held Rotation** for carry and **Tools > Water Polo > Test Lab > Shooting and Passing > Directional Passing** for the outlet fixture. Set normal Editor startup with **Tools > Water Polo > Recovery > Use Boot as Editor Play Entry**. The report records the focused Windows verification, profile hash check and limits. Device touch and personal visual approval remain open.
+
+### Deferred roadmap carried forward from 30E
+
+- **30F** · Intelligent teammate awareness and active off-ball positioning. Receiving preparation, turning toward the pass, presenting the receiving hand and physically believable catching.
+- **30G** · Definitive correction of the inverted freestyle lower body. Natural entrance walking, ankle orientation and foot planting.
+- **30H** · Premium swimwear visibility and appearance. Goalkeeper neutral posture, catching and directional saves.
+- **30I** · Natural movement during fouls without robotic freezing. Goal celebrations and conceding-team reactions.
+- **30J** · Visible near-misses and out-of-bounds ball trajectories. Idle water disturbances, hand splashes, wakes and skip-shot refinement.
+- **30K** · Advanced shooting variations and further elevation refinement. Centre-defender behaviour, blocking and tactical positioning.
+- **30L** · Comprehensive remaining gameplay verification. Android performance testing and mobile optimisation.
+- **Future** · Animated spectators, crowd reactions and audio, professional goals and nets, pool markings, bench players and coaches, exclusions and substitutions, pool-entry and pool-exit animations, trick shots and fakes, team and athlete customisation, career mode, transfers, progression and training.
+
+30E closes the current implementation scope. Later milestones require explicit authorisation. Keep human-only Git writes.
 
 ## Current handoff — Milestone 30C control, physical contact and animation checkpoint
 

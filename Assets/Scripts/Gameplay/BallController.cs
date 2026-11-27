@@ -439,6 +439,9 @@ namespace ToduStudios.WaterPolo
         private void LaunchDirectedPass(SwimmerBallInteraction claimant, Vector3 direction, float speed,
             SwimmerPassing receiver, float minimumFlightTime, float receivingWindow, PassDelivery delivery, Vector3 origin, BallActionSource source)
         {
+            bool liveDirectional = source == BallActionSource.HumanInput && match != null && match.IsPlaying;
+            if (liveDirectional && receiver != null && !receiver.CanReceiveFrom(claimant))
+                receiver = null;
             bool evaluatedDryTarget = professionalThrows && delivery == PassDelivery.Dry && (match == null || match.IsPlaying);
             Vector3 target = receiver != null
                 ? PassHand(receiver.Identity.Motor.Position, receiver.Identity.Motor.Facing, origin)
@@ -471,6 +474,18 @@ namespace ToduStudios.WaterPolo
                     target += movement.sqrMagnitude > .25f ? movement.normalized * .64f : -direction * .38f;
             }
             target = poolBounds.ClampPosition(target, Radius);
+            if (liveDirectional)
+            {
+                // Recheck after lead, hand offset and pool clamping. A moving outlet can leave the accepted cone.
+                var passing = claimant.GetComponent<SwimmerPassing>();
+                Vector3 approached = Vector3.ProjectOnPlane(target - origin, Vector3.up).normalized;
+                if (receiver == null || passing != null && !passing.InAssistCone(direction, approached))
+                {
+                    receiver = null;
+                    target = origin + direction * 5f;
+                    time = Mathf.Clamp(5f / Mathf.Max(speed, 10.5f), .30f, 1.12f);
+                }
+            }
             // The receiving hand keeps its established height even when the throw leaves a lower real palm.
             target.y = delivery == PassDelivery.Wet ? SurfaceHeight : receiver == null ? origin.y : ReceivingHandHeight;
             LaunchPass(claimant,origin,target,time,receiver,delivery,minimumFlightTime,receivingWindow,source);
@@ -1057,16 +1072,22 @@ namespace ToduStudios.WaterPolo
             velocity.y = 0f;
             float forward = Vector3.Dot(velocity, carrierMotor.Facing);
             bool sprint = carrierStamina != null && carrierStamina.IsSprinting;
+            float stopSpeed = carrierMotor.UsesProtectedCarry
+                ? Mathf.Min(dribbleStopSpeed, carrierMotor.ProtectedCarrySpeed * .58f)
+                : dribbleStopSpeed;
             if (IsDribbling)
             {
-                if (velocity.sqrMagnitude <= dribbleStopSpeed * dribbleStopSpeed || !sprint && carrierMotor.IsSteeringCarry)
+                if (velocity.sqrMagnitude <= stopSpeed * stopSpeed || carrierMotor.BreaksBallLeading)
                 {
                     EndDribble();
                 }
                 return;
             }
 
-            if (forward < (sprint ? dribbleStopSpeed : dribbleStartSpeed) || !sprint && carrierMotor.IsSteeringCarry)
+            float startSpeed = dribbleStartSpeed;
+            if (carrierMotor.UsesProtectedCarry)
+                startSpeed = Mathf.Min(startSpeed, carrierMotor.ProtectedCarrySpeed * .69f);
+            if (!carrierMotor.CanLeadBall || forward < (sprint ? Mathf.Min(stopSpeed, startSpeed) : startSpeed))
             {
                 swimmingTime = 0f;
                 return;

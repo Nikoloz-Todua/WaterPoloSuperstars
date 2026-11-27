@@ -27,7 +27,7 @@ namespace ToduStudios.WaterPolo
         private SwimmerIdentity previousManualPlayer;
         private float lastManualSwitch = float.NegativeInfinity;
         private float nextRecoveryCheck, protectedUntil;
-        private LineRenderer aimArrow;
+        private LineRenderer aimChevron;
 
         private bool ManualChoiceProtected => IsEligible(ActivePlayer) && Time.time < protectedUntil;
 
@@ -54,7 +54,7 @@ namespace ToduStudios.WaterPolo
         private void OnDisable()
         {
             if (ball != null) { ball.PossessionChanged -= OnPossessionChanged; ball.Released -= OnReleased; }
-            if (aimArrow != null) aimArrow.enabled = false;
+            if (aimChevron != null) aimChevron.enabled = false;
         }
 
         private void LateUpdate()
@@ -63,36 +63,31 @@ namespace ToduStudios.WaterPolo
                 ActivePlayer != null && ball.Owner == ActivePlayer.Interaction;
             if (!visible)
             {
-                if (aimArrow != null) aimArrow.enabled = false;
+                if (aimChevron != null) aimChevron.enabled = false;
                 return;
             }
-            if (aimArrow == null)
+            if (aimChevron == null || aimChevron.transform.parent.parent != ActivePlayer.transform)
             {
                 var marker = ActivePlayer.transform.Find("SelectionRing");
                 if (marker == null || !marker.TryGetComponent<LineRenderer>(out var ring)) return;
-                var arrow = new GameObject("Possession Aim Arrow");
-                arrow.layer = marker.gameObject.layer;
-                arrow.transform.SetParent(transform, false);
-                aimArrow = arrow.AddComponent<LineRenderer>();
-                aimArrow.sharedMaterial = ring.sharedMaterial;
-                aimArrow.positionCount = 5;
-                aimArrow.widthMultiplier = .052f;
-                aimArrow.numCornerVertices = 2;
-                aimArrow.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-                aimArrow.receiveShadows = false;
+                if (aimChevron == null)
+                {
+                    aimChevron = new GameObject("Possession Facing Chevron").AddComponent<LineRenderer>();
+                    aimChevron.useWorldSpace = false;
+                    aimChevron.positionCount = 3;
+                    aimChevron.widthMultiplier = .046f;
+                    aimChevron.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    aimChevron.receiveShadows = false;
+                }
+                aimChevron.gameObject.layer = marker.gameObject.layer;
+                aimChevron.transform.SetParent(marker, false);
+                aimChevron.sharedMaterial = ring.sharedMaterial;
+                float radius = ring.GetPosition(0).magnitude;
+                aimChevron.SetPosition(0, new Vector3(.14f, .012f, radius + .09f));
+                aimChevron.SetPosition(1, new Vector3(0f, .012f, radius + .29f));
+                aimChevron.SetPosition(2, new Vector3(-.14f, .012f, radius + .09f));
             }
-            Vector3 head = ActivePlayer.Motor.ControlAim;
-            Vector3 side = Vector3.Cross(Vector3.up, head);
-            Vector3 root = ActivePlayer.transform.position;
-            root.y = ball.SurfaceHeight + .025f;
-            Vector3 tip = root + head * 1.73f;
-            Vector3 neck = root + head * 1.51f;
-            aimArrow.SetPosition(0, root + head * 1.24f);
-            aimArrow.SetPosition(1, tip);
-            aimArrow.SetPosition(2, neck + side * .15f);
-            aimArrow.SetPosition(3, tip);
-            aimArrow.SetPosition(4, neck - side * .15f);
-            aimArrow.enabled = true;
+            aimChevron.enabled = true;
         }
 
         private void OnReleased(SwimmerBallInteraction passer, BallReleaseKind kind)

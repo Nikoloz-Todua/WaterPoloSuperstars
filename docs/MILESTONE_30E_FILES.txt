@@ -1,0 +1,17 @@
+﻿Assets/Editor/Milestone30BPreview.cs
+Assets/Scripts/Gameplay/BallController.ProfessionalThrows.cs
+Assets/Scripts/Gameplay/BallController.cs
+Assets/Scripts/Gameplay/PlayerSelection.cs
+Assets/Scripts/Gameplay/SwimmerInput.cs
+Assets/Scripts/Gameplay/SwimmerMotor.cs
+Assets/Scripts/Gameplay/SwimmerPassing.cs
+Assets/Scripts/WaterVisuals/RiggedSwimmerVisual.cs
+Tools/Verification/Milestone30EVerification.cs
+docs/Evidence/Milestone30E/Directional-Passing.jpg
+docs/Evidence/Milestone30E/Held-Rotation.jpg
+docs/Evidence/Milestone30E/Protected-Possession.jpg
+docs/MILESTONE_30E_FILES.txt
+docs/MILESTONE_30E_FINAL_REPORT.md
+docs/MILESTONE_30E_LIVE_HANDOFF.md
+docs/MILESTONE_30E_MANUAL_TEST_GUIDE.md
+plan.md

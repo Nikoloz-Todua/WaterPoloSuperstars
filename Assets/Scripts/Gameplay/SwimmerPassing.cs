@@ -20,6 +20,9 @@ namespace ToduStudios.WaterPolo
         public float ReceivingDistance => receivingDistance;
         public float MaximumTargetDistance => maximumTargetDistance;
 
+        internal bool InAssistCone(Vector3 heading, Vector3 direction) =>
+            Vector3.Dot(heading, direction) >= Mathf.Cos(assistCone * Mathf.Deg2Rad);
+
         public bool CanReceiveFrom(SwimmerBallInteraction passer)
         {
             return Identity.EligibleForPlay && isActiveAndEnabled && Interaction.isActiveAndEnabled && roster != null &&
@@ -44,7 +47,7 @@ namespace ToduStudios.WaterPolo
                 float distance = delta.magnitude;
                 if (distance < 2.5f || distance > maximumTargetDistance) continue;
                 float alignment = Vector3.Dot(forward, delta / distance);
-                if (alignment < Mathf.Cos(assistCone * Mathf.Deg2Rad)) continue;
+                if (!InAssistCone(forward, delta / distance)) continue;
                 SwimmerPassing candidate = teammate.GetComponent<SwimmerPassing>();
                 if (candidate == null || !candidate.CanReceiveFrom(Interaction)) continue;
                 float score = alignment - distance * 0.01f;
@@ -70,7 +73,9 @@ namespace ToduStudios.WaterPolo
         {
             Vector3 origin = Identity.Motor.Position;
             Vector3 direction = forward;
-            if (receiver != null)
+            bool liveDirectional = source == BallActionSource.HumanInput &&
+                Interaction.Ball.Match != null && Interaction.Ball.Match.IsPlaying;
+            if (receiver != null && !liveDirectional)
             {
                 Vector3 release = origin + forward * Interaction.ReleaseDistance;
                 Vector3 desired = AimPoint(receiver.Identity) - release;

@@ -15,7 +15,11 @@ namespace ToduStudios.WaterPolo
         private Vector3 poseDirection, gatherLocalPoint, evaluatedGrip;
         private Vector3 gatherArrival;
         private float throwStart, throwDuration, gatherUntil;
-        private float shotLean;
+        private float shotLean, passFacingDeadline;
+        private SwimmerMotor facingMotor;
+        private bool AligningHumanPass => preparation.Kind == BallReleaseKind.Pass &&
+            preparation.Source == BallActionSource.HumanInput && match != null && match.IsPlaying;
+        private float PassFacingError => Vector3.Angle(facingMotor.RenderedFacing, poseDirection);
         private bool gripSampled;
 
         private readonly struct PendingThrow
@@ -137,18 +141,20 @@ namespace ToduStudios.WaterPolo
             preparation = action;
             throwStart = Mathf.Max(gatherUntil, Time.time);
             poseDirection = action.Direction;
-            if (action.Receiver != null)
+            if (action.Receiver != null && !AligningHumanPass)
             {
                 Vector3 aim = action.Receiver.Identity.Motor.Position - Owner.transform.position;
                 aim.y = 0f;
                 if (aim.sqrMagnitude > .01f) poseDirection = aim.normalized;
             }
             var motor = Owner.GetComponent<SwimmerMotor>();
+            facingMotor = motor;
+            passFacingDeadline = Time.time + .85f;
             float signedYaw = Vector3.SignedAngle(motor.Facing, poseDirection, Vector3.up);
             float yaw = Mathf.Abs(signedYaw);
             shotLean = Mathf.Clamp(signedYaw / 46f + Vector3.Dot(motor.Velocity,
                 Vector3.Cross(Vector3.up, motor.Facing)) * .18f, -1f, 1f);
-            if (action.Source == BallActionSource.HumanInput && yaw > 55f)
+            if (action.Source == BallActionSource.HumanInput && !AligningHumanPass && yaw > 55f)
                 throwStart = Mathf.Max(throwStart, Time.time + (yaw - 48f) / 560f);
 
             switch (action.Kind)
@@ -189,6 +195,8 @@ namespace ToduStudios.WaterPolo
         internal ThrowMotion GetThrowMotion(out float phase, out Vector3 aim)
         {
             aim = poseDirection;
+            if (AligningHumanPass && PassFacingError > 24f)
+                throwStart = Mathf.Max(throwStart, Time.time + .001f);
             phase = HasPendingThrow ? Mathf.Clamp01((Time.time - throwStart) / throwDuration) : 0f;
             return HasPendingThrow && Time.time >= throwStart ? throwMotion : ThrowMotion.None;
         }
@@ -240,14 +248,16 @@ namespace ToduStudios.WaterPolo
             body.position = transform.position = point;
             lastCarrierPosition = player.transform.position;
             RollVisual();
-            if (!HasPendingThrow || Time.time < throwStart + throwDuration)
+            if (!HasPendingThrow || Time.time < throwStart + throwDuration ||
+                AligningHumanPass && PassFacingError > 8f)
                 return false;
 
             PendingThrow action = preparation;
+            bool directionalPass = AligningHumanPass;
             // Clear before passing through the release path, which can synchronously notify rules and selection.
             CancelPendingThrow();
             if (!CanPerformThrow(player, action.Kind, action.Source) ||
-                (action.Receiver != null && !action.Receiver.CanReceiveFrom(player)))
+                (!directionalPass && action.Receiver != null && !action.Receiver.CanReceiveFrom(player)))
                 return false;
 
             Vector3 release = poolBounds.ClampPosition(grip, Radius);
@@ -282,7 +292,8 @@ namespace ToduStudios.WaterPolo
 
         private void Update()
         {
-            if (HasPendingThrow && (!UsesEvaluatedGrip || !CanPerformThrow(Owner, preparation.Kind, preparation.Source)))
+            if (HasPendingThrow && (!UsesEvaluatedGrip || !CanPerformThrow(Owner, preparation.Kind, preparation.Source) ||
+                AligningHumanPass && Time.time > passFacingDeadline))
                 CancelPendingThrow();
         }
     }

@@ -19,7 +19,7 @@ namespace ToduStudios.WaterPolo.Editor
         private enum Scenario
         {
             Carry, Passing, Underwater, Drop, Skip, Defense, KeeperLeft, KeeperRight, KeeperHigh,
-            Match, FreeSwim, FreeSwimUnderwater, LongPassAway, PowerShot, QuickShot, OrdinaryFoul, HeadOn, Shoulder, SprintContact, ContestedPickup
+            Match, FreeSwim, FreeSwimUnderwater, LongPassAway, PowerShot, QuickShot, OrdinaryFoul, DirectionalPassing, HeadOn, Shoulder, SprintContact, ContestedPickup
         }
 
         static Milestone30BPreview() => EditorApplication.playModeStateChanged += PlayChanged;
@@ -36,6 +36,8 @@ namespace ToduStudios.WaterPolo.Editor
         private static void Carry() => Launch(Scenario.Carry);
         [MenuItem(Lab + "Ball Control and Player Switching/Directional Aim and Held Rotation", false, 411)]
         private static void AimAndRotate() => Launch(Scenario.Carry);
+        [MenuItem(Lab + "Shooting and Passing/Directional Passing", false, 410)]
+        private static void DirectionalPassing() => Launch(Scenario.DirectionalPassing);
         [MenuItem(Lab + "Shooting and Passing/Passing and Switching", false, 411)]
         private static void Passing() => Launch(Scenario.Passing);
         [MenuItem(Lab + "Shooting and Passing/Long Pass to Receiver Facing Away", false, 412)]
@@ -196,7 +198,21 @@ namespace ToduStudios.WaterPolo.Editor
                 camera.SetView(-1);
                 return;
             }
-            if (scenario == Scenario.Passing || scenario == Scenario.LongPassAway || scenario == Scenario.Defense)
+            if (scenario == Scenario.DirectionalPassing)
+            {
+                camera.SetView(-1);
+                var view = match.GameplayView;
+                view.SnapToTarget();
+                Vector2 screenUp = view.ScreenToWorldMovement(Vector2.up);
+                Vector2 screenRight = view.ScreenToWorldMovement(Vector2.right);
+                Vector3 up = new Vector3(screenUp.x, 0f, screenUp.y).normalized;
+                Vector3 across = new Vector3(screenRight.x, 0f, screenRight.y).normalized;
+                shooter.Motor.ResetPose(origin, Quaternion.LookRotation(up));
+                var outlets = roster.FieldPlayers.Where(player => player.Team == shooter.Team && player != shooter).Take(2).ToArray();
+                outlets[0].Motor.ResetPose(origin - across * 4.6f, Quaternion.LookRotation(across));
+                outlets[1].Motor.ResetPose(origin + across * 4.6f, Quaternion.LookRotation(-across));
+            }
+            else if (scenario == Scenario.Passing || scenario == Scenario.LongPassAway || scenario == Scenario.Defense)
                 camera.SetView(-1);
             else if (keeperScenario)
                 Frame(camera, keeper.Identity.Motor.Position + Vector3.up * .35f, forward, right, false);
