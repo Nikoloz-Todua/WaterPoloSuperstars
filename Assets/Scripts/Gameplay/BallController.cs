@@ -93,6 +93,7 @@ namespace ToduStudios.WaterPolo
         private float receiveAfter, receiveUntil;
         private Vector3 receivingCentre;
         private Vector3 previousPassPosition;
+        private static readonly Unity.Profiling.ProfilerMarker ReceptionContact = new Unity.Profiling.ProfilerMarker("WaterPolo.PassContact");
         private SwimmerMotor carrierMotor;
         private ShotCharge carrierCharge;
         private SwimmerStamina carrierStamina;
@@ -194,7 +195,7 @@ namespace ToduStudios.WaterPolo
             return true;
         }
 
-        private void AssignOwner(SwimmerBallInteraction claimant, Vector3? contact = null)
+        private void AssignOwner(SwimmerBallInteraction claimant, Vector3? contact = null, bool dryPassCatch = false)
         {
             Vector3 pickupPoint = contact ?? transform.position;
             Vector3 arrivingVelocity = contact.HasValue ? Velocity : Vector3.zero;
@@ -228,7 +229,7 @@ namespace ToduStudios.WaterPolo
             State = BallState.Held;
             IsScoringShot = CanScoreGoal = false;
             if (UsesEvaluatedGrip && Live && (match == null || match.IsPlaying))
-                BeginGather(pickupPoint, arrivingVelocity);
+                BeginGather(pickupPoint, arrivingVelocity, dryPassCatch);
             NoteMotionOrigin(body.position);
             NotifyPossessionChanged(previousOwner);
         }
@@ -336,32 +337,70 @@ namespace ToduStudios.WaterPolo
 
         private float ReceivingHandHeight => poolBounds.Waterline + .57f;
 
-        internal bool TryReceiveIntent(SwimmerBallInteraction player, out Vector3 facing, out Vector3 centre)
+        internal readonly struct PassReception
         {
-            facing = Vector3.zero;
-            centre = player.transform.position;
-            if (preparation.Receiver != null && preparation.Receiver.Interaction == player &&
-                preparation.Delivery != PassDelivery.Wet && Owner != null)
+            public readonly Vector3 Facing, Centre, Point, Incoming, LookAt;
+            public readonly float Seconds;
+            public readonly bool Airborne, Committed;
+
+            public PassReception(Vector3 facing, Vector3 centre, Vector3 point, Vector3 incoming, Vector3 lookAt,
+                float seconds, bool airborne, bool committed)
             {
-                facing = Vector3.ProjectOnPlane(Owner.transform.position - centre, Vector3.up).normalized;
-                return facing.sqrMagnitude > .5f;
+                Facing = facing;
+                Centre = centre;
+                Point = point;
+                Incoming = incoming;
+                LookAt = lookAt;
+                Seconds = seconds;
+                Airborne = airborne;
+                Committed = committed;
             }
-            if (!IsAirborne || Owner != null || player != IntendedReceiver || Delivery == PassDelivery.Wet ||
-                Velocity.sqrMagnitude < .3f) return false;
-            facing = Vector3.ProjectOnPlane(-Velocity, Vector3.up).normalized;
-            if (Vector3.Dot(centre - PhysicsPosition, Velocity) < -.25f) return false;
-            centre = receivingCentre;
-            return facing.sqrMagnitude > .5f;
         }
 
-        public bool ShowReceivingHand(SwimmerBallInteraction player)
+        internal bool TryReadReception(SwimmerIdentity athlete, out PassReception reception, bool includeInterception = false)
         {
-            if (!IsAirborne || Owner != null || !IsPassFlight || Delivery == PassDelivery.Wet ||
-                player == LastReleaser || !Eligible(player)) return false;
-            Vector3 toward = player.transform.position - PhysicsPosition;
-            return toward.sqrMagnitude < 8f && Vector3.Dot(toward,Velocity) > 0f &&
-                (player == IntendedReceiver || LastReleaser != null &&
-                 player.GetComponent<SwimmerIdentity>().Team != LastReleaser.GetComponent<SwimmerIdentity>().Team);
+            reception = default;
+            var player = athlete.Interaction;
+            bool pending = Owner != null && preparation.Receiver != null && preparation.Receiver.Interaction == player &&
+                preparation.Delivery != PassDelivery.Wet && preparation.Receiver.isActiveAndEnabled;
+            bool targeted = Owner == null && IsAirborne && IsPassFlight && intendedReceiver != null &&
+                intendedReceiver.Interaction == player && intendedReceiver.isActiveAndEnabled && Time.time <= receiveUntil;
+            if (!pending && !targeted && (!includeInterception || Owner != null || !IsAirborne || !IsPassFlight ||
+                LastReleaser == null || player == LastReleaser || Time.time > receiveUntil)) return false;
+            if (!Eligible(player) || simulationPaused || match != null && !match.IsPlaying) return false;
+
+            Vector3 root = athlete.Motor.Position;
+            if (pending)
+            {
+                Vector3 from = PhysicsPosition;
+                Vector3 facing = PrototypeTeamTactics.Planar(from - root).normalized;
+                if (facing.sqrMagnitude < .5f) return false;
+                reception = new PassReception(facing, root, PassHand(root, facing, from), -facing, from,
+                    Mathf.Max(0f, throwStart + throwDuration - Time.time), false, true);
+                return true;
+            }
+
+            if (Delivery == PassDelivery.Wet) return false;
+            Vector3 point = PhysicsPosition;
+            if (!InPlay(point) || !targeted && ((root - point).sqrMagnitude > 8f ||
+                athlete.Team == LastReleaser.GetComponent<SwimmerIdentity>().Team)) return false;
+            Vector3 velocity = Velocity;
+            Vector3 planar = PrototypeTeamTactics.Planar(velocity);
+            float speedSquared = planar.sqrMagnitude;
+            if (speedSquared < .3f) return false;
+            Vector3 arrivalFacing = -planar.normalized;
+            Vector3 centre = targeted ? receivingCentre : root;
+            // Limit movement assistance to the launch pocket. The live flight predicts the reach within it.
+            Vector3 hand = PassHand(centre, arrivalFacing, point);
+            float time = Vector3.Dot(PrototypeTeamTactics.Planar(hand - point), planar) / speedSquared;
+            if (time < -.045f || time > flight.maximumPrediction) return false;
+            time = Mathf.Max(0f, time);
+            Vector3 expected = BallTrajectory.Position(point, velocity, time, true);
+            if (expected.y < SurfaceHeight + .04f || !InPlay(expected) ||
+                PrototypeTeamTactics.Planar(expected - centre).sqrMagnitude > 1.02f) return false;
+            reception = new PassReception(arrivalFacing, centre, expected, velocity + Physics.gravity * time,
+                point, time, true, targeted);
+            return true;
         }
 
         private void BeginFlight(Vector3 origin, Vector3 velocity)
@@ -959,6 +998,7 @@ namespace ToduStudios.WaterPolo
             if (!IsAirborne || Delivery == PassDelivery.Wet || Time.time < receiveAfter || Time.time > receiveUntil ||
                 current.y > SurfaceHeight + 1.2f || Velocity.magnitude > flight.maximumReceivingSpeed) return false;
 
+            using var measurement = ReceptionContact.Auto();
             SwimmerBallInteraction catcher = null;
             Vector3 catchPoint = Vector3.zero;
             float first = float.PositiveInfinity;
@@ -974,7 +1014,7 @@ namespace ToduStudios.WaterPolo
                 }
             }
             if (catcher == null) return false;
-            AssignOwner(catcher,catchPoint);
+            AssignOwner(catcher, catchPoint, dryPassCatch: true);
             DryCaught?.Invoke(catcher);
             return true;
         }
@@ -991,6 +1031,16 @@ namespace ToduStudios.WaterPolo
             if ((evaluated || player.Interaction != IntendedReceiver) && faceDot < .24f) return;
             if ((Velocity-player.Motor.Velocity).magnitude > flight.maximumReceivingSpeed) return;
             Vector3 hand = RaisedHand(player.Interaction,from-arrival);
+            if (evaluated && player.IsFieldPlayer)
+            {
+                // Allow a prepared reach around the normal station. The rig still checks the actual wrist reach.
+                Vector3 planarMotion = PrototypeTeamTactics.Planar(motion);
+                float along = Vector3.Dot(PrototypeTeamTactics.Planar(hand - from), planarMotion) /
+                    Mathf.Max(.0001f, planarMotion.sqrMagnitude);
+                Vector3 across = Vector3.Cross(Vector3.up, arrival);
+                hand += across * Mathf.Clamp(Vector3.Dot(from - hand, across), -.16f, .16f);
+                hand.y += Mathf.Clamp(Mathf.Lerp(from.y, to.y, Mathf.Clamp01(along)) - hand.y, -.30f, .38f);
+            }
             // Solve first segment/sphere contact so a defender and receiver cannot both collect.
             float reach = evaluated ? .22f : .31f;
             Vector3 delta = from-hand;
@@ -999,14 +1049,26 @@ namespace ToduStudios.WaterPolo
             float c = delta.sqrMagnitude - reach*reach;
             float d = b*b-a*c;
             if (d < 0f) return;
-            float t = c <= 0f ? 0f : (-b-Mathf.Sqrt(d))/a;
-            if (t < 0f || t > 1f || t >= first) return;
-            var contact = Vector3.Lerp(from,to,t);
-            if (contact.y < SurfaceHeight+.1f || TryGetFieldExit(from, contact, out _)) return;
-            if (evaluated && !player.Interaction.Visual.CanReachDryCatch(contact, Velocity)) return;
-            first = t;
-            point = contact;
-            catcher = player.Interaction;
+            float root = Mathf.Sqrt(d);
+            float entry = Mathf.Max(0f, (-b - root) / a);
+            float exit = Mathf.Min(Mathf.Min(1f, first), (-b + root) / a);
+            if (entry > exit || entry >= first) return;
+
+            // The start of the swept interval can be beyond the wrist while a later point is reachable.
+            const int subdivisions = 3;
+            for (int sample = 0; sample <= subdivisions; sample++)
+            {
+                float t = Mathf.Lerp(entry, exit, sample / (float)subdivisions);
+                if (t >= first) return;
+                Vector3 contact = from + motion * t;
+                if (contact.y < SurfaceHeight + .1f) continue;
+                if (TryGetFieldExit(from, contact, out _)) return;
+                if (evaluated && !player.Interaction.Visual.CanReachDryCatch(contact, Velocity)) continue;
+                first = t;
+                point = contact;
+                catcher = player.Interaction;
+                return;
+            }
         }
 
         private bool TryAutomaticPickup()
@@ -1114,6 +1176,7 @@ namespace ToduStudios.WaterPolo
         {
             CancelPendingThrow();
             gatherUntil = 0f;
+            firstCatchPose = false;
             gripSampled = false;
             IsDribbling = false;
             swimmingTime = 0f;

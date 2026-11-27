@@ -166,15 +166,19 @@ namespace ToduStudios.WaterPolo
             if (InputLocked || !IsEligible(player))
                 return false;
             if (player == ActivePlayer) return true;
+            var airborneReceiver = ball != null && ball.IsAirborne && ball.Delivery != PassDelivery.Wet
+                ? ball.IntendedReceiver : null;
             if (ActivePlayer != null)
             {
                 ball?.CancelHumanThrowFrom(ActivePlayer.Interaction);
-                ActivePlayer.Motor.StopMotion();
+                if (ActivePlayer.Interaction == airborneReceiver) ActivePlayer.Motor.ClearReceiveHandoffCommands();
+                else ActivePlayer.Motor.StopMotion();
             }
             ActivePlayer = player;
             if (player.IsFieldPlayer) lastFieldPlayer = player;
-            ActivePlayer.Motor.StopMotion();
-            ApplySelection();
+            if (player.Interaction == airborneReceiver) player.Motor.ClearReceiveHandoffCommands();
+            else player.Motor.StopMotion();
+            ApplySelection(airborneReceiver);
             return true;
         }
 
@@ -240,7 +244,7 @@ namespace ToduStudios.WaterPolo
             ApplySelection();
         }
 
-        private void ApplySelection()
+        private void ApplySelection(SwimmerBallInteraction airborneReceiver = null)
         {
             foreach (SwimmerIdentity player in roster.Members)
             {
@@ -249,7 +253,7 @@ namespace ToduStudios.WaterPolo
                 BallInteractionInput interaction = player.GetComponent<BallInteractionInput>();
                 if (movement != null) movement.enabled = controlled;
                 if (interaction != null) interaction.enabled = controlled;
-                if (!controlled) player.Motor.StopMotion();
+                if (!controlled && player.Interaction != airborneReceiver) player.Motor.StopMotion();
                 player.SetSelected(IsEligible(player) && player == ActivePlayer);
             }
             if (gameplayCamera != null && ActivePlayer != null)

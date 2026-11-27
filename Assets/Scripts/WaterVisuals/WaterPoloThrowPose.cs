@@ -126,10 +126,12 @@ namespace ToduStudios.WaterPolo.WaterVisuals
 
         public bool CanReceive(Vector3 target, Vector3 velocity, float radius)
         {
-            Vector3 intoPalm = (Vector3.ProjectOnPlane(-velocity, Up).normalized + Up * .12f).normalized;
+            Vector3 palm = Vector3.ProjectOnPlane(ReceptionNormal(velocity), Up).normalized;
+            Quaternion hand = Quaternion.LookRotation(Up, palm) * Quaternion.Inverse(handFrame);
+            Vector3 wantedWrist = target - hand * Vector3.Scale(palmLocal, wrist.lossyScale) - palm * radius;
             float arm = Vector3.Distance(upper.position, forearm.position) + Vector3.Distance(forearm.position, wrist.position);
-            float allowed = arm + palmLocal.magnitude * Mathf.Abs(wrist.lossyScale.y) - .012f;
-            return (target - intoPalm * radius - upper.position).sqrMagnitude <= allowed * allowed;
+            return (wantedWrist - upper.position).sqrMagnitude <= (arm - .025f) * (arm - .025f) &&
+                (target - head.position).sqrMagnitude >= (radius + .095f) * (radius + .095f);
         }
 
         public void ResetFingers()
@@ -226,9 +228,8 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             if (gather < 1f && gatherArrival.sqrMagnitude > .01f)
             {
                 float absorb = Ease(gather);
-                Vector3 facingArrival = Vector3.ProjectOnPlane(-gatherArrival, Up).normalized;
                 fingers = Vector3.Slerp(Up, fingers, absorb);
-                palm = Vector3.Slerp((facingArrival + Up * .12f).normalized, palm, absorb);
+                palm = Vector3.Slerp(ReceptionNormal(gatherArrival), palm, absorb);
             }
             SolveArm(target, pole, fingers, palm, radius, weight);
             if (gather < 1f && gatherArrival.sqrMagnitude > .01f)
@@ -244,15 +245,30 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             Look(facing, gaze, Mathf.Lerp(.45f, .97f, motion != ThrowMotion.None ? weight : loadWeight), 45f);
         }
 
-        public void Receive(float radius, Vector3 facing, Vector3 incoming, Vector3 ballTarget, float reach)
+        public void Receive(float radius, Vector3 facing, Vector3 incoming, Vector3 ballTarget,
+            Vector3 lookAt, float weight, float reach)
         {
-            Vector3 towardBall = Vector3.ProjectOnPlane(-incoming, Up).normalized;
-            Vector3 palm = (towardBall + Up * .12f).normalized;
             Vector3 right = Vector3.Cross(Up, facing);
-            Vector3 pole = upper.position + right * .36f - Up * .20f + towardBall * .13f;
-            SolveArm(ballTarget, pole, Up + right * .10f, palm, radius, reach);
-            PoseFingers(.12f, reach);
-            Look(facing, ballTarget - head.position, reach, 65f);
+            float across = Vector3.Dot(ballTarget - upper.position, right);
+            float height = ballTarget.y - upper.position.y;
+            float yaw = Mathf.Clamp(Vector3.SignedAngle(facing, -Vector3.ProjectOnPlane(incoming, Up), Up), -18f, 18f);
+            chest.rotation = Quaternion.AngleAxis(yaw * weight * .55f, Up) *
+                Quaternion.AngleAxis(Mathf.Clamp(-across * 20f, -10f, 10f) * weight * reach, facing) * chest.rotation;
+            Vector3 ready = upper.position + facing * .29f + right * .13f +
+                Up * Mathf.Clamp(.16f + height * .24f, .05f, .28f);
+            Vector3 contact = Vector3.Lerp(ready, ballTarget, reach);
+            Vector3 pole = upper.position + right * .31f - Up * .22f + facing * .15f;
+            Vector3 palm = ReceptionNormal(incoming);
+            SolveArm(contact, pole, Up + right * .10f, palm, radius, weight);
+            PoseFingers(.12f, weight);
+            Look(facing, lookAt - head.position, Mathf.Min(1f, weight * 1.35f), 56f);
+        }
+
+        private static Vector3 ReceptionNormal(Vector3 incoming)
+        {
+            Vector3 horizontal = Vector3.ProjectOnPlane(-incoming, Up);
+            float rise = Mathf.Clamp(-incoming.y / Mathf.Max(1f, horizontal.magnitude), -.24f, .48f);
+            return (horizontal.normalized + Up * (rise + .12f)).normalized;
         }
 
         public void Guard(Vector3 facing, Vector3 target, float amount)

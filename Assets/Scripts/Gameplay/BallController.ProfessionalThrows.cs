@@ -21,6 +21,7 @@ namespace ToduStudios.WaterPolo
             preparation.Source == BallActionSource.HumanInput && match != null && match.IsPlaying;
         private float PassFacingError => Vector3.Angle(facingMotor.RenderedFacing, poseDirection);
         private bool gripSampled;
+        private bool firstCatchPose;
 
         private readonly struct PendingThrow
         {
@@ -116,10 +117,11 @@ namespace ToduStudios.WaterPolo
                 CancelPendingThrow();
         }
 
-        private void BeginGather(Vector3 from, Vector3 arrival = default)
+        private void BeginGather(Vector3 from, Vector3 arrival = default, bool dryPassCatch = false)
         {
             gatherLocalPoint = Owner.transform.InverseTransformPoint(from);
-            gatherArrival = from.y > SurfaceHeight + .12f ? arrival : Vector3.zero;
+            gatherArrival = dryPassCatch || from.y > SurfaceHeight + .12f ? arrival : Vector3.zero;
+            firstCatchPose = dryPassCatch && gatherArrival.sqrMagnitude > .01f;
             gatherUntil = Time.time + GatherSeconds;
             gripSampled = false;
         }
@@ -222,6 +224,12 @@ namespace ToduStudios.WaterPolo
 
         internal float GetGatherProgress(out Vector3 point, out Vector3 incoming)
         {
+            if (firstCatchPose)
+            {
+                point = MotionOrigin;
+                incoming = gatherArrival;
+                return 0f;
+            }
             point = Owner != null ? Owner.transform.TransformPoint(gatherLocalPoint) : transform.position;
             incoming = IsGathering ? gatherArrival : Vector3.zero;
             float progress = Mathf.Clamp01(1f - (gatherUntil - Time.time) / GatherSeconds);
@@ -243,6 +251,14 @@ namespace ToduStudios.WaterPolo
             evaluatedGrip = grip;
             gripSampled = true;
             float gather = GetGatherProgress(out Vector3 start, out _);
+            if (firstCatchPose)
+            {
+                // Evaluate the contact pose before advancing to the absorption blend.
+                firstCatchPose = false;
+                gatherUntil = Time.time + GatherSeconds;
+                gatherLocalPoint = player.transform.InverseTransformPoint(start);
+                if (HasPendingThrow) throwStart = Mathf.Max(throwStart, gatherUntil);
+            }
             Vector3 point = gather >= 1f || (gatherArrival.sqrMagnitude > .01f && (grip - start).sqrMagnitude < .0049f)
                 ? grip : Vector3.Lerp(start, grip, Mathf.SmoothStep(0f, 1f, gather));
             body.position = transform.position = point;

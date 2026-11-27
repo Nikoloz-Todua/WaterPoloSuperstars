@@ -7,6 +7,7 @@ using ToduStudios.WaterPolo.WaterVisuals;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using Object = UnityEngine.Object;
 
 namespace ToduStudios.WaterPolo.Editor
@@ -19,7 +20,9 @@ namespace ToduStudios.WaterPolo.Editor
         private enum Scenario
         {
             Carry, Passing, Underwater, Drop, Skip, Defense, KeeperLeft, KeeperRight, KeeperHigh,
-            Match, FreeSwim, FreeSwimUnderwater, LongPassAway, PowerShot, QuickShot, OrdinaryFoul, DirectionalPassing, HeadOn, Shoulder, SprintContact, ContestedPickup
+            Match, FreeSwim, FreeSwimUnderwater, LongPassAway, PowerShot, QuickShot, OrdinaryFoul, DirectionalPassing,
+            HeadOn, Shoulder, SprintContact, ContestedPickup, IntelligentSupport,
+            MovingReceiver, LateralReceiving, HighReceiving, MissedPass
         }
 
         static Milestone30BPreview() => EditorApplication.playModeStateChanged += PlayChanged;
@@ -42,6 +45,18 @@ namespace ToduStudios.WaterPolo.Editor
         private static void Passing() => Launch(Scenario.Passing);
         [MenuItem(Lab + "Shooting and Passing/Long Pass to Receiver Facing Away", false, 412)]
         private static void LongPassAway() => Launch(Scenario.LongPassAway);
+        [MenuItem(Lab + "Team Tactics/Intelligent Team Support", false, 410)]
+        private static void IntelligentSupport() => Launch(Scenario.IntelligentSupport);
+        [MenuItem(Lab + "Shooting and Passing/Stationary Dry Pass", false, 417)]
+        private static void StationaryDryPass() => Launch(Scenario.Passing);
+        [MenuItem(Lab + "Shooting and Passing/Moving Receiver", false, 418)]
+        private static void MovingReceiver() => Launch(Scenario.MovingReceiver);
+        [MenuItem(Lab + "Shooting and Passing/Lateral Receiving", false, 419)]
+        private static void LateralReceiving() => Launch(Scenario.LateralReceiving);
+        [MenuItem(Lab + "Shooting and Passing/High Receiving", false, 420)]
+        private static void HighReceiving() => Launch(Scenario.HighReceiving);
+        [MenuItem(Lab + "Shooting and Passing/Missed Pass and Recovery", false, 421)]
+        private static void MissedPass() => Launch(Scenario.MissedPass);
         [MenuItem(Lab + "Shooting and Passing/Full Power Shooting Elevation", false, 415)]
         private static void PowerShot() => Launch(Scenario.PowerShot);
         [MenuItem(Lab + "Shooting and Passing/Quick Shooting Elevation", false, 416)]
@@ -157,7 +172,14 @@ namespace ToduStudios.WaterPolo.Editor
             shooter.Motor.ResetPose(origin, facing);
             selection.Select(shooter);
 
-            if (scenario >= Scenario.HeadOn)
+            if (scenario == Scenario.IntelligentSupport)
+            {
+                StageTeamSupport(roster, ball, shooter, origin, forward, right);
+                camera.SetView(-1);
+                match.GameplayView.SnapToTarget();
+                return;
+            }
+            if (scenario >= Scenario.HeadOn && scenario <= Scenario.ContestedPickup)
             {
                 StageContact(scenario, roster, ball, selection, camera, origin, forward, right);
                 return;
@@ -173,6 +195,13 @@ namespace ToduStudios.WaterPolo.Editor
                 receiver.Motor.ResetPose(origin + forward * 4.6f + right * .43f, Quaternion.LookRotation(-forward));
             if (scenario == Scenario.LongPassAway)
                 receiver.Motor.ResetPose(origin + forward * 8.2f + right * .25f, facing);
+            if (scenario >= Scenario.MovingReceiver)
+            {
+                Vector3 receiverFacing = scenario == Scenario.MovingReceiver ? forward :
+                    scenario == Scenario.LateralReceiving ? right : -forward;
+                Vector3 receiverPoint = origin + forward * 7.7f + (scenario == Scenario.MissedPass ? right * 6f : Vector3.zero);
+                receiver.Motor.ResetPose(receiverPoint, Quaternion.LookRotation(receiverFacing));
+            }
 
             if (scenario == Scenario.Drop)
             {
@@ -212,7 +241,12 @@ namespace ToduStudios.WaterPolo.Editor
                 outlets[0].Motor.ResetPose(origin - across * 4.6f, Quaternion.LookRotation(across));
                 outlets[1].Motor.ResetPose(origin + across * 4.6f, Quaternion.LookRotation(-across));
             }
-            else if (scenario == Scenario.Passing || scenario == Scenario.LongPassAway || scenario == Scenario.Defense)
+            else if (scenario == Scenario.Passing || scenario == Scenario.LongPassAway || scenario >= Scenario.MovingReceiver)
+            {
+                Frame(camera, receiver.Motor.Position + Vector3.up * .21f, -forward, right, false);
+                camera.SetView(-1);
+            }
+            else if (scenario == Scenario.Defense)
                 camera.SetView(-1);
             else if (keeperScenario)
                 Frame(camera, keeper.Identity.Motor.Position + Vector3.up * .35f, forward, right, false);
@@ -220,6 +254,8 @@ namespace ToduStudios.WaterPolo.Editor
             if (scenario == Scenario.Underwater || scenario == Scenario.Carry ||
                 scenario == Scenario.PowerShot || scenario == Scenario.QuickShot)
                 FollowAthlete(camera, shooter.Motor);
+            if (scenario == Scenario.MovingReceiver || scenario == Scenario.LateralReceiving)
+                _ = RunMovingPassOnT(ball, shooter, receiver, scenario == Scenario.MovingReceiver ? forward : right);
 
             if (!keeperScenario && scenario != Scenario.Skip) return;
             await Awaitable.WaitForSecondsAsync(.55f);
@@ -235,6 +271,52 @@ namespace ToduStudios.WaterPolo.Editor
                 scenario == Scenario.KeeperHigh ? ShotType.High : ShotType.Normal;
             if (!ball.TryShoot(shooter.Interaction, scenario == Scenario.Skip ? 20f : 12f, shot))
                 throw new InvalidOperationException("The preview shot was rejected.");
+        }
+
+        private static async Task RunMovingPassOnT(BallController ball, SwimmerIdentity passer,
+            SwimmerIdentity receiver, Vector3 direction)
+        {
+            while (EditorApplication.isPlaying && ball != null && ball.Owner == passer.Interaction)
+            {
+                if (Keyboard.current?.tKey.wasPressedThisFrame == true)
+                {
+                    receiver.Motor.SetMoveInput(new Vector2(direction.x, direction.z));
+                    await Awaitable.WaitForSecondsAsync(.27f);
+                    if (EditorApplication.isPlaying && ball != null && ball.Owner == passer.Interaction)
+                    {
+                        receiver.Motor.SetMoveInput(Vector2.zero);
+                        passer.GetComponent<SwimmerPassing>().TryPass();
+                    }
+                    return;
+                }
+                await Awaitable.NextFrameAsync();
+            }
+        }
+
+        private static void StageTeamSupport(PrototypeRoster roster, BallController ball, SwimmerIdentity carrier,
+            Vector3 origin, Vector3 forward, Vector3 right)
+        {
+            origin += right * 2.3f + forward * 1.8f;
+            carrier.Motor.ResetPose(origin, Quaternion.LookRotation(forward));
+            foreach (var player in roster.FieldPlayers)
+            {
+                var ai = player.GetComponent<PrototypeSwimmerAI>();
+                ai.enabled = true;
+                if (player == carrier) continue;
+                bool friendly = player.Team == carrier.Team;
+                Vector3 point = friendly ? ai.TacticalTeam.Support(player, carrier) :
+                    origin + forward * (6f + player.CapNumber % 3) - right * (2f + player.CapNumber % 6);
+                if (!friendly && player.FieldPosition == FieldPositionRole.LeftFlat)
+                    point = origin + forward * 2.7f - right * 3.1f;
+                if (!friendly && player.FieldPosition == FieldPositionRole.LeftWing)
+                    point = origin + forward * 4.9f - right * 5.4f;
+                if (friendly && player.FieldPosition == FieldPositionRole.LeftFlat)
+                    point = origin + forward * 5.5f - right * 6.2f;
+                player.Motor.ResetPose(point, Quaternion.LookRotation(friendly ? forward : -forward));
+            }
+            ball.ResetForRestart(origin + forward * .85f);
+            if (!carrier.Interaction.TryCollect())
+                throw new InvalidOperationException("The team support fixture could not establish possession.");
         }
 
         private static void StageContact(Scenario scenario, PrototypeRoster roster, BallController ball,

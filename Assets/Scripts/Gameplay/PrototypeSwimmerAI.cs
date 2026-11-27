@@ -77,6 +77,15 @@ namespace ToduStudios.WaterPolo
             }
             if (!identity.EligibleForPlay || !match.IsPlaying || selection.InputLocked || !identity.Motor.enabled)
             { Behaviour = SwimmerAIBehaviour.Stopped; nextDecision = 0f; return; }
+            if (ball.TryReadReception(identity, out _))
+            {
+                Behaviour = SwimmerAIBehaviour.AwaitPass;
+                nextDecision = 0f;
+                stamina?.RequestSprint(false);
+                identity.Motor.SetMoveInput(Vector2.zero);
+                identity.Motor.ClearFacingDirection();
+                return;
+            }
             if (identity.Team == selection.HumanTeam && identity.Interaction.HasBall)
             {
                 Behaviour = SwimmerAIBehaviour.Carry;
@@ -93,7 +102,7 @@ namespace ToduStudios.WaterPolo
             {
                 bool ownershipChanged=previousOwner!=ball.Owner;
                 previousOwner = ball.Owner; nextDecision = Time.time + decisionInterval;
-                var next = WaterPoloDecision.Evaluate(identity, tacticalTeam);
+                var next = WaterPoloDecision.Evaluate(identity, tacticalTeam, selection.ActivePlayer);
                 bool committed=decision.Behaviour==SwimmerAIBehaviour.Pass || decision.Behaviour==SwimmerAIBehaviour.Shoot;
                 bool receiverValid=decision.Receiver==null || PrototypeTeamTactics.Eligible(decision.Receiver);
                 if(ownershipChanged || !committed || Time.time>=committedUntil || !receiverValid)
@@ -131,8 +140,11 @@ namespace ToduStudios.WaterPolo
             if(stamina!=null)stamina.RequestSprint(burst);
             float stoppingRadius = Behaviour == SwimmerAIBehaviour.Press ? 0.1f : arrivalRadius;
             Vector3 steering = distance > stoppingRadius ? delta.normalized * Mathf.Clamp01(distance / slowingRadius) : Vector3.zero;
+            bool holdPocket = Behaviour == SwimmerAIBehaviour.Support && distance <= stoppingRadius &&
+                tacticalTeam.Carrier != null && tacticalTeam.Carrier.Team == identity.Team;
             for (int i = 0; i < roster.Members.Count; i++)
             {
+                if (holdPocket) break;
                 var other = roster.Members[i]; if (other == identity || !PrototypeTeamTactics.Eligible(other)) continue;
                 // Close pressure intentionally enters steal reach; ordinary spacing must not repel it forever.
                 if (Behaviour == SwimmerAIBehaviour.Press && other == tacticalTeam.Carrier) continue;
@@ -142,6 +154,8 @@ namespace ToduStudios.WaterPolo
             float blockMobility = tacticalTeam.BlockMobility(identity);
             identity.Motor.SetMoveInput(Vector2.ClampMagnitude(new Vector2(steering.x, steering.z), 1f) *
                 (burst ? 1f : movementFraction) * blockMobility);
+            if (holdPocket)
+                identity.Motor.SetFacingDirection(tacticalTeam.Carrier.Motor.Position - identity.Motor.Position);
             if (Behaviour == SwimmerAIBehaviour.PursueLooseBall && ball.CanCollect && !ball.UsesAutomaticPickup)
                 identity.Interaction.TryCollect();
             if (Behaviour == SwimmerAIBehaviour.Press && ball.Owner != null && stealing != null)
@@ -150,6 +164,24 @@ namespace ToduStudios.WaterPolo
                 identity.Motor.SetFacingDirection(toCarrier);
                 if (toCarrier.sqrMagnitude <= stealing.Reach * stealing.Reach && stealing.CanAttempt) stealing.TrySteal();
             }
+        }
+
+        internal bool TryObservePlay(out Vector3 position, out bool friendlySupport)
+        {
+            position = default;
+            friendlySupport = false;
+            if (!isActiveAndEnabled || !match.IsPlaying || !identity.EligibleForPlay ||
+                selection.ActivePlayer == identity || selection.InputLocked || identity.Interaction.HasBall)
+                return false;
+            var carrier = tacticalTeam.Carrier;
+            if (carrier == null) return false;
+            position = carrier.Motor.Position + Vector3.up * .38f;
+            friendlySupport = carrier.Team == identity.Team && Behaviour == SwimmerAIBehaviour.Support;
+            if (friendlySupport || Behaviour == SwimmerAIBehaviour.Press) return true;
+            if (Behaviour != SwimmerAIBehaviour.Defend) return false;
+            var mark = tacticalTeam.MarkFor(identity);
+            if (mark != null) position = Vector3.Lerp(mark.Motor.Position + Vector3.up * .35f, position, .46f);
+            return true;
         }
 
         private void RepositionForFreeThrow(SwimmerIdentity taker)

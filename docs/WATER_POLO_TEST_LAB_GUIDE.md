@@ -4,6 +4,10 @@ Start these commands in Unity 6000.6.7f1 with the arena saved and Play stopped. 
 
 ## Menu map
 
+### Milestone 30F additions
+
+Open **Tools > Water Polo > Test Lab > Team Tactics > Intelligent Team Support** to compare outlets and marking before and after moving the carrier. Under **Shooting and Passing**, use **Long Pass to Receiver Facing Away** or **Stationary Dry Pass** with **B**, **Moving Receiver** or **Lateral Receiving** with **T**, **High Receiving** with **L** and **Missed Pass and Recovery** with **B** followed by movement toward the loose ball. Press **F8** three times from broadcast in the receiving fixtures for the receiver close-up and once more to return. [30F manual tests](MILESTONE_30F_MANUAL_TEST_GUIDE.md)
+
 ### Milestone 30D additions
 
 All paths start at **Tools > Water Polo > Test Lab**. Use **Swimming and Floating > Underwater Sprint Freestyle** with forward input and **Shift**, **Ball Control and Player Switching > Directional Aim and Held Rotation** with **Left Alt + direction**, and **Shooting and Passing > Long Pass to Receiver Facing Away** with **B/PASS**. Under **Shooting and Passing**, **Full Power Shooting Elevation** takes a held **Space/SHOOT** and **Quick Shooting Elevation** takes a tap. **Referees and Match Rules > Ordinary Foul Repositioning** stages a protected ordinary restart. Watches, moves and commands are exercised in the same saved production arena. [30D manual reproduction and acceptance signs](MILESTONE_30D_MANUAL_TEST_GUIDE.md)
@@ -33,7 +37,7 @@ All paths start at **Tools > Water Polo > Test Lab**. Use **Swimming and Floatin
 
 On a touch layout, use the existing joystick and **SPRINT**, **PASS**, **SHOOT**, **LOB**, and **SWITCH**. **F6** switches live broadcast camera and **F8** visits existing inspection points in Editor. Staging cameras configure the intended screen movement for their particular view.
 
-The focused entries formerly grouped by milestone now appear under Test Lab by feature. The original **Play Hub Entry** and **Play Olympic Match Arena** paths remain for existing verification and documentation. Existing tools in **Arena**, **Athletes**, **Verification**, **Recovery** and **Legacy Prototype Tools** remain available. Wider menu reorganization, standalone Test Lab scenes, performance tooling, and additional match-rules and receiving scenarios are deferred.
+The focused entries formerly grouped by milestone now appear under Test Lab by feature. The original **Play Hub Entry** and **Play Olympic Match Arena** paths remain for existing verification and documentation. Existing tools in **Arena**, **Athletes**, **Verification**, **Recovery** and **Legacy Prototype Tools** remain available. Wider menu reorganization, standalone Test Lab scenes, performance tooling and additional match-rules scenarios are deferred.
 
 ## Exit and recover
 

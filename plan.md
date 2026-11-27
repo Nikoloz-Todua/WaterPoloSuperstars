@@ -2,6 +2,14 @@
 
 Last updated: 2026-11-27.
 
+## Current handoff — Milestone 30F team support and pass receiving
+
+Start from the user-approved 30E checkpoint `dcfe2ea`. 30F changes team support and pass receiving in the existing production arena. [Final report](docs/MILESTONE_30F_FINAL_REPORT.md) · [Live handoff](docs/MILESTONE_30F_LIVE_HANDOFF.md) · [Manual Test Lab guide](docs/MILESTONE_30F_MANUAL_TEST_GUIDE.md) · [Exact changed files](docs/MILESTONE_30F_FILES.txt)
+
+- `PrototypeTeamTactics` samples the shared field every 0.20 s during team possession. Role anchors, lane and marker clearance, actual teammate spacing and reserved destinations inform bounded support pockets. `PrototypeSwimmerAI` sends the chosen movement through the existing motor, faces the carrier while holding a pocket, and supplies bounded tracking to the rig. Test Lab showed two stationary observers, an outlet relocating from a blocked lane to a clear one, and four of five target updates after a 2.96 m human move. [Team support architecture](docs/INTELLIGENT_TEAM_SUPPORT_AND_SPATIAL_AWARENESS.md) · [Game View evidence](docs/Evidence/Milestone30F/Team-Support-Overview.jpg)
+- The accepted pass exposes one reception read for the motor, AI and rig. Weighted turning, stroke deceleration and hand preparation respond to approach, time and height. Selection transfers at release with existing manual protection. The ball still owns swept contact. The first rendered gather frame aligns the palm to the actual contact before absorption. The focused Windows Editor runs passed standard, facing-away, swimming, sideways and lob reception, manual protection, a defender interception, a physical miss and pickup, and a shot queued immediately after catching. [Receiving architecture](docs/INTELLIGENT_RECEIVING_AND_PHYSICAL_CATCHING.md) · [Game View sequence](docs/Evidence/Milestone30F/Receiver-Facing-Away-Sequence.jpg)
+- Unity 6000.6.7f1 is in saved Edit Mode with Boot entry. The 14-athlete OlympicMatchArena SHA-256 and GUID matched, the real profile hash matched and the current Console had zero errors or warnings. Right-hand grip reception is in scope and verified. Independent left-hand catch and transfer, broader visual approval, phone and Android checks remain open. Stop after 30F. The deferred 30G through 30L roadmap remains below.
+
 ## Current handoff — Milestone 30E protected possession and directional passing
 
 Milestone 30E starts at human checkpoint `3974e80` on Unity 6000.6.7f1. The saved OlympicMatchArena and its existing athlete, camera, selection ring and ball references are reused. The development fixtures stage only runtime objects in the production arena. [Technical report](docs/MILESTONE_30E_FINAL_REPORT.md) · [Live handoff](docs/MILESTONE_30E_LIVE_HANDOFF.md) · [Manual Test Lab guide](docs/MILESTONE_30E_MANUAL_TEST_GUIDE.md)

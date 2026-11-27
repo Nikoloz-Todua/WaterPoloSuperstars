@@ -14,7 +14,7 @@ namespace ToduStudios.WaterPolo
     /// <summary>Shared tactical reasoning for either team. Returns intent; never moves bodies or assigns ownership.</summary>
     public static class WaterPoloDecision
     {
-        public static SwimmerDecision Evaluate(SwimmerIdentity player, PrototypeTeamTactics team)
+        public static SwimmerDecision Evaluate(SwimmerIdentity player, PrototypeTeamTactics team, SwimmerIdentity selected = null)
         {
             BallController ball = team.Ball;
             SwimmerIdentity carrier = team.Carrier;
@@ -36,14 +36,8 @@ namespace ToduStudios.WaterPolo
             }
             if (carrier != null)
             {
-                if (carrier.Team == player.Team) return new SwimmerDecision(SwimmerAIBehaviour.Support, team.Support(player, carrier));
+                if (carrier.Team == player.Team) return new SwimmerDecision(SwimmerAIBehaviour.Support, team.LiveSupport(player, carrier, selected));
                 return new SwimmerDecision(carrier.IsFieldPlayer && team.Presser == player ? SwimmerAIBehaviour.Press : SwimmerAIBehaviour.Defend, team.Defense(player, carrier));
-            }
-            if (ball.IsAirborne && ball.IntendedReceiver == player.Interaction && ball.Delivery != PassDelivery.Wet)
-            {
-                float time = BallTrajectory.TimeToHeight(ball.PhysicsPosition.y - (ball.SurfaceHeight+.5f),ball.Velocity.y,-Physics.gravity.y);
-                Vector3 hand = ball.RaisedHand(player.Interaction,ball.PhysicsPosition) - player.Motor.Position;
-                return new SwimmerDecision(SwimmerAIBehaviour.Support,team.Clamp(ball.PredictPosition(time) - hand));
             }
             if(ball.IsAirborne)
                 return new SwimmerDecision(team.LoosePursuer==player || ball.IntendedReceiver==player.Interaction?SwimmerAIBehaviour.PursueLooseBall:SwimmerAIBehaviour.Formation,

@@ -1,4 +1,5 @@
 using UnityEngine;
+using Unity.Profiling;
 
 namespace ToduStudios.WaterPolo
 {
@@ -44,6 +45,20 @@ namespace ToduStudios.WaterPolo
         private SwimmerIdentity lastPasser, lastReceiver;
         private float lastPassTime, recoveryUntil;
         private int carryLane;
+        private static readonly ProfilerMarker SupportSampling = new ProfilerMarker("WaterPolo.TeamSupport");
+        private const float SupportInterval = .20f;
+        private const float SupportCommitment = .65f;
+        private SwimmerBallInteraction supportOwner;
+        private SwimmerIdentity supportSelection;
+        private float nextSupportSample;
+        private float supportPossessionStarted;
+        private Vector3 supportOrigin;
+        private Vector3[] sampledPositions, supportTargets;
+        private float[] supportUntil;
+        private bool[] sampledEligible;
+        private bool[] supportAssigned;
+        private SwimmerBallInteraction cachedOwner;
+        private SwimmerIdentity cachedCarrier;
         public bool Counterattacking => Time.time < recoveryUntil;
         public int FieldAdvantage
         {
@@ -75,7 +90,18 @@ namespace ToduStudios.WaterPolo
         public float MinimumHoldTime => minimumHoldTime;
         public float MaximumHoldTime => maximumHoldTime;
         public bool CanPass => Time.time >= nextPass;
-        public SwimmerIdentity Carrier => ball.Owner != null ? ball.Owner.GetComponent<SwimmerIdentity>() : null;
+        public SwimmerIdentity Carrier
+        {
+            get
+            {
+                if (cachedOwner != ball.Owner)
+                {
+                    cachedOwner = ball.Owner;
+                    cachedCarrier = cachedOwner != null ? cachedOwner.GetComponent<SwimmerIdentity>() : null;
+                }
+                return cachedCarrier;
+            }
+        }
         public SwimmerIdentity Presser { get { RefreshAssignments(); return presser; } }
         public SwimmerIdentity LoosePursuer { get { RefreshAssignments(); return loosePursuer; } }
         public void RecordPass()
@@ -85,6 +111,7 @@ namespace ToduStudios.WaterPolo
             lastReceiver = ball.IntendedReceiver != null ? ball.IntendedReceiver.GetComponent<SwimmerIdentity>() : null;
         }
         public void ResetDecisions() { nextAssignment = nextPass = nextDefenseChoice = 0f; carryLane=0; presser = loosePursuer = null; assignedOwner = null;
+            supportOwner = null; nextSupportSample = 0f;
             blockingPlayer = null; blockChecked = lastBlockShot = -1; }
         public void SetGoals(GoalMouth attack,GoalMouth defend)
         { attackingGoal=attack;defendedGoal=defend;ResetDecisions(); }
@@ -149,6 +176,135 @@ namespace ToduStudios.WaterPolo
                 target=carrier.Motor.Position+away*3.5f;
             }
             return Clamp(target);
+        }
+
+        internal Vector3 LiveSupport(SwimmerIdentity player, SwimmerIdentity carrier, SwimmerIdentity selected)
+        {
+            if (supportOwner != ball.Owner || supportPossessionStarted != ball.OwnershipStartedAt ||
+                selected != supportSelection || Time.time >= nextSupportSample)
+                SampleSupport(carrier, selected);
+            for (int i = 0; i < roster.Members.Count; i++)
+                if (roster.Members[i] == player && supportAssigned[i]) return supportTargets[i];
+            return Support(player, carrier);
+        }
+
+        private void SampleSupport(SwimmerIdentity carrier, SwimmerIdentity selected)
+        {
+            using var measurement = SupportSampling.Auto();
+            int count = roster.Members.Count;
+            if (sampledPositions == null || sampledPositions.Length != count)
+            {
+                sampledPositions = new Vector3[count];
+                sampledEligible = new bool[count];
+                supportTargets = new Vector3[count];
+                supportUntil = new float[count];
+                supportAssigned = new bool[count];
+            }
+            Vector3 origin = carrier.Motor.Position;
+            bool changed = supportOwner != ball.Owner || supportPossessionStarted != ball.OwnershipStartedAt || selected != supportSelection;
+            bool moved = Planar(origin - supportOrigin).sqrMagnitude > 2.25f;
+            if (changed || moved) supportOrigin = origin;
+            supportOwner = ball.Owner;
+            supportPossessionStarted = ball.OwnershipStartedAt;
+            supportSelection = selected;
+            nextSupportSample = Time.time + SupportInterval;
+            for (int i = 0; i < count; i++)
+            {
+                var athlete = roster.Members[i];
+                sampledEligible[i] = Eligible(athlete);
+                if (sampledEligible[i]) sampledPositions[i] = athlete.Motor.Position;
+                if (changed || !sampledEligible[i] || athlete == carrier || athlete == selected)
+                    supportAssigned[i] = false;
+            }
+
+            Vector3 forward = AttackDirection;
+            Vector3 right = Vector3.Cross(Vector3.up, forward);
+            for (int i = 0; i < count; i++)
+            {
+                var player = roster.Members[i];
+                if (!sampledEligible[i] || player.Team != team || player == carrier || player == selected) continue;
+                if (!moved && supportAssigned[i] && Time.time < supportUntil[i]) continue;
+
+                Vector3 anchor = Support(player, carrier);
+                Vector3 current = sampledPositions[i];
+                bool center = player.FieldPosition == FieldPositionRole.CentreForward;
+                float lateral = center ? 1.35f : 2.15f;
+                float depth = center ? .95f : 1.65f;
+                Vector3 best = ClampSupport(anchor, anchor, player.FieldPosition);
+                float score = SupportScore(i, best, anchor, origin);
+                // A swimmer already in a useful pocket can hold it. Commit to a new pocket only for a clear improvement.
+                Vector3 hold = ClampSupport(current, anchor, player.FieldPosition);
+                if (Planar(hold - anchor).sqrMagnitude < 7.3f)
+                    ConsiderSupport(i, hold, anchor, origin, ref best, ref score);
+                if (supportAssigned[i])
+                    ConsiderSupport(i, ClampSupport(supportTargets[i], anchor, player.FieldPosition), anchor, origin, ref best, ref score, .13f);
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    ConsiderSupport(i, ClampSupport(anchor + right * (side * lateral), anchor, player.FieldPosition), anchor, origin, ref best, ref score);
+                    ConsiderSupport(i, ClampSupport(anchor + forward * (side * depth), anchor, player.FieldPosition), anchor, origin, ref best, ref score);
+                    ConsiderSupport(i, ClampSupport(anchor + (right * lateral - forward * depth) * side, anchor, player.FieldPosition), anchor, origin, ref best, ref score);
+                }
+                if (!supportAssigned[i] || Planar(best - supportTargets[i]).sqrMagnitude > .20f)
+                    supportUntil[i] = Time.time + SupportCommitment;
+                supportTargets[i] = best;
+                supportAssigned[i] = true;
+            }
+        }
+
+        private Vector3 ClampSupport(Vector3 point, Vector3 anchor, FieldPositionRole role)
+        {
+            Vector3 forward = AttackDirection;
+            Vector3 right = Vector3.Cross(Vector3.up, forward);
+            bool wing = role == FieldPositionRole.LeftWing || role == FieldPositionRole.RightWing;
+            float width = Vector3.Dot(anchor - pool.transform.position, right);
+            float x = Vector3.Dot(point - anchor, right);
+            if (wing && Mathf.Abs(width) > 2f)
+                x = width < 0f ? Mathf.Min(x, -2f - width) : Mathf.Max(x, 2f - width);
+            float z = Mathf.Clamp(Vector3.Dot(point - anchor, forward), -2.4f, 2.4f);
+            point = anchor + right * Mathf.Clamp(x, -2.4f, 2.4f) + forward * z;
+            float goalDepth = Vector3.Dot(attackingGoal.transform.position - point, forward);
+            // Keep off-ball outlets outside the goal area, even when a counterattack pushes the anchor up.
+            if (goalDepth < 2.15f) point -= forward * (2.15f - goalDepth);
+            return Clamp(point);
+        }
+
+        private void ConsiderSupport(int index, Vector3 point, Vector3 anchor, Vector3 origin,
+            ref Vector3 best, ref float bestScore, float preference = 0f)
+        {
+            float score = SupportScore(index, point, anchor, origin) + preference;
+            if (score <= bestScore) return;
+            best = point;
+            bestScore = score;
+        }
+
+        private float SupportScore(int index, Vector3 point, Vector3 anchor, Vector3 origin)
+        {
+            Vector3 lane = Planar(point - origin);
+            float rangeSquared = lane.sqrMagnitude;
+            float range = Mathf.Sqrt(rangeSquared);
+            float defenderGap = 9f, laneGap = 9f, teammateGap = 9f;
+            for (int i = 0; i < sampledPositions.Length; i++)
+            {
+                if (i == index || !sampledEligible[i]) continue;
+                Vector3 other = sampledPositions[i];
+                float gap = Planar(point - other).sqrMagnitude;
+                if (roster.Members[i].Team == team)
+                {
+                    teammateGap = Mathf.Min(teammateGap, gap);
+                    if (supportAssigned[i]) teammateGap = Mathf.Min(teammateGap, Planar(point - supportTargets[i]).sqrMagnitude);
+                    continue;
+                }
+                defenderGap = Mathf.Min(defenderGap, gap);
+                float along = Vector3.Dot(Planar(other - origin), lane) / Mathf.Max(.01f, rangeSquared);
+                if (along > .08f && along < .98f)
+                    laneGap = Mathf.Min(laneGap, Planar(other - origin - lane * along).sqrMagnitude);
+            }
+
+            return 1.8f * Mathf.InverseLerp(.12f, laneClearance * laneClearance, laneGap) +
+                1.15f * Mathf.InverseLerp(.40f, 5f, defenderGap) +
+                1.1f * Mathf.InverseLerp(.80f, 6.25f, teammateGap) -
+                Mathf.Max(0f, 3.2f - range) * 1.25f - Mathf.Max(0f, range - 11f) * .21f -
+                Planar(point - anchor).magnitude * .23f - Planar(point - sampledPositions[index]).magnitude * .14f;
         }
         public SwimmerIdentity MarkFor(SwimmerIdentity player)
         {

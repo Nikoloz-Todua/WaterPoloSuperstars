@@ -74,6 +74,7 @@ namespace ToduStudios.WaterPolo
         public Vector3 Facing => body!=null?body.rotation*Vector3.forward:transform.forward;
         internal Vector3 RenderedFacing => Vector3.ProjectOnPlane(transform.forward, Vector3.up).normalized;
         public bool IsRetreating { get; private set; }
+        internal bool HasManualSwim => directionalInput && moveInput.sqrMagnitude > .035f;
 
         public void StopMotion()
         {
@@ -86,6 +87,14 @@ namespace ToduStudios.WaterPolo
             ClearSpeedOverride();
             periodAcceleration=1f;
             if(stamina!=null)stamina.StopSprint();
+        }
+
+        internal void ClearReceiveHandoffCommands()
+        {
+            SetMoveInput(Vector2.zero);
+            ClearFacingDirection();
+            ClearControlAim();
+            stamina?.StopSprint();
         }
 
         public void ResetPose(Vector3 position, Quaternion rotation)
@@ -185,12 +194,16 @@ namespace ToduStudios.WaterPolo
             Vector3 input = new Vector3(moveInput.x, 0f, moveInput.y);
             bool live = interaction != null && interaction.Ball != null && interaction.Ball.Match != null &&
                 interaction.Ball.Match.IsPlaying;
-            Vector3 catchFacing = Vector3.zero;
-            Vector3 catchCentre = Vector3.zero;
-            bool receiving = live && identity.IsFieldPlayer && (!directionalInput || input.sqrMagnitude < .035f) &&
-                interaction.Ball.TryReceiveIntent(interaction, out catchFacing, out catchCentre);
+            BallController.PassReception reception = default;
+            bool receiving = live && identity.IsFieldPlayer && !HasManualSwim &&
+                interaction.Ball.TryReadReception(identity, out reception);
             if (receiving)
-                input = Vector3.ClampMagnitude(Vector3.ProjectOnPlane(catchCentre - body.position, Vector3.up) * .85f, .42f);
+            {
+                Vector3 adjustment = PrototypeTeamTactics.Planar(reception.Centre - body.position);
+                // Check the stroke first. Only small launch-pocket corrections should compete with the turn.
+                float aligned = Mathf.InverseLerp(-.3f, .55f, Vector3.Dot(Facing, reception.Facing));
+                input = Vector3.ClampMagnitude(adjustment * .85f, .36f) * aligned;
+            }
             bool sprinting = stamina != null && stamina.IsSprinting;
             Vector3 forward = Facing;
             Vector3 throwFacing = Vector3.zero;
@@ -227,7 +240,7 @@ namespace ToduStudios.WaterPolo
             else ProtectedCarry = keepRaisedUntil = 0f;
 
             Vector3 targetVelocity = input * speed;
-            bool accelerating = protectedCarry ? targetVelocity.sqrMagnitude > .0001f : moveInput.sqrMagnitude > 0f;
+            bool accelerating = protectedCarry || receiving ? targetVelocity.sqrMagnitude > .0001f : moveInput.sqrMagnitude > 0f;
             float changeRate = accelerating ? acceleration : deceleration;
             if(stamina!=null)changeRate*=stamina.AccelerationMultiplier;
             changeRate*=periodAcceleration;
@@ -247,7 +260,7 @@ namespace ToduStudios.WaterPolo
             Vector3 previous = body.position;
             next = ClampMovement(previous + velocity * step);
 
-            Vector3 turnDirection = receiving ? catchFacing : throwing ? throwFacing : aimDirection.sqrMagnitude > 0f ? aimDirection : IsRetreating ? forward :
+            Vector3 turnDirection = receiving ? reception.Facing : throwing ? throwFacing : aimDirection.sqrMagnitude > 0f ? aimDirection : IsRetreating ? forward :
                 Vector3.ProjectOnPlane((next - previous) / step, Vector3.up);
             if (turnDirection.sqrMagnitude > 0.0001f)
             {
