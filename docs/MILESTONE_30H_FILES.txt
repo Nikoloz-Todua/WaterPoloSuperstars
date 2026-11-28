@@ -1,4 +1,53 @@
-﻿# Milestone 30H
+# Milestone 30H exact file inventory
 
-Starting from the approved 30G animation polish.
-Initial stage covers production garment binding and goalkeeper diagnosis.
+# Prior session in human checkpoint 30a5041, relative to approved 30G a77e1bb
+Assets/Editor/Milestone30BPreview.cs
+Assets/ProductionAthletes/AuthenticEquipment/Blue Briefs.mat
+Assets/ProductionAthletes/AuthenticEquipment/Textures/BlueBriefsFabric.png
+Assets/ProductionAthletes/AuthenticEquipment/Textures/BlueBriefsFabric.png.meta
+Assets/ProductionAthletes/AuthenticEquipment/Textures/WhiteBriefsFabric.png
+Assets/ProductionAthletes/AuthenticEquipment/White Briefs.mat
+Assets/Scripts/Gameplay/BallController.cs
+Assets/Scripts/Gameplay/GoalkeeperInterception.cs
+Assets/Scripts/Gameplay/PrototypeGoalkeeper.cs
+Assets/Scripts/WaterVisuals/RiggedSwimmerVisual.cs
+Assets/Scripts/WaterVisuals/WaterPoloThrowPose.cs
+Tools/Art/BakeWhiteBriefsFabric.py
+Tools/Verification/Milestone30HVerification.cs
+docs/MILESTONE_30H_DIAGNOSTIC_REPORT.md
+docs/MILESTONE_30H_FILES.txt
+docs/MILESTONE_30H_FINAL_REPORT.md
+docs/MILESTONE_30H_LIVE_HANDOFF.md
+docs/MILESTONE_30H_MANUAL_TEST_GUIDE.md
+docs/PROFESSIONAL_REFEREES_AND_PREMIUM_SWIMWEAR.md
+
+# Recovery session working changes, relative to human checkpoint 30a5041
+Tools/Verification/Milestone30HVerification.cs
+docs/MILESTONE_30H_DIAGNOSTIC_REPORT.md
+docs/MILESTONE_30H_FILES.txt
+docs/MILESTONE_30H_FINAL_REPORT.md
+docs/MILESTONE_30H_LIVE_HANDOFF.md
+docs/MILESTONE_30H_MANUAL_TEST_GUIDE.md
+docs/PROFESSIONAL_REFEREES_AND_PREMIUM_SWIMWEAR.md
+plan.md
+
+# Recovery session documented evidence, byte-identical copies of prior Game View frames
+docs/Evidence/Milestone30H/Before-Standing.jpg
+docs/Evidence/Milestone30H/Briefs-Standing.jpg
+docs/Evidence/Milestone30H/Briefs-Production-Underwater.jpg
+docs/Evidence/Milestone30H/Keeper-Neutral.jpg
+docs/Evidence/Milestone30H/Keeper-High.jpg
+
+# Existing local evidence, retained in place
+Logs/Milestone30H/
+Logs/Milestone30/Briefs/GeometryAudit.json
+Logs/Milestone30/Briefs/Unity/Deformation.txt
+Logs/Milestone30/Briefs/Unity/Candidate-Standing-Rear.png
+Logs/Milestone30/Briefs/Unity/Candidate-Eggbeater-06.png
+
+# Unchanged production references
+Assets/Scenes/OlympicMatchArena.unity
+Assets/Scenes/OlympicMatchArena.unity.meta
+Assets/ProductionAthletes/Candidate/AtlasCompetitionBriefs.fbx
+Assets/ProductionAthletes/Candidate/AtlasCompetitionBriefs.fbx.meta
+SourceAssets/Athletes/WPS_Swimwear_001/Blender/AtlasCompetitionBriefs.blend

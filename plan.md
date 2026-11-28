@@ -1,14 +1,24 @@
 # Water Polo Superstars — Project Plan and Handoff
 
-Last updated: 2026-11-27.
+Last updated: 2026-11-28.
 
-## Current handoff — 30G ankle and deck polish
+## Current handoff — Milestone 30H recovery and finalization
+
+30H started from approved 30G checkpoint `a77e1bb`. The human checkpoint `30a5041` contains the keeper and preliminary fabric changes. The prior session stopped during final fixture polling and documentation. Recovery completed verification and the handoff. Production code and assets remain at that checkpoint. [Final report](docs/MILESTONE_30H_FINAL_REPORT.md) · [Live handoff](docs/MILESTONE_30H_LIVE_HANDOFF.md) · [Exact changed files](docs/MILESTONE_30H_FILES.txt)
+
+- **Goalkeeper personally approved for now.** Preserve the shared eggbeater with low hands, tracking and goal-local positioning, the timed contextual reach, and the evaluated palm contacts. BallController at −140 still owns catches and deflections, GoalkeeperInterception at −120 observes the sweep, and PrototypeMatch at −100 scores. The final short Windows fixtures confirmed neutral tracking, right and high parries, and a fast near-post goal after a genuine miss. The save blend returned to zero. Prior ordinary and left-shot catches are recorded with their version limits. [Game View evidence](docs/Evidence/Milestone30H/) · [Test Lab paths](docs/MILESTONE_30H_MANUAL_TEST_GUIDE.md)
+- **Swimwear visually rejected.** All 14 athletes use the 2,688-triangle Atlas reconstruction and the correct live Blue/White materials. The 30H bake improves trim contrast, and Blue fabric is visible underwater. The narrow front and steep leg openings originate in the rest cut that the rebuild preserved. Eggbeater adds local thigh-driven rim stretch. The suit and cut body share the rig and remain seam-registered. Localized overlap warrants a penetration check against a complete body in the next fit. [Diagnosis and fitting plan](docs/MILESTONE_30H_DIAGNOSTIC_REPORT.md)
+- **Saved state.** Unity 6000.6.7f1 was left in Edit Mode with the clean OlympicMatchArena open and `Assets/Scenes/Boot.unity` as normal Play entry. Project and verifier compile cleanly. The current Console had zero errors and warnings, with one pre-existing Burst cache warning in retained history. The arena GUID and scene and profile SHA-256 matched. No verification remains active. Windows fixture evidence is limited to staged cases. White-specific underwater readability, exhaustive keeper balancing and Android checks remain open.
+
+Stop after 30H. On authorization, the next major work is professional swimwear geometry reconstruction, anatomical fitting and deformation correction, followed by natural legal movement during ordinary fouls. Goal celebrations and conceding-team reactions, visible out-of-bounds and near-miss flight, water disturbances and splashes, shooting variations, defensive intelligence, independent left-hand catching, further possession polish, walking polish, Android optimization, stadium and spectators, goals and nets, benches and coaches, substitutions and exclusions, customization, career and progression all remain deferred. Preserve the approved gameplay and existing Test Lab.
+
+## Previous handoff — 30G ankle and deck polish
 
 Continues the reviewed 30G working tree over `c1b37b6`. The remaining swim defect came from the Blender foot roll reference. The source pointed the top of the foot toward the back of the shin, and the final Unity layer reproduced that inversion. The edited Actions point the toes rearward with the top aligned to the front of the shin. The Humanoid Avatar and runtime overlay are reused. All 755 pelvis, thigh and shin quaternion samples match the pre-polish bake. Focused Unity checks passed side and rear views, normal and sprint crawl, sustained ball-leading at both speeds, eggbeater and stationary gather. [Matched renders](docs/Evidence/Milestone30GPolish/Freestyle-Ankle-Roll.jpg)
 
 The deck gait now uses gentler heel contact, authored toe extension through push-off, lower swing clearance and a calmer standing rhythm. The shared deck solver retains the planted foot's position and heading through more of braking. Referee gait blends into and out of its shorter pivot steps. The existing ceremony routes and referee movement authority still drive the actors. Windows Editor checks covered natural walk and stand, entrance and lineup, captain approach and exchange, and referee walk, brake and reverse. Personal review, measured sole slip and device checks remain open. [Deck evidence](docs/Evidence/Milestone30GPolish/Deck-Gait-and-Officials.jpg) · [Report, manual paths and recovery](docs/MILESTONE_30G_ANIMATION_POLISH.md)
 
-## Current handoff — Milestone 30G authored freestyle and deck motion
+## Previous handoff — Milestone 30G authored freestyle and deck motion
 
 30G starts from approved 30F checkpoint `c1b37b6`. Blender 5.2.3 LTS authored the new motion on the production 66-bone athlete. Unity 6000.6.7f1 continues to use the existing Humanoid Avatars. [Final report](docs/MILESTONE_30G_FINAL_REPORT.md) · [Live handoff](docs/MILESTONE_30G_LIVE_HANDOFF.md) · [Manual Test Lab guide](docs/MILESTONE_30G_MANUAL_TEST_GUIDE.md)
 
@@ -16,7 +26,7 @@ The deck gait now uses gentler heel contact, authored toe extension through push
 - Blender-authored walk and stand bind through two new Humanoid takes and a shared contact profile under `Assets/Resources`. The ceremony's scripted routes drive the gait. The plant solver uses the model's ankle and toe bind frames, heel and forefoot pivots and a bounded support lock. The cast blends through standing and captain steps, and the official uses the same gait with existing tracking and signals. Advancing Game View samples cover walkout, stand, captain exchange and live official travel. [Deck architecture](docs/PROFESSIONAL_DECK_WALKING_AND_FOOT_PLANTING.md) · [Evidence](docs/Evidence/Milestone30G/)
 - The Test Lab reuses OlympicMatchArena and AthletePreview. Boot is the normal Editor Play entry. The production arena and user profile hashes matched at the end of isolated checks. The two original aquatic Actions and imported walking reference remain available. [Exact files](docs/MILESTONE_30G_FILES.txt)
 
-Stop after 30G. Keep 30H through 30L and other deferred work as listed below. Further changes require the developer's authorization.
+At the end of 30G, later work remained subject to developer authorization. See the current handoff above for the 30H outcome and next tasks.
 
 ## Current handoff — Milestone 30F team support and pass receiving
 

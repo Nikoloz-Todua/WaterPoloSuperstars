@@ -2,7 +2,9 @@
 
 ## Current swimwear in Milestone 30H
 
-The saved arena uses the registered `AtlasCompetitionBriefs.fbx` with 2,688 triangles and 66 bone bindings on all fourteen athletes. Shared Blue and White URP Lit materials now use fabric maps baked from the waistband, opening and side masks in `SourceAssets/Athletes/WPS_Swimwear_001/Blender/AtlasCompetitionBriefs.blend`. The finish was checked in a dry comparison and in advancing production crawl under the existing water. [Diagnosis](MILESTONE_30H_DIAGNOSTIC_REPORT.md) · [Rendered evidence](Evidence/Milestone30H/)
+The saved arena uses the registered `AtlasCompetitionBriefs.fbx` with 2,688 triangles and 66 bone bindings on all fourteen athletes. Shared Blue and White URP Lit materials use fabric maps baked from the waistband, opening and side masks in `SourceAssets/Athletes/WPS_Swimwear_001/Blender/AtlasCompetitionBriefs.blend`. Runtime assignment was confirmed for both teams. The dry comparison and advancing Blue crawl confirm the preliminary fabric finish and underwater visibility.
+
+The developer visually rejected the silhouette, waistband and leg fit. The reconstruction keeps the original cut body's three openings, including the narrow rest taper, and the leg rims develop significant local strain in eggbeater. Professional geometry and deformation correction remain the next art task. [Diagnosis and fitting plan](MILESTONE_30H_DIAGNOSTIC_REPORT.md) · [Rendered evidence](Evidence/Milestone30H/)
 
 ## Milestone 29B historical configuration
 

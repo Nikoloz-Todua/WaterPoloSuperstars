@@ -1,7 +1,9 @@
-﻿# Milestone 30H live handoff
+# Milestone 30H live handoff
 
-Baseline `a77e1bb`, the approved 30G animation polish.
+Recovery closed 2026-11-28. Approved 30G baseline `a77e1bb`. Human 30H production checkpoint `30a5041`.
 
-The saved arena inventory verified the registered 2,688-triangle asset on all fourteen athletes. The two shared URP Lit kits now sample trim from the existing Blender fit and use a softer gloss. The Blender background bake ran successfully. The first standalone comparison shows a visible Blue waist band and leg binding in standing and sprint.
+- **Goalkeeper** · The developer personally approved the improvements for now. Preserve the production behavior and tuning. Recovery confirmed neutral tracking, a right parry, a central high parry, and a fast near-post goal with recovery. Prior ordinary and left-shot catch results have version limits. BallController → GoalkeeperInterception → PrototypeMatch remains the fixed-step order. [Final results](MILESTONE_30H_FINAL_REPORT.md)
+- **Swimwear** · The developer rejected the narrow silhouette, waistband and leg openings. All 14 athletes wear the 2,688-triangle Atlas reconstruction with correct runtime team materials. The garment follows the original skin cut and develops significant local stretch in eggbeater. 30H's bake is the preliminary finish. [Diagnosis and next fitting pass](MILESTONE_30H_DIAGNOSTIC_REPORT.md)
+- **Recovery** · The prior session stopped during final terminal polling after the keeper adjustments. The project is compiled and in saved Edit Mode, with Boot as normal Play entry. The arena GUID and real profile are preserved. [Exact changed files](MILESTONE_30H_FILES.txt) · [Test Lab paths](MILESTONE_30H_MANUAL_TEST_GUIDE.md)
 
-The goalkeeper implementation uses one evaluated pose path, short release and reach intent, and the existing pre-score observer with sampled palm contacts. The first Editor compilation completed. The current fixture round is checking neutral, ordinary catch, left and right, high and near-post miss. The next action is to read those outcomes, correct any specific timing or reach failure, and capture only the representative frames. Final fixture results and production fingerprints belong in the final report.
+Stop at 30H. The next tasks, when authorized, are garment reconstruction and deformation correction, then natural legal movement during ordinary fouls. Walking remains deferred.
