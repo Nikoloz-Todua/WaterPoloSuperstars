@@ -7,6 +7,25 @@ namespace ToduStudios.WaterPolo
 {
     public enum GoalPresentationPhase { None, Celebration, Broadcast, BehindGoal }
 
+    internal enum GoalGesture { None, QuickPump, PowerRaise, Acknowledge, Composed, LateSurge, Teammate, Regret, KeeperGlance }
+
+    internal readonly struct GoalReaction
+    {
+        internal readonly GoalGesture Gesture;
+        internal readonly Vector3 LookAt;
+        internal readonly float Weight, Age;
+        internal bool HoldPosition => Gesture != GoalGesture.KeeperGlance && Weight > .16f;
+        internal float Lift => Weight * (Gesture == GoalGesture.PowerRaise ? .25f :
+            Gesture == GoalGesture.LateSurge ? .33f : Gesture == GoalGesture.QuickPump ? .09f : 0f);
+
+        internal GoalReaction(GoalGesture gesture, Vector3 lookAt, float age, float duration)
+        {
+            Gesture = gesture; LookAt = lookAt; Age = age;
+            Weight = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0f, .27f, age)) *
+                (1f - Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(duration * .60f, duration, age)));
+        }
+    }
+
     public readonly struct RecordedGoal
     {
         public readonly System.Guid MatchId;
@@ -64,6 +83,8 @@ namespace ToduStudios.WaterPolo
         private Vector3 focus, eye;
         private Quaternion rotation;
         private int scorer, regret, teamReaction, lastQuarter;
+        private SwimmerIdentity celebrant, nearbyTeammate, disappointed;
+        private GoalGesture scorerGesture, lastCelebration;
         private bool firstPose, drawScore, animatedSplash;
         private InputAction advance, skip;
         public GoalPresentationPhase Phase { get; private set; }
@@ -75,7 +96,8 @@ namespace ToduStudios.WaterPolo
         public bool OwnGoalReaction => Active && regret > 0;
         public float ClipEndTime => buffer?.End ?? 0f;
         public float PlaybackTime { get; private set; }
-        public Vector3 PlaybackBall => buffer != null && Active ? buffer.BallPosition : Vector3.zero;
+        public Vector3 PlaybackBall => Phase == GoalPresentationPhase.Celebration ? ball.PhysicsPosition :
+            buffer != null && Active ? buffer.BallPosition : Vector3.zero;
 
         void Awake()
         {
@@ -151,6 +173,7 @@ namespace ToduStudios.WaterPolo
             Cancel();
             buffer?.Clear();
             CurrentGoal=default;
+            lastCelebration = GoalGesture.None;
             lastQuarter=0;
             nextSample=0;
         }
@@ -185,6 +208,32 @@ namespace ToduStudios.WaterPolo
             scorer=CurrentGoal.ScorerId!=null ? slot : -1;
             regret=attribution.Kind==GoalAttributionKind.OwnGoal ? slot : -1;
             teamReaction=scorer<=0 ? buffer.ClosestFieldSlot(CurrentGoal.Team,mouth.transform.position) : -1;
+            celebrant = buffer.AthleteAt(scorer > 0 ? scorer : teamReaction);
+            PrototypeTeam conceding = CurrentGoal.Team == PrototypeTeam.Blue ? PrototypeTeam.White : PrototypeTeam.Blue;
+            disappointed = buffer.AthleteAt(regret > 0 ? regret : buffer.ClosestFieldSlot(conceding, mouth.transform.position));
+            nearbyTeammate = null;
+            if (celebrant != null)
+            {
+                var provider = ball.RecentPassProvider(celebrant.Interaction);
+                var teammate = provider != null ? provider.GetComponent<SwimmerIdentity>() : null;
+                if (teammate != null && teammate.EligibleForPlay &&
+                    (teammate.Motor.Position - celebrant.Motor.Position).sqrMagnitude <= 25f)
+                    nearbyTeammate = teammate;
+                float nearest = 15f;
+                foreach (var candidate in roster.FieldPlayers)
+                {
+                    if (nearbyTeammate == teammate && teammate != null) break;
+                    if (candidate == celebrant || candidate.Team != CurrentGoal.Team || !candidate.EligibleForPlay) continue;
+                    float distance = (candidate.Motor.Position - celebrant.Motor.Position).sqrMagnitude;
+                    if (distance >= nearest) continue;
+                    nearest = distance;
+                    nearbyTeammate = candidate;
+                }
+            }
+            int margin = CurrentGoal.Team == PrototypeTeam.Blue ? match.BlueScore - match.WhiteScore : match.WhiteScore - match.BlueScore;
+            bool late = CurrentGoal.Quarter == match.Clock.Quarters && CurrentGoal.PeriodRemaining < 96f;
+            scorerGesture = GoalGestureFor(margin, late, nearbyTeammate != null, lastCelebration);
+            lastCelebration = scorerGesture;
             if (inspection != null && inspection.ViewIndex >= 0)
             {
                 inspection.SetView(-1);
@@ -195,6 +244,40 @@ namespace ToduStudios.WaterPolo
             eye=lens.transform.position;
             rotation=lens.transform.rotation;
             SetStage(GoalPresentationPhase.Celebration);
+        }
+
+        internal static GoalGesture GoalGestureFor(int margin, bool late, bool teammate, GoalGesture previous)
+        {
+            if (margin <= -2 || margin >= 4) return previous == GoalGesture.Composed ? GoalGesture.QuickPump : GoalGesture.Composed;
+            if (late && (margin == 0 || margin == 1))
+                return previous == GoalGesture.LateSurge ? GoalGesture.PowerRaise : GoalGesture.LateSurge;
+            if (teammate && previous != GoalGesture.Acknowledge) return GoalGesture.Acknowledge;
+            if (margin == 1 && previous != GoalGesture.PowerRaise) return GoalGesture.PowerRaise;
+            return previous == GoalGesture.QuickPump ? GoalGesture.Composed : GoalGesture.QuickPump;
+        }
+
+        internal bool TryReadReaction(SwimmerIdentity player, out GoalReaction reaction)
+        {
+            reaction = default;
+            if (Phase != GoalPresentationPhase.Celebration || player == null || !player.EligibleForPlay)
+                return false;
+            float age = match.PresentationTime - stageAt;
+            Vector3 forward = player.Motor.Position + player.Motor.Facing * 2f + Vector3.up * .40f;
+            if (player == celebrant)
+            {
+                Vector3 partner = nearbyTeammate != null ? nearbyTeammate.Motor.Position + Vector3.up * .45f : forward;
+                reaction = new GoalReaction(scorerGesture, scorerGesture == GoalGesture.Acknowledge ? partner : forward,
+                    age, scorerGesture == GoalGesture.Composed ? .85f : 1.55f);
+            }
+            else if (player == nearbyTeammate && celebrant != null)
+                reaction = new GoalReaction(GoalGesture.Teammate, celebrant.Motor.Position + Vector3.up * .45f,
+                    age - .24f, .98f);
+            else if (player == disappointed)
+                reaction = new GoalReaction(GoalGesture.Regret, goal.transform.position + Vector3.up * .08f,
+                    age - .31f, 1.15f);
+            else if (!player.IsFieldPlayer && player.Team != CurrentGoal.Team)
+                reaction = new GoalReaction(GoalGesture.KeeperGlance, ball.PhysicsPosition, age - .42f, 1.30f);
+            return reaction.Weight > .001f;
         }
 
         public void Advance()
@@ -297,16 +380,15 @@ namespace ToduStudios.WaterPolo
             PlaybackTime=celebrating ? goalAt : elapsed < buildUp
                 ? clipStart+elapsed*playbackSpeed
                 : Mathf.Min(buffer.End,slowStart+(elapsed-buildUp)*DecisivePlaybackSpeed);
-            buffer.ShowAt(PlaybackTime);
+            if (!celebrating) buffer.ShowAt(PlaybackTime);
             if (celebrating)
             {
-                buffer.Celebrate(scorer>0?scorer:teamReaction,elapsed);
-                buffer.Regret(regret,elapsed);
-                if (!animatedSplash && elapsed>.48f && scorer>0)
+                if (!animatedSplash && elapsed>.48f && celebrant != null)
                 {
                     animatedSplash=true;
 
-                    effects?.Celebrate(buffer.ActorPosition(scorer),.45f);
+                    float magnitude = scorerGesture is GoalGesture.PowerRaise or GoalGesture.LateSurge ? .62f : .24f;
+                    effects?.Celebrate(celebrant.Motor.Position, magnitude);
                 }
             }
             FrameCamera(celebrating,elapsed);
@@ -315,7 +397,7 @@ namespace ToduStudios.WaterPolo
 
         void FrameCamera(bool celebrating, float elapsed)
         {
-            Vector3 point=buffer.BallPosition;
+            Vector3 point=PlaybackBall;
             Vector3 mouth=goal.transform.position;
             Vector3 forward=goal.transform.forward;
             Vector3 target, wantedEye;
@@ -323,12 +405,14 @@ namespace ToduStudios.WaterPolo
             if (celebrating)
             {
                 int subject=regret>0?regret:scorer>0?scorer:teamReaction;
-                Vector3 head=subject>0 ? buffer.ActorHead(subject) : mouth-forward*3f+Vector3.up*.35f;
+                Vector3 head=subject>0 ? buffer.LiveHead(subject) : mouth-forward*3f+Vector3.up*.35f;
                 target=head+Vector3.up*.13f;
+                if (regret <= 0 && nearbyTeammate != null)
+                    target = Vector3.Lerp(target, nearbyTeammate.Motor.Position + Vector3.up * .56f, .28f);
                 wantedEye=head+forward*(2.4f+Mathf.Sin(elapsed*.9f)*.4f)+Vector3.right*2.8f+Vector3.up*1.08f;
                 wantedEye.x=Mathf.Clamp(wantedEye.x,-11.6f,11.6f);
                 wantedEye.z=Mathf.Clamp(wantedEye.z,-13.7f,13.7f);
-                fov=42;
+                fov=nearbyTeammate != null && regret <= 0 ? 49f : 42f;
             }
             else if (Phase==GoalPresentationPhase.Broadcast)
             {

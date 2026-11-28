@@ -246,6 +246,9 @@ namespace ToduStudios.WaterPolo
 
         private void ApplySelection(SwimmerBallInteraction airborneReceiver = null)
         {
+            var match = ball != null ? ball.Match : null;
+            bool preserveMotion = match != null && (match.GoalRecoveryActive ||
+                match.Rules != null && match.Rules.OrdinaryFreeThrow);
             foreach (SwimmerIdentity player in roster.Members)
             {
                 bool controlled = !InputLocked && IsEligible(player) && player == ActivePlayer;
@@ -253,8 +256,8 @@ namespace ToduStudios.WaterPolo
                 BallInteractionInput interaction = player.GetComponent<BallInteractionInput>();
                 if (movement != null) movement.enabled = controlled;
                 if (interaction != null) interaction.enabled = controlled;
-                if (!controlled && player.Interaction != airborneReceiver) player.Motor.StopMotion();
-                player.SetSelected(IsEligible(player) && player == ActivePlayer);
+                if (!controlled && player.Interaction != airborneReceiver && !preserveMotion) player.Motor.StopMotion();
+                player.SetSelected(match?.Phase != MatchPhase.GoalRestart && IsEligible(player) && player == ActivePlayer);
             }
             if (gameplayCamera != null && ActivePlayer != null)
                 gameplayCamera.SetTarget(ActivePlayer.Motor);

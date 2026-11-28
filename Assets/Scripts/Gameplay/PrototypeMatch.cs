@@ -84,6 +84,8 @@ namespace ToduStudios.WaterPolo
         public GoalAttribution LastGoalAttribution { get; private set; }
         public GoalReplayDirector GoalPresentation { get; private set; }
         public bool GoalPresentationActive => GoalPresentation != null && GoalPresentation.Active;
+        internal bool GoalRecoveryActive => !IsPaused && !EndingPenalty && Phase == MatchPhase.GoalRestart &&
+            GoalPresentationActive && GoalPresentation.Phase == GoalPresentationPhase.Celebration;
         internal void AttachGoalPresentation(GoalReplayDirector director) => GoalPresentation = director;
         internal void ReleaseGoalPresentation()
         {
@@ -228,15 +230,15 @@ namespace ToduStudios.WaterPolo
             restartTeam=team==PrototypeTeam.Blue?PrototypeTeam.White:PrototypeTeam.Blue;
             ball.CaptureGoal(goal);
             restartAt = PresentationTime + restartDelay;
-            StopPlay(false);
+            StopPlay(false, GoalRecoveryActive);
         }
 
-        private void StopPlay(bool clearBall)
+        private void StopPlay(bool clearBall, bool keepAthletesMoving = false)
         {
             if (roster != null && playerSelection != null)
             {
                 playerSelection.SetInputLocked(true);
-                roster.SetSimulationPaused(true);
+                if (!keepAthletesMoving) roster.SetSimulationPaused(true);
             }
             else
             {
@@ -249,7 +251,7 @@ namespace ToduStudios.WaterPolo
                 swimmer.enabled = false;
             }
             if(clearBall)ball.ResetForRestart(ballStart.position);
-            ball.SetSimulationPaused(true);
+            if (!ball.AwaitingReplacement) ball.SetSimulationPaused(true);
             Changed?.Invoke();
         }
 
@@ -260,11 +262,11 @@ namespace ToduStudios.WaterPolo
             restartAt=PresentationTime+turnoverDelay;StopPlay(true);
         }
 
-        public void BeginRuleRestart(bool penalty)
+        public void BeginRuleRestart(bool penalty, bool keepAthletesMoving = false)
         {
             if (!IsPlaying) return;
             Phase = penalty ? MatchPhase.PenaltySetup : MatchPhase.FreeThrowSetup;
-            StopPlay(true);
+            StopPlay(true, keepAthletesMoving);
         }
         internal void BeginBoundaryStoppage()
         {
@@ -346,6 +348,7 @@ namespace ToduStudios.WaterPolo
             if(Phase==MatchPhase.SprintSetup&&periodSprint!=null)
             {if(periodSprint.NeedsRestage)BeginPeriodSprint();if(periodSprint.Ready)ReleasePeriodSprint();}
             if(IsSprintRace){periodSprint.Tick();if(periodSprint.ContestExpired)EndUnclaimedSprint();}
+            if (GoalRecoveryActive) DriveGoalRecovery();
             if (IsRestarting && !GoalPresentationActive && PresentationTime>=restartAt)
             {
                 if (Phase==MatchPhase.GoalRestart)
@@ -399,11 +402,40 @@ namespace ToduStudios.WaterPolo
 
         private PrototypeTeamTactics Team(PrototypeTeam team)
         {foreach(var t in teams)if(t.Team==team)return t;return null;}
+
+        private void DriveGoalRecovery()
+        {
+            if (roster == null) return;
+            foreach (var athlete in roster.FieldPlayers)
+            {
+                if (!athlete.EligibleForPlay) continue;
+                var motor = athlete.Motor;
+                var direction = Team(athlete.Team).AttackDirection;
+                var relative = motor.Position - ballStart.position;
+                float depth = Vector3.Dot(relative, direction);
+                if (GoalPresentation != null && GoalPresentation.TryReadReaction(athlete, out var reaction) &&
+                    reaction.HoldPosition)
+                {
+                    motor.SetMoveInput(Vector2.zero);
+                    motor.SetFacingDirection(reaction.LookAt - motor.Position);
+                    continue;
+                }
+                if (depth <= -3.15f)
+                {
+                    motor.SetMoveInput(Vector2.zero);
+                    motor.SetFacingDirection(direction);
+                    continue;
+                }
+                Vector3 move = -direction * Mathf.Clamp((depth + 3.15f) * .26f, .12f, .54f);
+                motor.SetFacingDirection(move);
+                motor.SetMoveInput(new Vector2(move.x, move.z));
+            }
+        }
+
         private void BeginCentreRestart()
         {
             if(Phase!=MatchPhase.GoalRestart || !restartTeam.HasValue)return;
             var awarded=restartTeam.Value;restartTeam=null;CentreTaker=CentreReceiver=null;
-            roster.ResetPositions();
             // Stable designated field taker; never assign a goalkeeper or an excluded athlete.
             foreach(var p in roster.FieldPlayers)
                 if(p.Team==awarded && p.EligibleForPlay && (CentreTaker==null || p.CapNumber<CentreTaker.CapNumber))CentreTaker=p;
@@ -412,10 +444,16 @@ namespace ToduStudios.WaterPolo
             foreach(var p in roster.FieldPlayers)
             {
                 if(!p.EligibleForPlay || p==CentreTaker)continue;
+                p.Motor.StopMotion();
                 var direction=Team(p.Team).AttackDirection;Vector3 point=p.Motor.Position;
                 float depth=Vector3.Dot(point-center,direction);
-                if(depth>-3f)point-=direction*(depth+3f);
-                p.Motor.ResetPose(point,Quaternion.LookRotation(direction));
+                if(depth>-3f)
+                {
+                    point = p.StartPosition.position;
+                    float startDepth = Vector3.Dot(point - center, direction);
+                    if (startDepth > -3f) point -= direction * (startDepth + 3f);
+                    p.Motor.ResetPose(point,Quaternion.LookRotation(direction));
+                }
                 if(p.Team==awarded && (CentreReceiver==null || (point-center).sqrMagnitude<(CentreReceiver.Motor.Position-center).sqrMagnitude))CentreReceiver=p;
             }
             if(CentreReceiver!=null)

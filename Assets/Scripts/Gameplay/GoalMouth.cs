@@ -49,6 +49,39 @@ namespace ToduStudios.WaterPolo
             return local.z >= -radius - 0.001f && FitsOpening(local, radius);
         }
 
+        internal Vector3 ClampSwimmer(Vector3 from, Vector3 to, float radius)
+        {
+            Vector3 a = transform.InverseTransformPoint(from);
+            Vector3 b = transform.InverseTransformPoint(to);
+            if (Mathf.Max(a.z, b.z) < -radius || Mathf.Min(a.z, b.z) > Depth + .06f + radius ||
+                Mathf.Min(a.x, b.x) > Width * .5f + PostThickness + radius ||
+                Mathf.Max(a.x, b.x) < -Width * .5f - PostThickness - radius) return to;
+
+            float inner = Mathf.Max(0f, Width * .5f - radius);
+            float outer = Width * .5f + Mathf.Max(PostThickness, .06f) + radius;
+            // Solve transverse travel first so a blocked forward stroke can still slide along a post.
+            if (a.z > -radius && a.z < Depth + .06f + radius)
+            {
+                b.x = StopAtBand(a.x, b.x, inner, outer);
+                b.x = StopAtBand(a.x, b.x, -outer, -inner);
+            }
+            if (Mathf.Abs(b.x) > inner && Mathf.Abs(b.x) < outer)
+                b.z = StopAtBand(a.z, b.z, -radius, Depth + .06f + radius);
+            else if (Mathf.Abs(b.x) <= inner)
+                // The stroke briefly extends farther than the upright capsule.
+                b.z = StopAtBand(a.z, b.z, Mathf.Max(0f, Depth - radius - .10f), Depth + .06f + radius);
+            return transform.TransformPoint(b);
+        }
+
+        private static float StopAtBand(float from, float to, float low, float high)
+        {
+            if (from <= low && to > low) return low;
+            if (from >= high && to < high) return high;
+            if (from > low && from < high)
+                return from - low < high - from ? Mathf.Min(from, to) : Mathf.Max(from, to);
+            return to;
+        }
+
         public Vector3 ClampPocket(Vector3 position, float radius)
         {
             Vector3 local = transform.InverseTransformPoint(position);

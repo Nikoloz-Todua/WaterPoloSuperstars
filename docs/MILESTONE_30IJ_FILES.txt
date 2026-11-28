@@ -1,0 +1,43 @@
+# Milestones 30I and 30J file inventory
+
+# Production and Editor files
+Assets/Editor/Milestone30BPreview.cs
+Assets/Scenes/OlympicMatchArena.unity
+Assets/Scripts/Gameplay/BallController.cs
+Assets/Scripts/Gameplay/GoalMouth.cs
+Assets/Scripts/Gameplay/GoalReplayBuffer.cs
+Assets/Scripts/Gameplay/GoalReplayDirector.cs
+Assets/Scripts/Gameplay/MatchRules.Boundaries.cs
+Assets/Scripts/Gameplay/MatchRules.cs
+Assets/Scripts/Gameplay/PlayerSelection.cs
+Assets/Scripts/Gameplay/PoolBounds.cs
+Assets/Scripts/Gameplay/PrototypeGoalkeeper.cs
+Assets/Scripts/Gameplay/PrototypeMatch.cs
+Assets/Scripts/Gameplay/PrototypeSwimmerAI.cs
+Assets/Scripts/Gameplay/SwimmerMotor.cs
+Assets/Scripts/Gameplay/WaterContactPresentation.cs
+Assets/Scripts/WaterVisuals/RiggedSwimmerVisual.cs
+Assets/Scripts/WaterVisuals/WaterPoloThrowPose.cs
+
+# Verification and documentation
+Tools/Verification/Milestone30IJVerification.cs
+docs/MILESTONE_30IJ_DIAGNOSTIC_REPORT.md
+docs/MILESTONE_30IJ_FILES.txt
+docs/MILESTONE_30IJ_FINAL_REPORT.md
+docs/MILESTONE_30IJ_LIVE_HANDOFF.md
+docs/MILESTONE_30IJ_MANUAL_TEST_GUIDE.md
+plan.md
+
+# Advancing Unity Game View evidence
+docs/Evidence/Milestone30IJ/Boundary-Movement.jpg
+docs/Evidence/Milestone30IJ/Celebration-Variations.jpg
+docs/Evidence/Milestone30IJ/Goal-Line-Live-Ball-Comparison.jpg
+docs/Evidence/Milestone30IJ/Goal-Mouth-Movement.jpg
+docs/Evidence/Milestone30IJ/Goal-Reactions-and-Restart.jpg
+docs/Evidence/Milestone30IJ/Keeper-Behind-Recovery-Sequence.jpg
+docs/Evidence/Milestone30IJ/Localized-Water-Effects.jpg
+docs/Evidence/Milestone30IJ/Ordinary-Foul-Movement.jpg
+docs/Evidence/Milestone30IJ/Wide-Shot-Continuation.jpg
+
+# Local verification output retained outside the proposed checkpoint
+Logs/Milestone30IJ/Fixture-Results.txt

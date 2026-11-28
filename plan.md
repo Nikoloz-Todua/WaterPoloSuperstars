@@ -2,7 +2,18 @@
 
 Last updated: 2026-11-28.
 
-## Current handoff — Milestone 30H recovery and finalization
+## Current handoff — Milestones 30I and 30J
+
+Continues human checkpoint `ce1b946` with the approved 30H keeper. The developer accepts the current swimwear for now. Anatomical fit, garment deformation and walking remain deferred. [Live handoff](docs/MILESTONE_30IJ_LIVE_HANDOFF.md) · [Final report](docs/MILESTONE_30IJ_FINAL_REPORT.md) · [Exact files](docs/MILESTONE_30IJ_FILES.txt)
+
+- **Physical continuity.** OlympicMatchArena's existing 20 × 25 m rule field and 22.5 × 28.6 m physical basin have separate limits. The capsule and roster contact solver share the wall and goal constraints, retain tangential travel, and let athletes enter the shallow goal mouth. The keeper can turn and pursue a nearby live loose ball through the normal pickup authority. BallController, GoalkeeperInterception and PrototypeMatch retain their ordered fixed steps and whole-ball scoring. The same ball shows a brief dead trajectory after authoritative exits, preserving its initial momentum, with acquisition and scoring gated until replacement.
+- **Match continuity.** Ordinary free throws preserve player motion and the 30F attack-support and defensive marking logic while the taker holds the mark and rules restrict actions. Goals trigger brief live contextual reactions before the existing recorded replays. The scorer has five procedurally posed variations, with nearby acknowledgement, restrained conceding reactions and recovery swimming. The conceding side retains centre possession, and legal existing field positions are kept where possible.
+- **Water.** Existing contact buffers and effect budgets render hand-speed sculling, stroke contacts, sprint wakes, subtle leading/float disturbances and speed-dependent ball impact. The approved stroke, keeper save and shot animations and live skip conditions remain the same. [Technical decisions and boundaries](docs/MILESTONE_30IJ_DIAGNOSTIC_REPORT.md) · [Test Lab](docs/MILESTONE_30IJ_MANUAL_TEST_GUIDE.md)
+- **Verification and saved state.** Seventeen distinct short Windows Editor cases passed. Both field ends admitted 0.50 m of centred root travel into the mouth and physical post rebounds remained recoverable. The real profile and arena GUID matched the starting fingerprints. The project compiled and was left in clean Edit Mode with Boot as normal Play entry. The current Console had zero errors and warnings. Personal visual and Android testing remain open. [Game View evidence](docs/Evidence/Milestone30IJ/)
+
+Stop after 30I and 30J. Deferred gameplay includes advanced shooting variations, shot fakes and trick shots, defensive intelligence, centre-defender positioning and blocking, neutral possession and rotation polish, independent left-hand catches and hand transfers, further receiving polish, walking and standing with measured foot slip/clearance, swimwear anatomy and deformation, broader goalkeeper and penalty balance, remaining replay/match integration and Android device optimization. Deferred stadium and career work includes animated spectators, crowd reactions and cheering, professional goal geometry, net reactions, lighting and atmosphere, pool markings, reserve athletes, coaches, benches, exclusions and substitutions, pool entry/exit, athlete and team customization, career, transfers, training and progression.
+
+## Previous handoff — Milestone 30H recovery and finalization
 
 30H started from approved 30G checkpoint `a77e1bb`. The human checkpoint `30a5041` contains the keeper and preliminary fabric changes. The prior session stopped during final fixture polling and documentation. Recovery completed verification and the handoff. Production code and assets remain at that checkpoint. [Final report](docs/MILESTONE_30H_FINAL_REPORT.md) · [Live handoff](docs/MILESTONE_30H_LIVE_HANDOFF.md) · [Exact changed files](docs/MILESTONE_30H_FILES.txt)
 

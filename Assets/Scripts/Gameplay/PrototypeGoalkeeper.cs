@@ -40,6 +40,8 @@ namespace ToduStudios.WaterPolo
         private float presentedSaveUntil;
         private int attemptedShot = -1;
         private bool presentedShot;
+        private bool pursuingLooseBall;
+        internal bool PursuingLooseBall => pursuingLooseBall;
         public float SaveReach => saveReach;
         public bool Recovering => Time.time < recoverUntil;
         public int Catches { get; private set; }
@@ -116,7 +118,7 @@ namespace ToduStudios.WaterPolo
             point = presentedSavePoint;
             weight = 0f;
             shot = presentedShot;
-            if (!isActiveAndEnabled || Stopped) return false;
+            if (!isActiveAndEnabled || Stopped || pursuingLooseBall) return false;
             if (Time.time < presentedSaveUntil)
             {
                 weight = Mathf.Clamp01((presentedSaveUntil - Time.time) / .16f);
@@ -142,6 +144,8 @@ namespace ToduStudios.WaterPolo
         public Vector3 ClampMovement(Vector3 position)
         {
             if (PenaltyPosition) return StationPosition(position);
+            if (poolBounds.HasPhysicalBasin && (!isActiveAndEnabled || HumanControlled || pursuingLooseBall || !AtStation))
+                return position;
             // A saved penalty leaves the body on the goal line. Swim through the mouth back to the
             // ordinary station; a generic pool clamp would jump it forward on the first live step.
             Vector3 currentLocal=defendedGoal.transform.InverseTransformPoint(Identity.Motor.Position);
@@ -185,6 +189,7 @@ namespace ToduStudios.WaterPolo
             targetX = targetVelocity = 0f; sawThreat = false; reactAt = Time.time + reactionDelay;
             handLift=0f;
             presentedSaveUntil = 0f;
+            pursuingLooseBall = false;
             attemptedShot = -1;
             ApplyArmLift();
             recoverUntil = 0f; random = new System.Random(randomSeed);
@@ -194,12 +199,37 @@ namespace ToduStudios.WaterPolo
         {
             if (match.IsPaused) return;
             if (Stopped) return;
-            if (HumanControlled) { Identity.Motor.OverrideSpeed(carryingSpeed); targetVelocity = 0f; return; }
+            if (HumanControlled)
+            {
+                pursuingLooseBall = false;
+                Identity.Motor.OverrideSpeed(carryingSpeed);
+                targetVelocity = 0f;
+                return;
+            }
             Identity.Motor.ClearSpeedOverride();
-            if (Identity.Interaction.HasBall) { Identity.Motor.SetMoveInput(Vector2.zero); return; }
+            if (Identity.Interaction.HasBall)
+            {
+                pursuingLooseBall = false;
+                Identity.Motor.SetMoveInput(Vector2.zero);
+                return;
+            }
             Vector3 ballPoint=ball.PlayPosition;
             Vector3 local = defendedGoal.transform.InverseTransformPoint(ballPoint);
             Vector3 velocity = ballBody.linearVelocity;
+            Vector3 recovery = PrototypeTeamTactics.Planar(ballPoint - Identity.Motor.Position);
+            pursuingLooseBall = poolBounds.HasPhysicalBasin && !PenaltyPosition && local.z > -3.3f &&
+                Mathf.Abs(local.x) < defendedGoal.Width * .5f + 1.35f && recovery.sqrMagnitude < 13f &&
+                ball.CanRecoverKeeperBall && ball.IsRecoveryCandidate(Identity.Interaction);
+            if (pursuingLooseBall)
+            {
+                presentedSaveUntil = 0f;
+                sawThreat = false;
+                handLift = Mathf.MoveTowards(handLift, 0f, handLiftSpeed * Time.deltaTime);
+                ApplyArmLift();
+                Identity.Motor.SetFacingDirection(recovery);
+                Identity.Motor.SetMoveInput(Vector2.ClampMagnitude(new Vector2(recovery.x, recovery.z) * 1.6f, .85f));
+                return;
+            }
             bool animated = UsesAnimatedHands;
             Vector3 predicted = default;
             bool incoming = animated ? TryReadApproach(out predicted, out _, out _) :

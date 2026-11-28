@@ -300,6 +300,53 @@ namespace ToduStudios.WaterPolo.WaterVisuals
             return true;
         }
 
+        internal void ReactToGoal(Vector3 facing, GoalReaction reaction)
+        {
+            float weight = reaction.Weight;
+            Vector3 side = Vector3.Cross(Up, facing);
+            if (reaction.Gesture == GoalGesture.KeeperGlance)
+            {
+                Look(facing, reaction.LookAt - head.position, .56f * weight, 75f);
+                return;
+            }
+            if (reaction.Gesture == GoalGesture.Regret)
+            {
+                Look(facing, reaction.LookAt - head.position - Up * 1.3f, .78f * weight, 76f);
+                chest.rotation = Quaternion.AngleAxis(8f * weight, side) * chest.rotation;
+                return;
+            }
+
+            bool both = reaction.Gesture is GoalGesture.PowerRaise or GoalGesture.LateSurge;
+            bool salute = reaction.Gesture is GoalGesture.Acknowledge or GoalGesture.Teammate;
+            float pump = Mathf.Sin(Mathf.PI * Mathf.InverseLerp(.30f, .86f, reaction.Age));
+            float height = reaction.Gesture switch
+            {
+                GoalGesture.PowerRaise => .58f,
+                GoalGesture.LateSurge => .67f,
+                GoalGesture.Acknowledge => .45f,
+                GoalGesture.Teammate => .23f,
+                GoalGesture.Composed => .12f,
+                _ => .47f - .15f * pump
+            };
+            float reach = weight * (reaction.Gesture == GoalGesture.Teammate ? .64f : .94f);
+            chest.rotation = Quaternion.AngleAxis((both ? -9f : 5f) * weight, side) * chest.rotation;
+            GoalArm(upper, forearm, wrist, handFrame, facing, side, height, reach);
+            if (both && leftUpper != null && leftForearm != null && leftWrist != null)
+                GoalArm(leftUpper, leftForearm, leftWrist, leftHandFrame, facing, -side,
+                    reaction.Gesture == GoalGesture.LateSurge ? height - .19f * (1f - pump) : height - .04f, reach);
+            if (!salute) PoseFingers(weight * .87f, 0f);
+            Look(facing, reaction.LookAt - head.position, (salute ? .90f : .40f) * weight, 70f);
+        }
+
+        private static void GoalArm(Transform shoulder, Transform elbow, Transform hand, Quaternion frame,
+            Vector3 facing, Vector3 outside, float height, float weight)
+        {
+            Vector3 target = shoulder.position + outside * .21f + facing * .22f + Up * height;
+            Vector3 pole = shoulder.position + outside * .46f + facing * .14f - Up * .16f;
+            Reach(shoulder, elbow, hand, target, pole, weight);
+            OpenHand(hand, elbow, frame, facing, weight * .68f);
+        }
+
         public void Keeper(Vector3 facing, Vector3 tracking, Vector3 contact, float dive, float readiness,
             bool shot, Vector3 incoming, float radius, float surface)
         {

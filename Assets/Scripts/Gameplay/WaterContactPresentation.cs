@@ -4,7 +4,7 @@ using ToduStudios.WaterPolo.WaterVisuals;
 
 namespace ToduStudios.WaterPolo
 {
-    internal enum WaterContactKind { Entry, Exit, Pull, Kick, Wake, Tread, Bow, Impact, SkipImpact, Turn, Keeper, Gather, Release, Celebration }
+    internal enum WaterContactKind { Entry, Exit, Pull, Kick, Wake, Tread, Bow, Impact, SkipImpact, Turn, Keeper, Gather, Release, Celebration, Float }
 
     internal readonly struct WaterContactStamp
     {
@@ -34,7 +34,7 @@ namespace ToduStudios.WaterPolo
         private struct Hand
         {
             public Vector3 Previous;
-            public float NextEntry, NextExit, NextPull;
+            public float NextEntry, NextExit, NextPull, NextScull;
             public bool Armed, Wet;
         }
 
@@ -46,13 +46,13 @@ namespace ToduStudios.WaterPolo
             public Transform Left, Right, LeftFoot, RightFoot, Chest;
             public Hand LeftState, RightState;
             public Vector3 PreviousRoot, PreviousMotion;
-            public float PreviousChest, NextWake, NextKick, NextTread, NextKeeper, NextTurn;
+            public float PreviousChest, NextWake, NextKick, NextKeeper, NextTurn;
             public bool Valid;
             public int Foot;
         }
 
         private readonly WaterContactStamp[] history = new WaterContactStamp[HistoryCapacity];
-        private readonly int[] totals = new int[(int)WaterContactKind.Celebration + 1];
+        private readonly int[] totals = new int[(int)WaterContactKind.Float + 1];
         private readonly BallController ball;
         private readonly PrototypeMatch match;
         private readonly PoolBounds pool;
@@ -60,7 +60,7 @@ namespace ToduStudios.WaterPolo
         private readonly WaterContactMesh mesh;
         private Athlete[] athletes;
         private int written, count;
-        private float lastSample, visibleSince, playbackTime, nextBow;
+        private float lastSample, visibleSince, playbackTime, nextBow, nextFloat;
         private bool wasDribbling, playback;
         private SwimmerBallInteraction lastOwner;
         private SwimmerMotor leadingMotor;
@@ -122,7 +122,9 @@ namespace ToduStudios.WaterPolo
             float now = match.PresentationTime;
             float dt = now - lastSample;
             lastSample = now;
-            if (!playback && dt > 0f && (match.CanSwim || phase == MatchPhase.PenaltyReady || phase == MatchPhase.PenaltyFlight))
+            if (!playback && dt > 0f && (match.CanSwim || match.GoalRecoveryActive ||
+                match.Rules != null && match.Rules.OrdinaryFreeThrow ||
+                phase == MatchPhase.PenaltyReady || phase == MatchPhase.PenaltyFlight))
             {
                 using (SampleMarker.Auto())
                 {
@@ -150,8 +152,9 @@ namespace ToduStudios.WaterPolo
             float speed = motion.magnitude;
             bool sprint = athlete.Stamina != null && athlete.Stamina.IsSprinting;
             bool stroke = athlete.Visual.Locomotion > .55f;
-            SampleHand(athlete.Left, ref athlete.LeftState, true, now, dt, waterline, sprint, stroke, reset);
-            SampleHand(athlete.Right, ref athlete.RightState, false, now, dt, waterline, sprint, stroke, reset);
+            bool sculling = speed < .48f && !stroke;
+            SampleHand(athlete.Left, ref athlete.LeftState, true, now, dt, waterline, sprint, stroke, sculling, reset);
+            SampleHand(athlete.Right, ref athlete.RightState, false, now, dt, waterline, sprint, stroke, sculling, reset);
 
             Vector3 change = motion - athlete.PreviousMotion;
             float turbulence = !reset ? Mathf.InverseLerp(3.2f, 12f, change.magnitude / dt) *
@@ -171,18 +174,6 @@ namespace ToduStudios.WaterPolo
                     sprint ? .98f : Mathf.Lerp(.39f, .66f, speed / 5f), sprint ? .91f : .71f);
                 athlete.NextWake = now + (sprint ? .105f : .18f);
             }
-            else if (!reset && speed < .42f && now >= athlete.NextTread)
-            {
-                Transform scull = (athlete.Foot & 1) == 0 ? athlete.Left : athlete.Right;
-                if (scull != null && Mathf.Abs(scull.position.y - waterline) < .12f)
-                {
-                    Vector3 wash = Vector3.ProjectOnPlane(scull.position - root, Vector3.up);
-                    Add(now, WaterContactKind.Tread, scull.position, wash, .20f, .31f);
-                    athlete.Foot++;
-                    athlete.NextTread = now + .58f;
-                }
-            }
-
             if (speed > .65f && now >= athlete.NextKick)
             {
                 var foot = (athlete.Foot++ & 1) == 0 ? athlete.LeftFoot : athlete.RightFoot;
@@ -213,7 +204,7 @@ namespace ToduStudios.WaterPolo
         }
 
         private void SampleHand(Transform hand, ref Hand state, bool left, float now, float dt, float line,
-            bool sprint, bool stroke, bool reset)
+            bool sprint, bool stroke, bool sculling, bool reset)
         {
             if (hand == null) return;
             Vector3 point = hand.position;
@@ -222,7 +213,8 @@ namespace ToduStudios.WaterPolo
             state.Previous = point;
             if (reset)
             {
-                state = new Hand { Previous = point, Armed = height >= RearmHeight, NextPull = now + .12f };
+                state = new Hand { Previous = point, Armed = height >= RearmHeight, NextPull = now + .12f,
+                    NextScull = now + (left ? .13f : .32f) };
                 return;
             }
             if (height >= RearmHeight) state.Armed = true;
@@ -247,7 +239,16 @@ namespace ToduStudios.WaterPolo
                 state.NextExit = now + .28f;
                 Add(now, WaterContactKind.Exit, SurfaceCrossing(previous, point, line), velocity, sprint ? .46f : .28f, .33f);
             }
-            else if (height < -.03f && height > -.21f && velocity.sqrMagnitude > 2.2f && now >= state.NextPull)
+            else if (sculling && height > -.25f && height < .10f && now >= state.NextScull)
+            {
+                Vector3 sweep = Vector3.ProjectOnPlane(velocity, Vector3.up);
+                float speed = sweep.magnitude;
+                if (speed < .20f) return;
+                float strength = Mathf.Lerp(.11f, .28f, Mathf.InverseLerp(.20f, 1.4f, speed));
+                Add(now, WaterContactKind.Tread, point, sweep, strength, .24f + .26f * strength);
+                state.NextScull = now + (left ? .58f : .64f);
+            }
+            else if (stroke && height < -.03f && height > -.24f && velocity.sqrMagnitude > 1.75f && now >= state.NextPull)
             {
                 Add(now, WaterContactKind.Pull, point, velocity, sprint ? .30f : .18f, .38f);
                 state.NextPull = now + .36f;
@@ -268,8 +269,15 @@ namespace ToduStudios.WaterPolo
             {
                 var motion = leadingMotor.Velocity;
                 if (motion.sqrMagnitude > .16f)
-                    Add(now, WaterContactKind.Bow, point, motion, .40f, .36f);
+                    Add(now, WaterContactKind.Bow, point - motion.normalized * ball.Radius * .55f, motion,
+                        Mathf.Lerp(.23f, .46f, Mathf.InverseLerp(1f, 5f, motion.magnitude)), .34f);
                 nextBow = now + .115f;
+            }
+            else if (owner == null && !ball.IsAirborne && !ball.AwaitingReplacement && now >= nextFloat &&
+                Mathf.Abs(point.y - ball.SurfaceHeight) < .065f && ball.Velocity.sqrMagnitude < .35f)
+            {
+                Add(now, WaterContactKind.Float, point, ball.Velocity, .13f, ball.Radius * 2.05f);
+                nextFloat = now + .83f;
             }
             lastBall = point;
             lastOwner = owner;
@@ -282,8 +290,9 @@ namespace ToduStudios.WaterPolo
             if (impact.Kind == BallImpactKind.Water || impact.Kind == BallImpactKind.Skip)
             {
                 bool skip = impact.Kind == BallImpactKind.Skip;
-                float impulse = Mathf.Max(0f, -impact.Incoming.y) + .22f * Vector3.ProjectOnPlane(impact.Incoming, Vector3.up).magnitude;
-                float strength = Mathf.Clamp(.22f + impulse * .115f, .24f, 1f);
+                float impulse = Mathf.Max(0f, -impact.Incoming.y) + (skip ? .32f : .13f) *
+                    Vector3.ProjectOnPlane(impact.Incoming, Vector3.up).magnitude;
+                float strength = Mathf.Clamp(.13f + impulse * .105f, .17f, 1f);
                 LatestImpact = Add(match.PresentationTime, skip ? WaterContactKind.SkipImpact : WaterContactKind.Impact,
                     impact.Position, skip ? impact.Outgoing : impact.Incoming, strength,
                     Mathf.Lerp(.46f, 1.10f, strength) * ball.Radius / .14f);
@@ -348,12 +357,13 @@ namespace ToduStudios.WaterPolo
         {
             wasDribbling = false;
             nextBow = 0f;
+            nextFloat = 0f;
             if (athletes != null)
                 foreach (var athlete in athletes)
                     if (athlete != null)
                     {
                         athlete.Valid = false;
-                        athlete.NextWake = athlete.NextKick = athlete.NextTread = athlete.NextKeeper = athlete.NextTurn = 0f;
+                        athlete.NextWake = athlete.NextKick = athlete.NextKeeper = athlete.NextTurn = 0f;
                     }
         }
 

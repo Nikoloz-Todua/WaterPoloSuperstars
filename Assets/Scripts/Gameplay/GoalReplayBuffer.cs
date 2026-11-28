@@ -30,7 +30,7 @@ namespace ToduStudios.WaterPolo
             public Transform Copy;
             public int RootIndex;
             public SwimmerIdentity Player;
-            public Transform Arm, Forearm, Head;
+            public Transform LiveHead;
             public Renderer Number;
             public int LastDisplayedCap = -1;
         }
@@ -55,8 +55,9 @@ namespace ToduStudios.WaterPolo
         public float Start => count == 0 ? 0f : frames[Index(0)].Time;
         public float End => count == 0 ? 0f : frames[Index(count-1)].Time;
         public Vector3 BallPosition => copies[actors[0].RootIndex].position;
-        public Vector3 ActorHead(int slot) => actors[slot].Head != null ? actors[slot].Head.position : actors[slot].Copy.position+Vector3.up*.25f;
-        public Vector3 ActorPosition(int slot) => slot > 0 ? actors[slot].Copy.position : BallPosition;
+        internal SwimmerIdentity AthleteAt(int slot) => slot > 0 ? actors[slot].Player : null;
+        internal Vector3 LiveHead(int slot) => actors[slot].LiveHead != null ?
+            actors[slot].LiveHead.position : actors[slot].Root.position + Vector3.up * .25f;
 
         public GoalReplayBuffer(BallController ball, PrototypeRoster roster, int capacity, Transform parent)
         {
@@ -80,9 +81,7 @@ namespace ToduStudios.WaterPolo
                 var animator=visual.Animator;
                 if (animator != null && animator.isHuman)
                 {
-                    actor.Head=FindCopy(animator.GetBoneTransform(HumanBodyBones.Head));
-                    actor.Arm=FindCopy(animator.GetBoneTransform(HumanBodyBones.RightUpperArm));
-                    actor.Forearm=FindCopy(animator.GetBoneTransform(HumanBodyBones.RightLowerArm));
+                    actor.LiveHead = animator.GetBoneTransform(HumanBodyBones.Head);
                 }
             }
             poses = new Pose[sources.Count * capacity];
@@ -102,12 +101,6 @@ namespace ToduStudios.WaterPolo
                 actor.Number=label.GetComponent<Renderer>();
             actors.Add(actor);
             return actor;
-        }
-
-        Transform FindCopy(Transform source)
-        {
-            int index=sources.IndexOf(source);
-            return index>=0 ? copies[index] : null;
         }
 
         public int Slot(SwimmerBallInteraction player) => player != null && slots.TryGetValue(player,out var index) ? index : -1;
@@ -202,32 +195,6 @@ namespace ToduStudios.WaterPolo
                 if (candidate<distance) { best=i;distance=candidate; }
             }
             return best;
-        }
-
-        internal void Regret(int slot, float time)
-        {
-            if (slot<=0 || actors[slot].Head==null) return;
-            var actor=actors[slot];
-            float down=Mathf.SmoothStep(0f,1f,Mathf.Clamp01(time*2.5f)) *
-                (1f-Mathf.SmoothStep(0f,1f,Mathf.InverseLerp(1.65f,2.6f,time)));
-            actor.Head.rotation=Quaternion.AngleAxis(27f*down,actor.Copy.right)*actor.Head.rotation;
-            if (actor.Arm!=null)
-                actor.Arm.rotation=Quaternion.AngleAxis(-12f*down,actor.Copy.forward)*actor.Arm.rotation;
-        }
-
-        public void Celebrate(int slot,float time)
-        {
-            if (slot<=0) return;
-            var actor=actors[slot];
-            if (actor.Arm == null || actor.Forearm == null) return;
-            var lift=Vector3.Slerp(actor.Copy.right,Vector3.up,.92f);
-            var arm=actor.Arm;
-            var forearm=actor.Forearm;
-            var current=forearm.position-arm.position;
-            if (current.sqrMagnitude < .0001f) return;
-            float liftWeight=Mathf.SmoothStep(0,1,Mathf.Min(1,time*2.6f));
-            lift=Quaternion.AngleAxis(Mathf.Sin(time*6f)*18f,actor.Copy.forward)*lift;
-            arm.rotation=Quaternion.Slerp(arm.rotation,Quaternion.FromToRotation(current,lift)*arm.rotation,liftWeight);
         }
 
         public void Hide()

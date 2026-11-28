@@ -6766,6 +6766,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 1.1
 --- !u!136 &87476091
 CapsuleCollider:
@@ -13667,6 +13668,7 @@ MonoBehaviour:
   length: 25
   waterline: 0
   officiateBallExits: 1
+  physicalBasin: {fileID: 11400000, guid: 65470909c61357a40b9bc5adca9e4712, type: 2}
 --- !u!1 &175610594
 GameObject:
   m_ObjectHideFlags: 0
@@ -16173,6 +16175,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 1.1
 --- !u!136 &202861653
 CapsuleCollider:
@@ -20327,6 +20330,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 033cb1d61373f0f4684f444134c238ef, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ToduStudios.WaterPolo.MatchRules
+  boundaryFlightSeconds: 0.85
   match: {fileID: 253662436}
   roster: {fileID: 1617540743}
   ball: {fileID: 616080028}
@@ -42152,6 +42156,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 0.45
 --- !u!136 &593132171
 CapsuleCollider:
@@ -42456,6 +42461,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 1.1
 --- !u!136 &594443260
 CapsuleCollider:
@@ -44775,6 +44781,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 1.1
 --- !u!136 &619928589
 CapsuleCollider:
@@ -49309,6 +49316,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 1.1
 --- !u!136 &677469408
 CapsuleCollider:
@@ -52753,6 +52761,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 1.1
 --- !u!136 &726814767
 CapsuleCollider:
@@ -77172,6 +77181,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 1.1
 --- !u!136 &1139668990
 CapsuleCollider:
@@ -82370,6 +82380,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 1.1
 --- !u!136 &1217614249
 CapsuleCollider:
@@ -82675,6 +82686,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 1.1
 --- !u!136 &1218628266
 CapsuleCollider:
@@ -97258,6 +97270,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 0.45
 --- !u!136 &1449607060
 CapsuleCollider:
@@ -100610,6 +100623,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 1.1
 --- !u!136 &1502215308
 CapsuleCollider:
@@ -112458,6 +112472,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 1.1
 --- !u!136 &1666093149
 CapsuleCollider:
@@ -144981,6 +144996,7 @@ MonoBehaviour:
   retreatSpeedFraction: 0.54
   retreatEnterDot: 0.66
   retreatExitDot: 0.32
+  protectedCarrySpeedFraction: 0.58
   boundaryClearance: 1.1
 --- !u!136 &2047010074
 CapsuleCollider:

@@ -25,6 +25,7 @@ namespace ToduStudios.WaterPolo
     public sealed partial class MatchRules
     {
         public BoundaryRestartAward? BoundaryRestart { get; private set; }
+        [SerializeField, Range(.25f, 1.5f)] private float boundaryFlightSeconds = .85f;
         public event Action<BoundaryRestartAward> BallReplacementRequested;
 
         internal bool AwardBoundaryRestart(FieldExit exit)
@@ -47,7 +48,7 @@ namespace ToduStudios.WaterPolo
                 var defenders = atBlue ? PrototypeTeam.Blue : PrototypeTeam.White;
                 var defendedGoal = atBlue ? blueGoal : whiteGoal;
                 bool corner = previousTeam == defenders && touch.Player != null &&
-                    (keeperTouch || touch.ControlledRelease || !shot && touch.Intentional);
+                    (keeperTouch || touch.ControlledRelease || touch.BlockedShot || !shot && touch.Intentional);
                 kind = corner ? BoundaryRestartKind.CornerThrow : BoundaryRestartKind.GoalThrow;
                 awarded = corner ? Other(defenders) : defenders;
                 // Use the same side as the exit. Put a goal-throw replacement just inside 2m.
@@ -76,10 +77,8 @@ namespace ToduStudios.WaterPolo
             match.BeginBoundaryStoppage();
             match.ShotClock.AwardBoundaryRestart(awarded, shortClock, fullClock);
             if (kind != BoundaryRestartKind.CornerThrow || possession != awarded) ReleaseTeam(awarded);
-            taker.Motor.ResetPose(mark, Quaternion.LookRotation(RestartDirection(mark)));
-            if (kind == BoundaryRestartKind.CornerThrow) ClearOffensiveGoalArea();
-            ArrangeRestart();
-            readyAt = match.PresentationTime + setupSeconds;
+            readyAt = match.PresentationTime + Mathf.Clamp(
+                ball.IsAirborne ? boundaryFlightSeconds : boundaryFlightSeconds * .7f, .34f, 1.5f);
             Emit(RefereeDecision.BallOut, taker, awarded);
             BallReplacementRequested?.Invoke(restart);
             return true;

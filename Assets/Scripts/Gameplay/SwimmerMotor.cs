@@ -23,6 +23,7 @@ namespace ToduStudios.WaterPolo
         [SerializeField, Min(0f)] private float boundaryClearance = 1.1f;
 
         private Rigidbody body;
+        private float swimRadius;
         private Vector2 moveInput;
         private Vector3 velocity;
         private Vector3 aimDirection;
@@ -56,18 +57,24 @@ namespace ToduStudios.WaterPolo
         public void OverrideSpeed(float speed) => speedOverride = Mathf.Max(0.1f, speed);
         public void ClearSpeedOverride() => speedOverride = -1f;
         public void SetMovementBounds(ISwimmerMovementBounds bounds) => movementBounds = bounds;
-        private Vector3 ClampMovement(Vector3 position)
+        private Vector3 ClampMovement(Vector3 position, bool protectRestart = true)
         {
             if(leavingPeriodLine)
             {
                 if(Mathf.Abs(position.z-poolBounds.transform.position.z)>poolBounds.Length*.5f-boundaryClearance)return poolBounds.ClampPosition(position,0f);
                 leavingPeriodLine=false;
             }
-            Vector3 bounded = movementBounds != null ? movementBounds.ClampMovement(position) : poolBounds.ClampPosition(position, boundaryClearance);
-            return identity != null && identity.Rules != null ? identity.Rules.ProtectOrdinaryRestart(identity, bounded, body.position) : bounded;
+            Vector3 bounded = movementBounds != null ? movementBounds.ClampMovement(position) : position;
+            if (poolBounds.HasPhysicalBasin)
+                bounded = poolBounds.ClampSwimmer(body.position, bounded, swimRadius);
+            else if (movementBounds == null)
+                bounded = poolBounds.ClampPosition(bounded, boundaryClearance);
+            return protectRestart && identity != null && identity.Rules != null
+                ? identity.Rules.ProtectOrdinaryRestart(identity, bounded, body.position) : bounded;
         }
 
         public Vector3 Velocity => velocity;
+        internal float SwimRadius => swimRadius;
         private float SwimSpeed => speedOverride > 0f ? speedOverride : maxSpeed;
         public float MaxSpeed => SwimSpeed * (stamina != null ? stamina.SpeedMultiplier : 1f);
         public Vector3 Position => body != null ? body.position : transform.position;
@@ -108,7 +115,7 @@ namespace ToduStudios.WaterPolo
             angularSpeed = 0f;
             ResetCarryMotion();
             ClearSpeedOverride();
-            body.position = ClampMovement(position);
+            body.position = ClampMovement(position, false);
             body.rotation = rotation;
         }
 
@@ -151,6 +158,8 @@ namespace ToduStudios.WaterPolo
         private void Awake()
         {
             body = GetComponent<Rigidbody>();
+            var capsule = GetComponent<CapsuleCollider>();
+            swimRadius = capsule.radius * Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.z));
             stamina = GetComponent<SwimmerStamina>();
             identity = GetComponent<SwimmerIdentity>();
             interaction = GetComponent<SwimmerBallInteraction>();

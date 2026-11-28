@@ -24,7 +24,9 @@ namespace ToduStudios.WaterPolo.Editor
             Match, FreeSwim, FreeSwimUnderwater, LongPassAway, PowerShot, QuickShot, OrdinaryFoul, DirectionalPassing,
             HeadOn, Shoulder, SprintContact, ContestedPickup, IntelligentSupport,
             MovingReceiver, LateralReceiving, HighReceiving, MissedPass,
-            FreestyleSide, FreestyleRear, Eggbeater, RefereeWalk, KeeperNeutral, KeeperCatch, KeeperMiss
+            FreestyleSide, FreestyleRear, Eggbeater, RefereeWalk, KeeperNeutral, KeeperCatch, KeeperMiss,
+            SidelineFreedom, MouthFreedom, KeeperBehind, PartialLine, WideMiss, HighMiss, KeeperExit,
+            PostRebound, GoalFlow, LateGoal, KeeperConceding, SidelineExit, DefenderExit
         }
 
         static Milestone30BPreview() => EditorApplication.playModeStateChanged += PlayChanged;
@@ -115,6 +117,34 @@ namespace ToduStudios.WaterPolo.Editor
         private static void KeeperCatch() => Launch(Scenario.KeeperCatch);
         [MenuItem(Lab + "Goalkeeper and Penalties/Goalkeeper Miss and Recovery", false, 421)]
         private static void KeeperMiss() => Launch(Scenario.KeeperMiss);
+        [MenuItem(Lab + "Boundaries and Ball Physics/Sideline Movement Freedom")]
+        private static void SidelineFreedom() => Launch(Scenario.SidelineFreedom);
+        [MenuItem(Lab + "Boundaries and Ball Physics/Goal-Line and Goal-Mouth Movement")]
+        private static void MouthFreedom() => Launch(Scenario.MouthFreedom);
+        [MenuItem(Lab + "Boundaries and Ball Physics/Goalkeeper Loose Ball Behind Keeper")]
+        private static void KeeperBehind() => Launch(Scenario.KeeperBehind);
+        [MenuItem(Lab + "Boundaries and Ball Physics/Ball Partially Across Goal Line")]
+        private static void PartialLine() => Launch(Scenario.PartialLine);
+        [MenuItem(Lab + "Boundaries and Ball Physics/Wide Shot - Visible Trajectory")]
+        private static void WideMiss() => Launch(Scenario.WideMiss);
+        [MenuItem(Lab + "Boundaries and Ball Physics/High Miss - Visible Trajectory")]
+        private static void HighMiss() => Launch(Scenario.HighMiss);
+        [MenuItem(Lab + "Boundaries and Ball Physics/Goalkeeper Deflection Out of Play")]
+        private static void KeeperExit() => Launch(Scenario.KeeperExit);
+        [MenuItem(Lab + "Boundaries and Ball Physics/Post Rebound - Live Ball")]
+        private static void PostRebound() => Launch(Scenario.PostRebound);
+        [MenuItem(Lab + "Boundaries and Ball Physics/Sideline Exit - Throw In")]
+        private static void SidelineExit() => Launch(Scenario.SidelineExit);
+        [MenuItem(Lab + "Boundaries and Ball Physics/Defender Deflection Out of Play")]
+        private static void DefenderExit() => Launch(Scenario.DefenderExit);
+        [MenuItem(Lab + "Match Continuity/Ordinary Foul - Legal Repositioning")]
+        private static void FoulContinuity() => Launch(Scenario.OrdinaryFoul);
+        [MenuItem(Lab + "Match Continuity/Goal Reactions and Centre Restart")]
+        private static void GoalFlow() => Launch(Scenario.GoalFlow);
+        [MenuItem(Lab + "Match Continuity/Goal Celebration Preview")]
+        private static void LateGoal() => Launch(Scenario.LateGoal);
+        [MenuItem(Lab + "Match Continuity/Goalkeeper Conceding Reaction")]
+        private static void KeeperConceding() => Launch(Scenario.KeeperConceding);
 
         private static void Launch(Scenario scenario)
         {
@@ -182,7 +212,8 @@ namespace ToduStudios.WaterPolo.Editor
                 .First(player => player.DefendedGoal.ScoringTeam == shooter.Team);
             bool keeperScenario = scenario == Scenario.KeeperLeft || scenario == Scenario.KeeperRight ||
                 scenario == Scenario.KeeperHigh || scenario == Scenario.KeeperNeutral ||
-                scenario == Scenario.KeeperCatch || scenario == Scenario.KeeperMiss;
+                scenario == Scenario.KeeperCatch || scenario == Scenario.KeeperMiss ||
+                scenario == Scenario.KeeperBehind || scenario == Scenario.KeeperConceding;
             Vector3 goal = keeper.DefendedGoal.transform.position;
             Vector3 forward = keeper.DefendedGoal.transform.forward;
             Vector3 right = Vector3.Cross(Vector3.up, forward);
@@ -216,6 +247,11 @@ namespace ToduStudios.WaterPolo.Editor
                     Quaternion.LookRotation(-forward));
             }
             selection.Select(shooter);
+            if (scenario >= Scenario.SidelineFreedom)
+            {
+                await StageContinuity(scenario, match, ball, shooter, receiver, keeper, camera);
+                return;
+            }
 
             if (scenario == Scenario.IntelligentSupport)
             {
@@ -294,6 +330,7 @@ namespace ToduStudios.WaterPolo.Editor
             {
                 var offender = roster.FieldPlayers.First(player => player.Team != shooter.Team);
                 offender.Motor.ResetPose(origin + right * .9f, Quaternion.LookRotation(-right));
+                receiver.Motor.ResetPose(origin - right * 3.2f + forward * .4f, facing);
                 if (!match.Rules.ReportContact(offender, shooter, IllegalContact.Push))
                     throw new InvalidOperationException("The ordinary foul fixture could not award the restart.");
                 camera.SetView(-1);
@@ -374,6 +411,140 @@ namespace ToduStudios.WaterPolo.Editor
             await Awaitable.WaitForSecondsAsync(.55f);
             if (!ball.TryShoot(shooter.Interaction, 20f, ShotType.Skip))
                 throw new InvalidOperationException("The preview shot was rejected.");
+        }
+
+        private static async Task StageContinuity(Scenario scenario, PrototypeMatch match, BallController ball,
+            SwimmerIdentity shooter, SwimmerIdentity receiver, PrototypeGoalkeeper keeper, ArenaDeveloperCamera camera)
+        {
+            var mouth = keeper.DefendedGoal;
+            var goal = mouth.transform.position;
+            var forward = mouth.transform.forward;
+            var right = mouth.transform.right;
+            var pool = Object.FindAnyObjectByType<PoolBounds>();
+            var body = ball.GetComponent<Rigidbody>();
+            ball.ResetForRestart(pool.transform.position - forward * 4f);
+
+            if (scenario is Scenario.SidelineFreedom or Scenario.MouthFreedom)
+            {
+                Vector3 point = scenario == Scenario.MouthFreedom ? goal - forward * 2.15f :
+                    pool.transform.position + right * (pool.Width * .5f - 1.85f) + forward * 1.3f;
+                shooter.Motor.ResetPose(point, Quaternion.LookRotation(forward));
+                if (scenario == Scenario.MouthFreedom)
+                    keeper.Identity.Motor.ResetPose(goal - forward * 2.35f + right * 3.3f, Quaternion.LookRotation(-forward));
+                Frame(camera, point, forward, right, false);
+                var movementView = camera.viewpoints[2];
+                if (scenario == Scenario.MouthFreedom)
+                    StageMouthView(movementView, goal, forward, right);
+                else
+                {
+                    movementView.position = point - right * 3.6f - forward * 1.65f + Vector3.up * 2.1f;
+                    movementView.LookAt(point + right * .65f + Vector3.up * .2f);
+                    FollowInspection(camera, () => shooter != null ? shooter.Motor.Position : (Vector3?)null);
+                }
+                return;
+            }
+            if (scenario == Scenario.KeeperBehind)
+            {
+                Frame(camera, goal - forward * .62f, forward, right, false);
+                StageMouthView(camera.viewpoints[2], goal, forward, right);
+                await Awaitable.WaitForSecondsAsync(.44f);
+                Vector3 point = goal + forward * .06f + right * .34f;
+                point.y = ball.SurfaceHeight;
+                ball.ResetForRestart(point);
+                body.position = point;
+                return;
+            }
+
+            bool goalScene = scenario is Scenario.GoalFlow or Scenario.LateGoal or Scenario.KeeperConceding;
+            shooter.Motor.ResetPose(goal - forward * 4.65f, Quaternion.LookRotation(forward));
+            if (goalScene && scenario != Scenario.KeeperConceding)
+                receiver.Motor.ResetPose(goal - forward * 5.55f + right * 2.1f, Quaternion.LookRotation(forward));
+            if (scenario == Scenario.LateGoal)
+            {
+                while (match.Clock.Quarter < match.Clock.Quarters) match.Clock.NextQuarter();
+                match.Clock.Tick(match.Clock.RealDuration - 9f);
+            }
+            Frame(camera, goal - forward * .65f, forward, right, false);
+            var anchor = camera.viewpoints[2];
+            anchor.position = goal - forward * 3.7f + right * 6.0f + Vector3.up * 3.05f;
+            anchor.LookAt(goal + forward * .60f + Vector3.up * .56f);
+            camera.GetComponent<Camera>().fieldOfView = 53f;
+            if (scenario == Scenario.PartialLine)
+            {
+                keeper.Identity.Motor.ResetPose(goal - forward * 2.15f - right * 3.25f, Quaternion.LookRotation(-forward));
+                StageMouthView(anchor, goal, forward, right);
+            }
+            await Awaitable.WaitForSecondsAsync(.58f);
+
+            float side = scenario switch
+            {
+                Scenario.WideMiss => 2.63f,
+                Scenario.PostRebound => (mouth.Width + mouth.PostThickness) * .5f,
+                Scenario.KeeperConceding => mouth.Width * .5f - ball.Radius - .08f,
+                _ => 0f
+            };
+            Vector3 crossing = goal + right * side;
+            crossing.y += scenario == Scenario.HighMiss ? mouth.Height + .66f : .45f;
+            Vector3 start = goal - forward * 4.5f + right * side;
+            start.y += scenario == Scenario.HighMiss ? 1.15f : .48f;
+            float speed = scenario == Scenario.KeeperConceding ? 23f : 12f;
+            if (scenario == Scenario.PartialLine)
+            {
+                start = goal + forward * .045f;
+                start.y = ball.SurfaceHeight + .005f;
+                LaunchFixtureShot(ball, shooter, forward, start, Vector3.zero, 1f, ShotType.Normal);
+                while (EditorApplication.isPlaying && match.IsPlaying && body != null)
+                {
+                    if (Keyboard.current?.tKey.wasPressedThisFrame == true)
+                    {
+                        body.linearVelocity = forward * 3f;
+                        break;
+                    }
+                    await Awaitable.NextFrameAsync();
+                }
+                return;
+            }
+            if (scenario == Scenario.KeeperExit)
+            {
+                start = goal - forward * 1.05f + right * .95f + Vector3.up * .58f;
+                LaunchFixtureShot(ball, shooter, forward, start, forward * speed, speed, ShotType.Normal);
+                if (!ball.TryDeflectContact(keeper.Identity.Interaction, start, forward * 9.5f + right * 14f + Vector3.up * .25f))
+                    throw new InvalidOperationException("Could not stage the goalkeeper's physical deflection.");
+                return;
+            }
+            if (scenario == Scenario.DefenderExit)
+            {
+                start = goal - forward * 1.08f + right * 2.65f + Vector3.up * .66f;
+                LaunchFixtureShot(ball, shooter, forward, start, forward * speed, speed, ShotType.Normal);
+                var defender = Object.FindAnyObjectByType<PrototypeRoster>().FieldPlayers.First(p => p.Team != shooter.Team);
+                typeof(BallController).GetMethod("NotePlayerContact", BindingFlags.Instance | BindingFlags.NonPublic)
+                    .Invoke(ball, new object[] { defender, false });
+                return;
+            }
+            if (scenario == Scenario.SidelineExit)
+            {
+                start = pool.transform.position + right * (pool.Width * .5f - 1.8f) + Vector3.up * .80f;
+                LaunchFixtureShot(ball, shooter, right, start, right * 10f + Vector3.up * .5f, 10f, ShotType.Normal);
+                Frame(camera, start, forward, -right, false);
+                return;
+            }
+            LaunchFixtureShot(ball, shooter, forward, start, BallTrajectory.Velocity(start, crossing, 4.5f / speed),
+                speed, scenario == Scenario.HighMiss ? ShotType.High : ShotType.Normal);
+        }
+
+        private static void StageMouthView(Transform anchor, Vector3 goal, Vector3 forward, Vector3 right)
+        {
+            anchor.position = goal - forward * 2.5f + right * 2.45f + Vector3.up * 1.85f;
+            anchor.LookAt(goal - forward * .30f + Vector3.up * .28f);
+        }
+
+        private static void LaunchFixtureShot(BallController ball, SwimmerIdentity shooter, Vector3 forward,
+            Vector3 start, Vector3 velocity, float speed, ShotType shot)
+        {
+            const BindingFlags methods = BindingFlags.Instance | BindingFlags.NonPublic;
+            typeof(BallController).GetMethod("LaunchShot", methods)
+                .Invoke(ball, new object[] { shooter.Interaction, forward, speed, shot, start, BallActionSource.Verification });
+            typeof(BallController).GetMethod("BeginFlight", methods).Invoke(ball, new object[] { start, velocity });
         }
 
         private static async Task RunMovingPassOnT(BallController ball, SwimmerIdentity passer,

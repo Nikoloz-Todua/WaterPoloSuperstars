@@ -65,8 +65,9 @@ namespace ToduStudios.WaterPolo
             PenaltyTargetHeight = Mathf.Clamp(PenaltyTargetHeight + input.y * Time.deltaTime * .8f, .09f, PenaltyGoal.Height + .12f);
         }
         public SwimmerIdentity Taker => taker;
+        private const float OrdinaryDefenderClearance = 1f;
         public bool OrdinaryFreeThrow => ordinaryFoul && !match.IsPaused && taker != null &&
-            match.Phase == MatchPhase.FreeThrowReady && !BoundaryRestart.HasValue;
+            (match.Phase is MatchPhase.FreeThrowSetup or MatchPhase.FreeThrowReady) && !BoundaryRestart.HasValue;
         public GoalMouth PenaltyGoal => Team(taker.Team).AttackingGoal;
         internal Vector3 AttackDirection(PrototypeTeam team) => Team(team).AttackingGoal.transform.forward;
         private SwimmerIdentity advantageOffender, advantageShooter;
@@ -125,21 +126,37 @@ namespace ToduStudios.WaterPolo
         internal bool HoldOutsideAtHorn(SwimmerIdentity player) => match.EndingPenalty && player != taker && (penaltyKeeper == null || player != penaltyKeeper.Identity);
         public bool PenaltyStation(PrototypeGoalkeeper keeper) => IsPenalty && keeper == penaltyKeeper;
         public bool CanMove(SwimmerIdentity player) => match.IsPlaying || match.IsSprintRace && player.IsFieldPlayer ||
-            OrdinaryFreeThrow && player.IsFieldPlayer && player != taker ||
+            match.GoalRecoveryActive && player.IsFieldPlayer || OrdinaryFreeThrow && player.IsFieldPlayer && player != taker ||
             !player.IsFieldPlayer && KeeperMayAct(player.GetComponent<PrototypeGoalkeeper>());
 
         internal Vector3 ProtectOrdinaryRestart(SwimmerIdentity player, Vector3 proposed, Vector3 previous)
         {
             if (!OrdinaryFreeThrow || !player.IsFieldPlayer) return proposed;
             if (player == taker) return previous;
-            float limit = player.Team == taker.Team ? .90f : clearance;
+            float limit = player.Team == taker.Team ? .90f : OrdinaryDefenderClearance;
             Vector3 mark = taker.Motor.Position;
             Vector3 delta = PrototypeTeamTactics.Planar(proposed - mark);
             if (delta.sqrMagnitude >= limit * limit) return proposed;
             Vector3 prior = PrototypeTeamTactics.Planar(previous - mark);
             if (prior.sqrMagnitude < limit * limit) return delta.sqrMagnitude > prior.sqrMagnitude ? proposed : previous;
-            Vector3 rim = pool.ClampPosition(mark + (delta.sqrMagnitude > .0001f ? delta.normalized : prior.normalized) * limit, 1.1f);
+            Vector3 rim = mark + (delta.sqrMagnitude > .0001f ? delta.normalized : prior.normalized) * limit;
+            rim = pool.HasPhysicalBasin ? pool.ClampSwimmer(previous, rim, player.Motor.SwimRadius) :
+                pool.ClampPosition(rim, player.Motor.SwimRadius);
             return PrototypeTeamTactics.Planar(rim - mark).sqrMagnitude >= limit * limit - .001f ? rim : previous;
+        }
+
+        internal Vector3 OrdinaryRestartTarget(SwimmerIdentity player, Vector3 preferred)
+        {
+            if (player.Team == taker.Team) return preferred;
+            Vector3 mark = taker.Motor.Position;
+            Vector3 current = PrototypeTeamTactics.Planar(player.Motor.Position - mark);
+            const float standOff = OrdinaryDefenderClearance + .15f;
+            if (current.sqrMagnitude < standOff * standOff)
+                return mark + (current.sqrMagnitude > .001f ? current.normalized : -Team(taker.Team).AttackDirection) *
+                    (standOff + .18f);
+            Vector3 desired = PrototypeTeamTactics.Planar(preferred - mark);
+            return desired.sqrMagnitude >= standOff * standOff ? preferred : mark +
+                (desired.sqrMagnitude > .001f ? desired.normalized : Team(player.Team).AttackDirection) * standOff;
         }
 
         /// <summary>A real close-contact command is required. Failed/out-of-range steals alone never award fouls.</summary>
@@ -177,7 +194,7 @@ namespace ToduStudios.WaterPolo
             // Capture the restart location before stopping clears the live ball and cancels shot charging.
             Vector3 location = ball.PhysicsPosition;
             Vector3 incident = offender.Motor.Position;
-            match.BeginRuleRestart(penalty);
+            match.BeginRuleRestart(penalty, ordinaryFoul);
             if (penalty || exclusion)
             {
                 offender.PersonalFouls++;
@@ -206,9 +223,10 @@ namespace ToduStudios.WaterPolo
                 if (local.z > -2f && Mathf.Abs(local.x) < goal.Width * 0.5f + 2f)
                     location = goal.transform.TransformPoint(new Vector3(local.x, 0f, -2.2f));
             }
-            location = pool.ClampPosition(location, 1.1f);
+            location = pool.ClampPosition(location, ordinaryFoul ? ball.Radius : 1.1f);
             taker.Motor.ResetPose(location, Quaternion.LookRotation(Team(taker.Team).AttackDirection));
-            ArrangeRestart(); ball.TryAwardRestart(taker.Interaction);
+            if (!ordinaryFoul) ArrangeRestart();
+            bool supplied = ball.TryAwardRestart(taker.Interaction);
             if (match.ShotClock != null)
                 match.ShotClock.AwardFoul(victim.Team, exclusion);
             readyAt = match.PresentationTime + setupSeconds;
@@ -216,6 +234,12 @@ namespace ToduStudios.WaterPolo
                 offender, victim.Team, incident, location, contact);
             if (penalty || exclusion) RecordDiscipline(offender, penalty);
             selection.RefreshEligibility();
+            if (ordinaryFoul && supplied)
+            {
+                readyAt = match.PresentationTime;
+                match.ReadyRuleRestart(false);
+                Emit(RefereeDecision.FreeThrow, taker, taker.Team);
+            }
             return true;
         }
         private SwimmerIdentity FindTaker(PrototypeTeam team, Vector3 point)
@@ -333,9 +357,10 @@ namespace ToduStudios.WaterPolo
                     {
                         taker = NearestTaker(restart.Mark, restart.Team);
                         if (taker == null) return;
-                        taker.Motor.ResetPose(restart.Mark, Quaternion.LookRotation(RestartDirection(restart.Mark)));
-                        ArrangeRestart();
                     }
+                    taker.Motor.ResetPose(restart.Mark, Quaternion.LookRotation(RestartDirection(restart.Mark)));
+                    if (restart.Kind == BoundaryRestartKind.CornerThrow) ClearOffensiveGoalArea();
+                    ArrangeRestart();
                     if (!ball.TryAwardRestart(taker.Interaction, restart.Mark)) return;
                 }
                 readyAt = match.PresentationTime;

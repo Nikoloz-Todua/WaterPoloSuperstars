@@ -170,10 +170,10 @@ namespace ToduStudios.WaterPolo
         {
             position = default;
             friendlySupport = false;
-            if (!isActiveAndEnabled || !match.IsPlaying || !identity.EligibleForPlay ||
+            if (!isActiveAndEnabled || !(match.IsPlaying || match.Rules != null && match.Rules.OrdinaryFreeThrow) || !identity.EligibleForPlay ||
                 selection.ActivePlayer == identity || selection.InputLocked || identity.Interaction.HasBall)
                 return false;
-            var carrier = tacticalTeam.Carrier;
+            var carrier = match.Rules != null && match.Rules.OrdinaryFreeThrow ? match.Rules.Taker : tacticalTeam.Carrier;
             if (carrier == null) return false;
             position = carrier.Motor.Position + Vector3.up * .38f;
             friendlySupport = carrier.Team == identity.Team && Behaviour == SwimmerAIBehaviour.Support;
@@ -194,7 +194,9 @@ namespace ToduStudios.WaterPolo
             }
             bool supporting = identity.Team == taker.Team;
             Behaviour = supporting ? SwimmerAIBehaviour.Support : SwimmerAIBehaviour.Defend;
-            Vector3 target = supporting ? tacticalTeam.Support(identity, taker) : tacticalTeam.Defense(identity, taker);
+            Vector3 target = supporting ? tacticalTeam.LiveSupport(identity, taker, selection.ActivePlayer) :
+                tacticalTeam.Defense(identity, taker);
+            target = match.Rules.OrdinaryRestartTarget(identity, target);
             Vector3 delta = PrototypeTeamTactics.Planar(target - identity.Motor.Position);
             Vector3 move = delta.sqrMagnitude > .15f ? Vector3.ClampMagnitude(delta * .44f, .53f) : Vector3.zero;
             Vector3 face = move.sqrMagnitude > .12f ? delta : taker.Motor.Position - identity.Motor.Position;

@@ -107,7 +107,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         void Update()
         {
             bool paused = match != null && (match.IsPaused || match.IsPreMatchPresentation ||
-                match.GoalPresentationActive && !SettlingKeeper);
+                match.GoalPresentationActive && match.GoalPresentation.Phase != GoalPresentationPhase.Celebration && !SettlingKeeper);
             animator.speed = paused ? 0f : Preview ? PreviewPlaybackSpeed
                 : motor.IsRetreating ? Mathf.Lerp(1f, 1.28f, motor.Velocity.magnitude / 4f) : 1f;
             if(paused)return;
@@ -144,7 +144,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                 evaluatedHold = ball.ControlsEvaluatedGrip(identity.Interaction);
                 if (evaluatedHold || followMotion != ThrowMotion.None || motor.IsRetreating)
                     Locomotion = Mathf.Min(Locomotion, .08f);
-                if (ball.ProfessionalThrows && keeper != null && (keeper.AtStation || keeper.Recovering))
+                if (ball.ProfessionalThrows && keeper != null && !keeper.PursuingLooseBall && (keeper.AtStation || keeper.Recovering))
                     Locomotion = Mathf.Min(Locomotion, .12f);
                 animator.SetBool(Hold,!evaluatedHold &&
                     ((identity.Interaction.HasBall && !ball.IsDribbling)||(charge!=null&&charge.IsCharging)));
@@ -166,12 +166,16 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         void LateUpdate()
         {
             if (head == null || alignmentRoot == null || match != null && (match.IsPaused ||
-                match.IsPreMatchPresentation || match.GoalPresentationActive && !SettlingKeeper)) return;
+                match.IsPreMatchPresentation || match.GoalPresentationActive &&
+                match.GoalPresentation.Phase != GoalPresentationPhase.Celebration && !SettlingKeeper)) return;
             float surface=pool!=null?pool.Waterline:0;
             float turn=Mathf.SmoothStep(0,1,Mathf.Clamp01((throwAt-Time.time)*5f));
             alignmentRoot.localRotation=restAlignment*Quaternion.Euler(0f,throwTurn*turn,0f);
             // Outside the animated hierarchy: correct the mesh waterline, never the swimmer root.
             float now=match!=null?match.PresentationTime:Time.time;
+            GoalReaction reaction = default;
+            bool reacting = match != null && match.GoalPresentation != null &&
+                match.GoalPresentation.TryReadReaction(identity, out reaction);
             float elevation = headHeight;
             if (ball != null && ball.ProfessionalThrows && identity != null)
                 UpdateDefensivePresentation();
@@ -184,7 +188,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                     support = Mathf.Max(support, Mathf.Max(loadedWeight * .66f, ball.HasPendingThrow ? .9f : 0f));
                 elevation = Mathf.Lerp(.15f, professional ? .087f : .12f, moving) + (professional ? .048f : .038f) * support +
                     Mathf.Sin(now * 5.4f) * Mathf.Lerp(.009f, .003f, moving);
-                elevation += keeperRise + blockWeight * .095f;
+                elevation += keeperRise + blockWeight * .095f + reaction.Lift;
                 float high = Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(surface + .55f, surface + .79f, reception.Point.y));
                 float receiveTarget = professional ? receiveWeight * Mathf.Lerp(.055f, .41f, high) : 0f;
                 receiveRise = Mathf.MoveTowards(receiveRise, receiveTarget, (receiveTarget > receiveRise ? 2.3f : 1.65f) * Time.deltaTime);
@@ -219,13 +223,19 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                 Vector3 facing = identity != null ? identity.transform.forward : alignmentRoot.forward;
                 if (shotLift > .08f)
                     flutter?.PressWater(facing, Mathf.InverseLerp(.08f, .48f, shotLift) * .72f);
+                else if (reaction.Lift > .09f)
+                    flutter?.PressWater(facing, Mathf.InverseLerp(.09f, .33f, reaction.Lift) * .64f);
                 else if (keeperShot && keeperRise > .11f)
                     flutter?.PressWater(facing, Mathf.InverseLerp(.11f, .43f, keeperRise) * .80f);
                 else
                     flutter?.Apply(facing, animator.GetFloat(Move), animator.GetCurrentAnimatorStateInfo(0).normalizedTime);
             }
             if (ball != null && ball.ProfessionalThrows && SupportsEvaluatedGrip)
+            {
                 FinishEvaluatedPose();
+                if (reacting && !SettlingKeeper)
+                    evaluatedPose.ReactToGoal(motor.RenderedFacing, reaction);
+            }
             if(water!=null && !water.UsesContactSampling && (identity==null||identity.EligibleForPlay))
             {
                 float speed=Preview?Locomotion*2.5f:motor.Velocity.magnitude;
@@ -243,7 +253,7 @@ namespace ToduStudios.WaterPolo.WaterVisuals
         void FinishEvaluatedPose()
         {
             Vector3 forward = identity.transform.forward;
-            bool active = match == null || match.IsPlaying;
+            bool active = match == null || match.IsPlaying || match.Rules != null && match.Rules.OrdinaryFreeThrow;
             if (ball.ControlsEvaluatedGrip(identity.Interaction))
             {
                 followMotion = ThrowMotion.None;
@@ -284,7 +294,9 @@ namespace ToduStudios.WaterPolo.WaterVisuals
                 followMotion = ThrowMotion.None;
             }
 
-            bool keeperStation = keeper != null && (!keeper.Stopped && keeper.AtStation || SettlingKeeper);
+            bool keeperStation = keeper != null &&
+                (keeper.AtStation && !keeper.PursuingLooseBall && (!keeper.Stopped ||
+                    match?.GoalPresentation?.Phase == GoalPresentationPhase.Celebration) || SettlingKeeper);
             if ((!active && !keeperStation) || !identity.EligibleForPlay)
             {
                 evaluatedPose.ResetFingers();
